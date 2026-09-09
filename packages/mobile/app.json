@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "com.claudechat_k7f2.runable",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0B0B0C"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "extra": {
+      "apiUrl": "https://claudec-hn0vtjw-preview-4200.runable.site/",
+      "applicationId": "claudec-hn0vtjw",
+      "runableAuthIssuer": "https://api.runable.com/api/auth"
+    },
+    "ios": {
+      "bundleIdentifier": "com.claudechat-k7f2.runable",
+      "supportsTablet": true
+    },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0B0B0C"
+    },
+    "name": "NORVI AI",
+    "slug": "norvi",
+    "version": "1.0.0",
+    "scheme": "runable-claudec-hn0vtjw",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-audio"
+    ]
+  }
+}
