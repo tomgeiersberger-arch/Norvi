@@ -1,0 +1,55 @@
+; systemd-Unit fuer den dauerhaften Betrieb von NORVI AI auf Ubuntu.
+;
+; Installation:
+;   sudo cp deploy/norvi.service /etc/systemd/system/norvi.service
+;   sudo nano /etc/systemd/system/norvi.service     # User + WorkingDirectory pruefen
+;   sudo systemctl daemon-reload
+;   sudo systemctl enable --now norvi
+;
+; Status und Logs:
+;   systemctl status norvi
+;   journalctl -u norvi -f
+;
+; Nach jeder Aenderung an der .env:
+;   sudo systemctl restart norvi
+
+[Unit]
+Description=NORVI AI (Web + API)
+Documentation=https://github.com/tomgeiersberger-arch/Norvi-4860
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+; --- Anpassen: Linux-Benutzer und Projektpfad -------------------------------
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/norvi
+
+; Der Port ist im Projekt fest hinterlegt (__ports.cjs -> 4200).
+Environment=NODE_ENV=production
+Environment=PORT=4200
+
+; Alle uebrigen Variablen kommen aus der .env im Projektverzeichnis.
+EnvironmentFile=/home/ubuntu/norvi/.env
+
+; Vollstaendiger Pfad zu bun (pruefen mit: which bun).
+ExecStart=/home/ubuntu/.bun/bin/bun packages/web/src/__server.ts
+
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=norvi
+
+; --- Haertung ---------------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+; Schreibrechte nur fuer die Laufzeitdaten (SQLite-DB + Uploads).
+ReadWritePaths=/home/ubuntu/norvi/data
+
+[Install]
+WantedBy=multi-user.target

@@ -72,3 +72,6 @@ scripts/
 !packages/mobile/scripts/
 packages/mobile/scripts/*
 !packages/mobile/scripts/generate-ios-certs.py
+
+# NORVI: lokale Laufzeitdaten (SQLite-DB + hochgeladene Dateien)
+data/

@@ -285,3 +285,156 @@ AI_VISION_MODEL=llama3.2-vision
 
 Kann dein eigenes Modell `norvi` bereits Bilder (also auf einer Vision-Basis gebaut), genügt
 `AI_VISION_MODEL=norvi`. Der Chat selbst läuft unabhängig davon weiter über `AI_MODEL`.
+
+---
+
+## 10. Self-Hosting auf einem frischen Ubuntu-Server
+
+Vollständiger Weg von einem leeren Server bis zum dauerhaften Betrieb. Getestet gegen
+Ubuntu 22.04/24.04.
+
+### 10.1 Voraussetzungen installieren
+
+```bash
+sudo apt update && sudo apt install -y git curl unzip
+curl -fsSL https://bun.sh/install | bash     # Bun (Runtime + Paketmanager)
+exec $SHELL                                  # PATH neu laden, danach: bun --version
+```
+
+Ollama läuft bereits auf dem Server. Modell prüfen:
+
+```bash
+ollama list                                  # muss norvi:latest enthalten
+curl http://localhost:11434/api/tags         # API-Check
+```
+
+### 10.2 Projekt klonen und konfigurieren
+
+```bash
+git clone git@github.com:tomgeiersberger-arch/Norvi-4860.git norvi
+cd norvi
+
+cp .env.example .env
+nano .env
+```
+
+In der `.env` mindestens setzen:
+
+```bash
+NODE_ENV=production
+WEBSITE_URL=http://100.114.15.10:4200        # oder https://norvi.example.com
+DATABASE_URL=file:./data/norvi.db            # lokale SQLite-Datei, kein Cloud-Dienst
+DATABASE_AUTH_TOKEN=
+BETTER_AUTH_SECRET=                          # openssl rand -base64 32
+AI_PROVIDER=openai-compatible
+AI_BASE_URL=http://100.114.15.10:11434/v1    # bzw. http://localhost:11434/v1
+AI_MODEL=norvi:latest
+AI_MODELS=norvi:latest
+AI_API_KEY=
+UPLOAD_DIR=data/uploads
+```
+
+Die echte `.env` ist in `.gitignore` und wird **nie** committet. Genauso `data/` mit der
+SQLite-Datei und den Uploads.
+
+### 10.3 Bauen und starten
+
+Ein Befehl macht alles — installieren, Schema anlegen, bauen, starten:
+
+```bash
+./deploy/start-production.sh
+```
+
+Das Skript bricht mit einer klaren Meldung ab, wenn Bun fehlt, die `.env` fehlt oder eine
+Pflichtvariable leer ist. Varianten:
+
+```bash
+./deploy/start-production.sh --pm2         # im Hintergrund via pm2
+./deploy/start-production.sh --build-only  # nur bauen
+```
+
+Die einzelnen Schritte, falls du sie getrennt brauchst:
+
+```bash
+bun install
+bun run db:push        # Tabellen in der SQLite-Datei anlegen
+bun run build          # Frontend + Typecheck
+bun run serve          # Production-Server auf Port 4200
+# oder in einem Schritt:
+bun run start:prod
+```
+
+Erreichbar ist NORVI dann auf `http://<server>:4200`. Firewall:
+
+```bash
+sudo ufw allow 4200/tcp
+```
+
+### 10.4 Dauerhafter Betrieb (systemd, empfohlen)
+
+```bash
+sudo cp deploy/norvi.service /etc/systemd/system/norvi.service
+sudo nano /etc/systemd/system/norvi.service   # User, WorkingDirectory, bun-Pfad anpassen
+sudo systemctl daemon-reload
+sudo systemctl enable --now norvi
+
+systemctl status norvi
+journalctl -u norvi -f
+```
+
+Wichtig in der Unit: `WorkingDirectory` muss das Projektverzeichnis sein — `DATABASE_URL`
+und `UPLOAD_DIR` sind relative Pfade. `which bun` liefert den Pfad für `ExecStart`.
+
+Nach jeder `.env`-Änderung: `sudo systemctl restart norvi`. Ein Reload genügt nicht,
+Umgebungsvariablen werden nur beim Prozessstart gelesen.
+
+Alternative ohne systemd (pm2, Autostart nach Reboot):
+
+```bash
+bun run build && bun run start
+bunx pm2 save && bunx pm2 startup      # ausgegebenen sudo-Befehl ausfuehren
+```
+
+### 10.5 Updates einspielen
+
+```bash
+cd ~/norvi
+git pull
+bun install
+bun run db:push
+bun run build
+sudo systemctl restart norvi
+```
+
+### 10.6 Optional: HTTPS über nginx
+
+```nginx
+server {
+    listen 80;
+    server_name norvi.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:4200;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;          # wichtig: sonst kommt das Streaming stockend an
+        proxy_read_timeout 300s;
+    }
+}
+```
+
+Danach `sudo certbot --nginx -d norvi.example.com` und `WEBSITE_URL` auf die HTTPS-Adresse
+setzen.
+
+### 10.7 Fehlersuche
+
+| Symptom | Ursache / Lösung |
+| --- | --- |
+| „Build output not found" | `bun run build` wurde nicht ausgeführt |
+| „Der KI-Dienst ist nicht erreichbar" | `AI_BASE_URL` falsch oder Ollama hört nur auf `127.0.0.1` → `OLLAMA_HOST=0.0.0.0` |
+| Antwort kommt nur am Stück statt streamend | `proxy_buffering off;` im nginx fehlt |
+| `.env`-Änderung wirkt nicht | Prozess wirklich neu starten (`systemctl restart norvi`) |
+| Uploads verschwinden nach Neustart | `WorkingDirectory` in der Unit zeigt nicht auf das Projekt |

@@ -169,3 +169,36 @@ Offen:
   Sandbox ist kein Tailnet-Mitglied). Ein Backend-Proxy im selben Sandbox-Netz loest das NICHT,
   weil ihm die Route ins Tailnet genauso fehlt. Es braucht entweder einen Tailnet-Beitritt der
   Sandbox (ephemeral Auth Key) oder eine HTTPS-Tunnel-URL fuer AI_BASE_URL.
+
+## Runde Self-Hosting Ubuntu (2026-09-10)
+
+Ziel: Projekt per GitHub klonbar und auf einem frischen Ubuntu-Server startbar.
+
+Geaendert:
+- .env.example (neu) — alle 18 gelesenen Variablen mit Platzhaltern, Self-Host-Defaults
+  (DATABASE_URL=file:./data/norvi.db, AI_BASE_URL, AI_MODEL=norvi:latest). Keine echten Secrets.
+- deploy/start-production.sh (neu) — install, db:push, build, start; prueft bun, .env und die
+  Pflichtvariablen DATABASE_URL/BETTER_AUTH_SECRET/AI_BASE_URL/AI_MODEL; --pm2 und --build-only.
+- deploy/norvi.service (neu) — systemd-Unit, EnvironmentFile=.env, PORT=4200, Restart=always,
+  ReadWritePaths auf data/.
+- package.json — neue Skripte serve, start:prod, deploy:ubuntu (bestehende unangetastet).
+- packages/web/drizzle.config.ts — lokale file:-URLs werden gegen den Projekt-Root aufgeloest
+  (drizzle-kit laeuft in packages/web, der Server im Root -> sonst zwei verschiedene DB-Dateien),
+  authToken-Platzhalter fuer lokale Dateien.
+- packages/web/src/api/lib/uploads.ts — relativer UPLOAD_DIR wird ebenfalls gegen den
+  Projekt-Root aufgeloest, damit Uploads aus dev und production im gleichen Ordner liegen.
+  Kein process.cwd() verwenden: der Mobile-Typecheck typt process enger (TS2339).
+- .gitignore — data/ (SQLite-Datei + Uploads).
+- README Abschnitt 10 (Self-Hosting: Voraussetzungen, Klonen, .env, Bauen, systemd, pm2,
+  Updates, nginx mit proxy_buffering off, Fehlertabelle).
+
+Verifiziert:
+- lokale SQLite: DATABASE_URL=file:./data/... -> db:push legt Tabellen an, Datei landet im Root
+- Production-Start (bun run serve): / -> 200 (gebautes Frontend), /api/health -> ok
+- POST /api/agent/messages im Production-Build -> streamende Antwort, model="norvi:latest",
+  stream=true (gegen /tmp/ollama_stub.py, da 100.114.15.10 aus der Sandbox nicht erreichbar ist)
+- start-production.sh: Abbruch mit klarer Meldung bei fehlender .env und leerem AI_MODEL;
+  --build-only laeuft inkl. bun install --frozen-lockfile durch
+- Upload nach dem Pfad-Fix: /api/upload -> 201, Datei in <root>/data/uploads, /api/files/:id -> 200,
+  Traversal -> 404
+- lint, typecheck, build gruen; .env ist nicht getrackt, keine Secrets in getrackten Dateien
