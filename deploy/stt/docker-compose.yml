@@ -1,0 +1,67 @@
+# NORVI AI — Spracheingabe (Speech-to-Text)
+#
+# Startet einen lokalen, OpenAI-kompatiblen Whisper-Server neben Ollama.
+# Es verlässt nichts den eigenen Server: NORVI schickt die Aufnahme an
+# 127.0.0.1:8001 und bekommt den Text zurück.
+#
+# Starten:
+#
+#   cd deploy/stt
+#   docker compose up -d                # CPU
+#   docker compose --profile gpu up -d  # NVIDIA-GPU (dann den CPU-Dienst stoppen)
+#
+# Danach in der root .env des Projekts:
+#
+#   STT_BASE_URL=http://127.0.0.1:8001/v1
+#   STT_MODEL=Systran/faster-whisper-small     # CPU: small. GPU: large-v3
+#
+# NORVI neu starten (sudo systemctl restart norvi). Das Mikrofon-Symbol im
+# Chat wird dann automatisch aktiv — die App fragt /api/rpc capabilities ab.
+#
+# Prüfen, ob der Server läuft:
+#   curl http://127.0.0.1:8001/v1/models
+
+services:
+  # --- CPU (läuft überall, auch ohne Grafikkarte) ----------------------------
+  stt:
+    image: fedirz/faster-whisper-server:latest-cpu
+    container_name: norvi-stt
+    restart: unless-stopped
+    # Nur lokal erreichbar. Der Zugriff von außen läuft über NORVI selbst.
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      # Beim ersten Aufruf wird das Modell heruntergeladen (einmalig).
+      WHISPER__MODEL: Systran/faster-whisper-small
+      WHISPER__INFERENCE_DEVICE: cpu
+      WHISPER__COMPUTE_TYPE: int8
+      # Modell nach 5 Minuten Leerlauf aus dem RAM werfen.
+      WHISPER__TTL: "300"
+    volumes:
+      - stt-models:/root/.cache/huggingface
+
+  # --- NVIDIA-GPU (deutlich schneller, braucht nvidia-container-toolkit) -----
+  stt-gpu:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: norvi-stt-gpu
+    restart: unless-stopped
+    profiles: ["gpu"]
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      WHISPER__MODEL: Systran/faster-whisper-large-v3
+      WHISPER__INFERENCE_DEVICE: cuda
+      WHISPER__COMPUTE_TYPE: float16
+      WHISPER__TTL: "300"
+    volumes:
+      - stt-models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  stt-models:

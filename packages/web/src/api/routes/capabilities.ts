@@ -1,5 +1,6 @@
 import { os } from "@orpc/server";
 import { visionAvailable } from "../agent/gateway";
+import { requireAuthEnabled } from "../lib/access";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "../lib/uploads";
 import { sttConfigured } from "../lib/stt";
 
@@ -13,6 +14,8 @@ export const capabilities = {
   get: os.handler(() => ({
     vision: visionAvailable(),
     stt: sttConfigured(),
+    /** True, wenn diese Instanz eine Anmeldung erzwingt (REQUIRE_AUTH=true). */
+    requireAuth: requireAuthEnabled(),
     imageTypes: [...ALLOWED_IMAGE_TYPES],
     maxImageBytes: MAX_IMAGE_BYTES,
   })),

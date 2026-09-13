@@ -7,6 +7,7 @@ import { visionModelId } from "./agent/gateway";
 import { db } from "./database";
 import * as schema from "./database/schema";
 import { auth } from "./auth";
+import { AUTH_REQUIRED_MESSAGE, denyAnonymous } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { SttError, transcribe } from "./lib/stt";
 import {
@@ -131,6 +132,7 @@ app.post("/api/upload", async (c) => {
     if (user && user.isActive === false) {
       return c.json({ error: "Dieses Konto ist deaktiviert." }, 403);
     }
+    if (denyAnonymous(user)) return c.json({ error: AUTH_REQUIRED_MESSAGE }, 401);
 
     const form = await c.req.formData();
     const file = form.get("file");
@@ -199,6 +201,7 @@ app.post("/api/transcribe", async (c) => {
     if (user && user.isActive === false) {
       return c.json({ error: "Dieses Konto ist deaktiviert." }, 403);
     }
+    if (denyAnonymous(user)) return c.json({ error: AUTH_REQUIRED_MESSAGE }, 401);
 
     const form = await c.req.formData();
     const file = form.get("file");
@@ -253,6 +256,7 @@ app.post("/api/agent/messages", async (c) => {
     if (user && user.isActive === false) {
       return c.json({ error: "Dieses Konto ist deaktiviert." }, 403);
     }
+    if (denyAnonymous(user)) return c.json({ error: AUTH_REQUIRED_MESSAGE }, 401);
 
     // Rate-limit guard rail per account (or per device for the login-less client).
     const limitKey = user ? `user:${user.id}` : deviceId ? `device:${deviceId}` : "anon";

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withUser } from "../middleware/auth";
 import { db } from "../database";
 import * as schema from "../database/schema";
+import { AUTH_REQUIRED_MESSAGE, requireAuthEnabled } from "../lib/access";
 
 const deviceId = z.string().min(6).max(120);
 const chatId = z.string().min(6).max(120);
@@ -16,6 +17,10 @@ export const NEW_CHAT_TITLE = "Neuer Chat";
  */
 export function ownerFilter(userId: string | null, device: string | undefined) {
   if (userId) return eq(schema.chats.userId, userId);
+  // REQUIRE_AUTH=true sperrt den anonymen Geräte-Zugang komplett.
+  if (requireAuthEnabled()) {
+    throw new ORPCError("UNAUTHORIZED", { message: AUTH_REQUIRED_MESSAGE });
+  }
   if (device) return and(eq(schema.chats.deviceId, device), isNull(schema.chats.userId));
   throw new ORPCError("UNAUTHORIZED", { message: "Bitte anmelden." });
 }

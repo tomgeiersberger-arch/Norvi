@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
 import { Sidebar } from "../components/chat/sidebar";
@@ -107,6 +108,7 @@ function Index() {
               <div className="truncate text-[0.95rem] font-medium tracking-tight">{agentName}</div>
               <div className="truncate text-[11px] text-muted-foreground">{modelLabel}</div>
             </div>
+            <AccountMenu />
           </div>
         </header>
 
