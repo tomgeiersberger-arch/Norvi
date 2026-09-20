@@ -28,7 +28,7 @@ function imagesOf(message: UIMessage): { url: string; mediaType: string }[] {
 
 function UserAvatar() {
   return (
-    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[0.6rem] bg-secondary text-[11px] font-semibold text-foreground/80 ring-1 ring-white/10">
+    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[0.6rem] bg-gradient-to-br from-secondary to-accent text-[11px] font-semibold text-foreground/80 ring-1 ring-white/10">
       DU
     </span>
   );

@@ -93,7 +93,7 @@ function Index() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="z-10 border-b border-border/70 bg-background/70 backdrop-blur-xl">
+        <header className="z-10 border-b border-border/60 bg-background/60 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
             <button
               type="button"
@@ -106,7 +106,10 @@ function Index() {
             <NorviMark className="size-8" />
             <div className="min-w-0 leading-tight">
               <div className="truncate text-[0.95rem] font-medium tracking-tight">{agentName}</div>
-              <div className="truncate text-[11px] text-muted-foreground">{modelLabel}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-1.5 shrink-0 rounded-full bg-emerald-400/90 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                <span className="truncate text-[11px] text-muted-foreground">{modelLabel}</span>
+              </div>
             </div>
             <AccountMenu />
           </div>

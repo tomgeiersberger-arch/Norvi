@@ -60,9 +60,11 @@ export function Sidebar({
         <button
           type="button"
           onClick={onNewChat}
-          className="flex w-full items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-sm font-medium transition hover:border-primary/40 hover:bg-secondary"
+          className="hover-lift group flex w-full items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-sm font-medium text-foreground hover:border-primary/50 hover:bg-primary/15 hover:shadow-[0_16px_40px_-24px_rgba(217,119,87,0.8)]"
         >
-          <Plus className="size-4 text-primary" />
+          <span className="flex size-5 items-center justify-center rounded-md bg-primary/20 text-primary transition group-hover:bg-primary/30">
+            <Plus className="size-3.5" />
+          </span>
           Neuer Chat
         </button>
       </div>
