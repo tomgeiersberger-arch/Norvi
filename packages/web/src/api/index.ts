@@ -1,3 +1,5 @@
+// Must run before any module that opens the database connection.
+import "./env-defaults";
 import type { RouterClient } from "@orpc/server";
 import { createAgentUIStreamResponse, type UIMessage } from "ai";
 import { and, eq, isNull } from "drizzle-orm";
