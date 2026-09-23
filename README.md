@@ -141,7 +141,7 @@ AI_VISION_MODEL=                            # leer = automatische Wahl (siehe un
 
 STT_BASE_URL=                               # z. B. http://192.168.1.50:8000/v1
 STT_API_KEY=                                # optional, die meisten lokalen Server brauchen keinen
-STT_MODEL=Systran/faster-whisper-large-v3   # optional
+STT_MODEL=Systran/faster-whisper-small      # CPU-freundlicher Standard
 ```
 
 > **Wichtig:** Änderungen an der `.env` greifen erst nach einem **echten Neustart** des
@@ -182,7 +182,7 @@ Prüfen, ob er läuft:
 
 ```bash
 curl http://localhost:8000/v1/models
-curl -F "file=@test.m4a" -F "model=Systran/faster-whisper-large-v3" \
+curl -F "file=@test.m4a" -F "model=Systran/faster-whisper-small" \
   http://localhost:8000/v1/audio/transcriptions
 ```
 
@@ -190,7 +190,7 @@ Danach in der root `.env` eintragen und den NORVI-Server neu starten:
 
 ```bash
 STT_BASE_URL=http://192.168.1.50:8000/v1    # LAN-IP des Whisper-Rechners, mit /v1 am Ende
-STT_MODEL=Systran/faster-whisper-large-v3
+STT_MODEL=Systran/faster-whisper-small
 ```
 
 Läuft Whisper auf **demselben** Rechner wie NORVI, genügt `http://localhost:8000/v1`.
@@ -311,7 +311,7 @@ curl http://localhost:11434/api/tags         # API-Check
 ### 10.2 Projekt klonen und konfigurieren
 
 ```bash
-git clone git@github.com:tomgeiersberger-arch/Norvi-4860.git norvi
+git clone git@github.com:tomgeiersberger-arch/Norvi.git norvi
 cd norvi
 
 cp .env.example .env
@@ -327,10 +327,16 @@ DATABASE_URL=file:./data/norvi.db            # lokale SQLite-Datei, kein Cloud-D
 DATABASE_AUTH_TOKEN=
 BETTER_AUTH_SECRET=                          # openssl rand -base64 32
 AI_PROVIDER=openai-compatible
-AI_BASE_URL=http://100.114.15.10:11434/v1    # bzw. http://localhost:11434/v1
+AI_BASE_URL=http://127.0.0.1:11434/v1         # gleicher Rechner: localhost bevorzugen
 AI_MODEL=norvi:latest
 AI_MODELS=norvi:latest
+AI_FAST_MODEL=norvi:latest
+AI_DEEP_MODEL=                                  # optional, z. B. norvi4b
+AI_FAST_MAX_TOKENS=256
+AI_BALANCED_MAX_TOKENS=512
+AI_DEEP_MAX_TOKENS=1024
 AI_API_KEY=
+REQUIRE_AUTH=true                              # bei externem Zugriff immer aktivieren
 UPLOAD_DIR=data/uploads
 ```
 
@@ -438,3 +444,67 @@ setzen.
 | Antwort kommt nur am Stück statt streamend | `proxy_buffering off;` im nginx fehlt |
 | `.env`-Änderung wirkt nicht | Prozess wirklich neu starten (`systemctl restart norvi`) |
 | Uploads verschwinden nach Neustart | `WorkingDirectory` in der Unit zeigt nicht auf das Projekt |
+
+
+## 11. Empfohlenes Homeserver-Profil
+
+Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
+
+| Modus | Zweck | Standard |
+| --- | --- | --- |
+| Schnell | kurze Alltagsfragen, geringste CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
+| Normal | Standard-Chat | gewähltes Modell, 512 Output-Tokens |
+| Gründlich | längere Antworten / optional größeres Modell | `AI_DEEP_MODEL`, 1024 Output-Tokens |
+
+Der Modus lässt sich in den Web-Einstellungen auswählen. Ist `AI_DEEP_MODEL` leer,
+bleibt auch „Gründlich“ auf dem gewählten Modell und erhöht nur das Antwortbudget.
+
+### Dauerhafter externer Zugriff
+
+Für echten Dauerbetrieb keinen zufälligen Quick Tunnel verwenden. Einen benannten
+Cloudflare Tunnel anlegen und `cloudflared` als Systemdienst installieren. Der Tunnel
+soll ausschließlich NORVI auf `http://127.0.0.1:4200` veröffentlichen; Ollama auf
+Port 11434 bleibt lokal.
+
+Vor dem Freigeben ins Internet:
+
+```env
+REQUIRE_AUTH=true
+AI_BASE_URL=http://127.0.0.1:11434/v1
+```
+
+Danach prüfen:
+
+```bash
+curl http://127.0.0.1:4200/api/health
+systemctl status norvi
+systemctl status cloudflared
+```
+
+### Lokale KI-Dienste
+
+Wenn Ollama und NORVI auf demselben Rechner laufen, sollte Ollama nur lokal erreichbar
+sein. Eine Freigabe über `OLLAMA_HOST=0.0.0.0` ist dafür nicht nötig.
+
+Speech-to-Text wird über den bereits eingebauten OpenAI-kompatiblen Endpoint angebunden:
+
+```env
+STT_BASE_URL=http://127.0.0.1:8000/v1
+STT_MODEL=Systran/faster-whisper-small
+```
+
+Vision wird nur geladen, wenn tatsächlich ein Bild gesendet wird:
+
+```bash
+ollama pull qwen3-vl:2b-instruct
+```
+
+```env
+AI_VISION_MODEL=qwen3-vl:2b-instruct
+```
+
+Nach jeder Änderung an `.env` NORVI vollständig neu starten:
+
+```bash
+sudo systemctl restart norvi
+```
