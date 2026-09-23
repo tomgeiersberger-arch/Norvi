@@ -46,12 +46,10 @@ StandardError=journal
 SyslogIdentifier=norvi
 
 ; --- Haertung ---------------------------------------------------------------
+; Diese beiden Optionen funktionieren auch auf Hosts, auf denen systemd
+; Mount-Namespaces (ProtectHome/ProtectSystem) nicht verfuegbar sind.
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=full
-ProtectHome=read-only
-; Schreibrechte nur fuer die Laufzeitdaten (SQLite-DB + Uploads).
-ReadWritePaths=/home/norviadmin/norvi/data
 
 [Install]
 WantedBy=multi-user.target
