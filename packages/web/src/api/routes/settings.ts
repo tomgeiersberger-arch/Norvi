@@ -7,15 +7,26 @@ import * as schema from "../database/schema";
 
 /** Temperature is stored as an integer percentage (0–100) to stay SQLite-simple. */
 const temperature = z.number().int().min(0).max(100);
+const performanceMode = z.enum(["fast", "balanced", "deep"]);
+export type PerformanceMode = z.infer<typeof performanceMode>;
 
 export type UserSettings = {
   modelId: string;
   temperature: number;
   models: string[];
   supportsTemperature: boolean;
+  performanceMode: PerformanceMode;
 };
 
-function present(row: { modelId: string | null; temperature: number | null } | undefined) {
+function present(
+  row:
+    | {
+        modelId: string | null;
+        temperature: number | null;
+        performanceMode: string | null;
+      }
+    | undefined,
+) {
   const models = availableModels();
   const stored = row?.modelId && models.includes(row.modelId) ? row.modelId : defaultModelId();
   return {
@@ -25,6 +36,9 @@ function present(row: { modelId: string | null; temperature: number | null } | u
     // The hosted gateway ignores temperature for reasoning models, so the UI
     // only offers it on the OpenAI-compatible (self-hosted) provider.
     supportsTemperature: providerKind() === "openai-compatible",
+    performanceMode: performanceMode.safeParse(row?.performanceMode).success
+      ? (row!.performanceMode as PerformanceMode)
+      : "balanced",
   } satisfies UserSettings;
 }
 
@@ -43,6 +57,7 @@ export const settings = {
       z.object({
         modelId: z.string().trim().min(1).max(120).optional(),
         temperature: temperature.optional(),
+        performanceMode: performanceMode.optional(),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -56,6 +71,7 @@ export const settings = {
           userId: context.user.id,
           modelId: modelId ?? defaultModelId(),
           temperature: input.temperature ?? 70,
+          performanceMode: input.performanceMode ?? "balanced",
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -63,6 +79,9 @@ export const settings = {
           set: {
             ...(modelId ? { modelId } : {}),
             ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+            ...(input.performanceMode !== undefined
+              ? { performanceMode: input.performanceMode }
+              : {}),
             updatedAt: new Date(),
           },
         });
