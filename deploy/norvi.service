@@ -15,30 +15,32 @@
 
 [Unit]
 Description=NORVI AI (Web + API)
-Documentation=https://github.com/tomgeiersberger-arch/Norvi-4860
+Documentation=https://github.com/tomgeiersberger-arch/Norvi
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 
-; --- Anpassen: Linux-Benutzer und Projektpfad -------------------------------
-User=ubuntu
-Group=ubuntu
-WorkingDirectory=/home/ubuntu/norvi
+; --- NORVI Homeserver --------------------------------------------------------
+User=norviadmin
+Group=norviadmin
+WorkingDirectory=/home/norviadmin/norvi
 
 ; Der Port ist im Projekt fest hinterlegt (__ports.cjs -> 4200).
 Environment=NODE_ENV=production
 Environment=PORT=4200
 
 ; Alle uebrigen Variablen kommen aus der .env im Projektverzeichnis.
-EnvironmentFile=/home/ubuntu/norvi/.env
+EnvironmentFile=/home/norviadmin/norvi/.env
 
 ; Vollstaendiger Pfad zu bun (pruefen mit: which bun).
-ExecStart=/home/ubuntu/.bun/bin/bun packages/web/src/__server.ts
+ExecStart=/home/norviadmin/.bun/bin/bun packages/web/src/__server.ts
 
 Restart=always
 RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGTERM
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=norvi
@@ -49,7 +51,7 @@ PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
 ; Schreibrechte nur fuer die Laufzeitdaten (SQLite-DB + Uploads).
-ReadWritePaths=/home/ubuntu/norvi/data
+ReadWritePaths=/home/norviadmin/norvi/data
 
 [Install]
 WantedBy=multi-user.target
