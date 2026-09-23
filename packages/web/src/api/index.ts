@@ -24,7 +24,7 @@ import { chats, NEW_CHAT_TITLE } from "./routes/chats";
 import { ping } from "./routes/ping";
 import { model } from "./routes/model";
 import { me } from "./routes/me";
-import { settings, settingsFor } from "./routes/settings";
+import { settings, settingsFor, type PerformanceMode } from "./routes/settings";
 
 // API features are oRPC procedures, one file per feature in ./routes/,
 // composed into this router — typed end-to-end via the clients
@@ -117,6 +117,33 @@ async function withInlineImages(messages: UIMessage[], requestUrl: string): Prom
 }
 
 /** Rate-limit helper shared by the upload and transcription endpoints. */
+function positiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+function performanceProfile(
+  mode: PerformanceMode,
+  selectedModel: string,
+): { modelId: string; maxOutputTokens: number } {
+  if (mode === "fast") {
+    return {
+      modelId: process.env.AI_FAST_MODEL?.trim() || selectedModel,
+      maxOutputTokens: positiveInt(process.env.AI_FAST_MAX_TOKENS, 256),
+    };
+  }
+  if (mode === "deep") {
+    return {
+      modelId: process.env.AI_DEEP_MODEL?.trim() || selectedModel,
+      maxOutputTokens: positiveInt(process.env.AI_DEEP_MAX_TOKENS, 1024),
+    };
+  }
+  return {
+    modelId: selectedModel,
+    maxOutputTokens: positiveInt(process.env.AI_BALANCED_MAX_TOKENS, 512),
+  };
+}
+
 function limitKeyFor(
   user: { id: string } | undefined,
   deviceId: string | undefined | null,
@@ -322,9 +349,11 @@ app.post("/api/agent/messages", async (c) => {
     // Per-account model / answer style, falling back to the server default.
     const prefs = await settingsFor(user?.id);
 
-    // A conversation that contains images has to run on a vision-capable model.
+    // Route normal text through the selected performance profile. Vision always
+    // wins when an image is present so a text-only fast/deep model never guesses.
+    const profile = performanceProfile(prefs.performanceMode, prefs.modelId);
     const hasImages = (messages as UIMessage[]).some((message) => imagesOf(message).length > 0);
-    const modelId = hasImages ? visionModelId(prefs.modelId) : prefs.modelId;
+    const modelId = hasImages ? visionModelId(profile.modelId) : profile.modelId;
     const uiMessages = hasImages
       ? await withInlineImages(messages as UIMessage[], c.req.url)
       : (messages as UIMessage[]);
@@ -333,6 +362,7 @@ app.post("/api/agent/messages", async (c) => {
       agent: createAgent({
         modelId,
         temperature: prefs.supportsTemperature ? prefs.temperature / 100 : undefined,
+        maxOutputTokens: profile.maxOutputTokens,
       }),
       uiMessages,
       // Errors mid-stream reach the client as readable text instead of a silent stop.
