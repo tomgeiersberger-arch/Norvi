@@ -2,7 +2,13 @@ import type { RouterClient } from "@orpc/server";
 import { createAgentUIStreamResponse, type UIMessage } from "ai";
 import { and, eq, isNull } from "drizzle-orm";
 import { createApp } from "./__core/app";
-import { createAgent, AGENT_NAME, describeAgentError, MODEL_LABEL } from "./agent";
+import {
+  createAgent,
+  AGENT_NAME,
+  describeAgentError,
+  MODEL_LABEL,
+  type ReasoningEffort,
+} from "./agent";
 import { visionModelId } from "./agent/gateway";
 import { db } from "./database";
 import * as schema from "./database/schema";
@@ -125,22 +131,25 @@ function positiveInt(value: string | undefined, fallback: number): number {
 function performanceProfile(
   mode: PerformanceMode,
   selectedModel: string,
-): { modelId: string; maxOutputTokens: number } {
+): { modelId: string; maxOutputTokens: number; reasoningEffort: ReasoningEffort } {
   if (mode === "fast") {
     return {
       modelId: process.env.AI_FAST_MODEL?.trim() || selectedModel,
       maxOutputTokens: positiveInt(process.env.AI_FAST_MAX_TOKENS, 256),
+      reasoningEffort: "none",
     };
   }
   if (mode === "deep") {
     return {
       modelId: process.env.AI_DEEP_MODEL?.trim() || selectedModel,
       maxOutputTokens: positiveInt(process.env.AI_DEEP_MAX_TOKENS, 1024),
+      reasoningEffort: "high",
     };
   }
   return {
     modelId: selectedModel,
     maxOutputTokens: positiveInt(process.env.AI_BALANCED_MAX_TOKENS, 512),
+    reasoningEffort: "low",
   };
 }
 
@@ -363,6 +372,8 @@ app.post("/api/agent/messages", async (c) => {
         modelId,
         temperature: prefs.supportsTemperature ? prefs.temperature / 100 : undefined,
         maxOutputTokens: profile.maxOutputTokens,
+        // Keep vision requests provider-neutral; not every vision model supports reasoning controls.
+        reasoningEffort: hasImages ? undefined : profile.reasoningEffort,
       }),
       uiMessages,
       // Errors mid-stream reach the client as readable text instead of a silent stop.
