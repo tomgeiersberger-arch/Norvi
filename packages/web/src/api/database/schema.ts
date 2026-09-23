@@ -45,6 +45,8 @@ export const userSettings = sqliteTable("user_settings", {
   userId: text("user_id").primaryKey(),
   modelId: text("model_id"),
   temperature: integer("temperature"),
+  /** fast | balanced | deep — controls local model routing and output budget. */
+  performanceMode: text("performance_mode"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
