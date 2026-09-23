@@ -7,13 +7,18 @@ export const MODEL_LABEL = "NORVI AI";
 /** Model actually used when the caller has no personal preference. */
 export const MODEL_ID = defaultModelId();
 
-/** Builds an agent for one request — model and temperature come from settings. */
-export function createAgent(options?: { modelId?: string; temperature?: number }) {
+/** Builds an agent for one request — model and generation budget come from settings. */
+export function createAgent(options?: {
+  modelId?: string;
+  temperature?: number;
+  maxOutputTokens?: number;
+}) {
   return new ToolLoopAgent({
   model: resolveModel(options?.modelId),
   ...(providerKind() === "openai-compatible" && options?.temperature !== undefined
     ? { temperature: options.temperature }
     : {}),
+  ...(options?.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
   instructions: [
     {
       role: "system",
