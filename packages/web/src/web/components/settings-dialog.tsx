@@ -14,12 +14,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   const [modelId, setModelId] = useState("");
   const [temperature, setTemperature] = useState(70);
+  const [performanceMode, setPerformanceMode] = useState<"fast" | "balanced" | "deep">("balanced");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!settings.data) return;
     setModelId(settings.data.modelId);
     setTemperature(settings.data.temperature);
+    setPerformanceMode(settings.data.performanceMode);
   }, [settings.data]);
 
   if (!open) return null;
@@ -27,7 +29,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const save = () => {
     setSaved(false);
     update.mutate(
-      { modelId, temperature },
+      { modelId, temperature, performanceMode },
       { onSuccess: () => setSaved(true) },
     );
   };
@@ -83,6 +85,36 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 ))}
               </select>
             </label>
+
+            <div>
+              <span className="mb-1.5 block text-[12px] text-muted-foreground">
+                Leistungsmodus
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  ["fast", "Schnell"],
+                  ["balanced", "Normal"],
+                  ["deep", "Gründlich"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setPerformanceMode(value)}
+                    className={`rounded-xl border px-2 py-2 text-[12px] transition ${
+                      performanceMode === value
+                        ? "border-primary/60 bg-primary/10 text-foreground"
+                        : "border-border bg-background/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Schnell spart Rechenzeit, Normal ist der Standard, Gründlich nutzt ein optionales
+                größeres Modell und ein höheres Antwortlimit.
+              </p>
+            </div>
 
             {settings.data?.supportsTemperature ? (
               <label className="block">
