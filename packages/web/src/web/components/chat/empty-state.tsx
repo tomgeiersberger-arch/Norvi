@@ -1,3 +1,6 @@
+import { ImagePlus, Mic2, Sparkles } from "lucide-react";
+import { NorviMark } from "./norvi-mark";
+
 const SUGGESTIONS = [
   "Erklär mir Vektordatenbanken in 5 Sätzen",
   "Schreib eine Python-Funktion für Fibonacci mit Memoization",
@@ -22,23 +25,30 @@ export function EmptyState({ agentName, onPick, vision = false, stt = false }: E
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-1 py-12 text-center">
+      <div className="rise relative" style={{ animationDelay: "40ms" }}>
+        <div className="absolute inset-[-18px] rounded-full bg-primary/15 blur-3xl" />
+        <div className="glass-panel relative flex size-20 items-center justify-center rounded-[1.7rem]">
+          <NorviMark className="size-11" pulse />
+          <Sparkles className="absolute -top-1 -right-1 size-4 text-primary" />
+        </div>
+      </div>
       <div
-        className="rise flex size-12 items-center justify-center rounded-2xl bg-primary/12 ring-1 ring-primary/25"
-        style={{ animationDelay: "40ms" }}
+        className="rise mt-7 rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase"
+        style={{ animationDelay: "90ms" }}
       >
-        <span className="size-4 rounded-full bg-primary" />
+        Private Local AI
       </div>
       <h1
-        className="rise mt-6 text-2xl font-medium tracking-tight sm:text-[1.75rem]"
-        style={{ animationDelay: "120ms" }}
+        className="rise mt-4 text-3xl font-semibold tracking-[-0.035em] sm:text-[2.15rem]"
+        style={{ animationDelay: "130ms" }}
       >
-        Womit fangen wir an?
+        Was bauen wir heute?
       </h1>
       <p
-        className="rise mt-2 max-w-sm text-sm text-muted-foreground"
+        className="rise mt-2.5 max-w-md text-sm leading-relaxed text-muted-foreground"
         style={{ animationDelay: "200ms" }}
       >
-        {agentName} antwortet live, Token für Token — Code inklusive Syntax-Highlighting.
+        {agentName} läuft auf deinem Server, streamt Antworten live und versteht auf Wunsch Bilder und Sprache.
       </p>
       <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-2">
         {SUGGESTIONS.map((suggestion, i) => (
@@ -61,8 +71,9 @@ export function EmptyState({ agentName, onPick, vision = false, stt = false }: E
           {hints.map((hint) => (
             <span
               key={hint}
-              className="rounded-full border border-border/70 bg-card/40 px-3 py-1 text-xs text-muted-foreground"
+              className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground"
             >
+              {hint.startsWith("Bild") ? <ImagePlus className="size-3.5" /> : <Mic2 className="size-3.5" />}
               {hint}
             </span>
           ))}

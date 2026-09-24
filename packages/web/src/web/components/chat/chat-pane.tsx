@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { Loader2, RotateCcw } from "lucide-react";
+import { ChevronDown, Loader2, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { orpc } from "../../lib/api";
 import { getDeviceId } from "../../lib/device";
@@ -94,6 +94,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   const createChat = useCreateChat();
   const capabilities = useCapabilities();
   const [id, setId] = useState<string | null>(chatId);
+  const [nearBottom, setNearBottom] = useState(true);
   const idRef = useRef<string | null>(chatId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -106,11 +107,17 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   const last = messages.at(-1);
   const waitingForFirstToken = status === "submitted" || (last?.role === "user" && busy);
 
-  useEffect(() => {
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: messages.length > 1 ? "smooth" : "auto" });
-  }, [messages, status]);
+    el.scrollTo({ top: el.scrollHeight, behavior });
+    setNearBottom(true);
+  };
+
+  useEffect(() => {
+    if (!nearBottom && status !== "submitted") return;
+    scrollToBottom(messages.length > 1 ? "smooth" : "auto");
+  }, [messages, status, nearBottom]);
 
   // Refresh the sidebar once a turn is done (auto-title, ordering).
   useEffect(() => {
@@ -158,9 +165,17 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div ref={scrollRef} className="scroll-slim min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div
+        ref={scrollRef}
+        onScroll={() => {
+          const el = scrollRef.current;
+          if (!el) return;
+          setNearBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 140);
+        }}
+        className="scroll-slim min-h-0 flex-1 overflow-y-auto"
+      >
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
           {messages.length === 0 ? (
             <EmptyState
               agentName={agentName}
@@ -198,8 +213,19 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         </div>
       </div>
 
-      <div className="bg-gradient-to-t from-background via-background/95 to-transparent pt-4 pb-4 sm:pb-6">
-        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
+      {!nearBottom && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom()}
+          aria-label="Zum neuesten Beitrag springen"
+          className="glass-panel absolute right-5 bottom-[8.3rem] z-20 flex size-9 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground sm:right-8"
+        >
+          <ChevronDown className="size-4" />
+        </button>
+      )}
+
+      <div className="bg-gradient-to-t from-background via-background/96 to-transparent pt-5 pb-4 sm:pb-6">
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
           <Composer
             agentName={agentName}
             onSend={(text, images) => void send(text, images)}

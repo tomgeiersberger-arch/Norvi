@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { UIMessage } from "ai";
-import { X } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import { Markdown } from "./markdown";
 import { NorviMark } from "./norvi-mark";
 
@@ -77,6 +77,14 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
   const text = textOf(message);
   const images = imagesOf(message);
   const [zoomed, setZoomed] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyText = async () => {
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  };
 
   if (message.role === "user") {
     return (
@@ -114,11 +122,24 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
   }
 
   return (
-    <div className="rise flex gap-3">
-      <NorviMark className="mt-0.5 size-7" />
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground">
-          {agentName}
+    <div className="rise group flex gap-3.5">
+      <NorviMark className="mt-0.5 size-8 shrink-0" />
+      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-white/[0.055] bg-white/[0.018] px-4 py-3.5 sm:px-5">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            {agentName}
+          </div>
+          {text && (
+            <button
+              type="button"
+              onClick={() => void copyText()}
+              aria-label="Antwort kopieren"
+              title="Antwort kopieren"
+              className="flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition hover:bg-white/[0.06] hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+            >
+              {copied ? <Check className="size-3.5 text-green-400" /> : <Copy className="size-3.5" />}
+            </button>
+          )}
         </div>
         <div className={streaming && text.length > 0 ? "streaming-caret" : ""}>
           <Markdown content={text} />

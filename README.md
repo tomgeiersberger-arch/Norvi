@@ -139,9 +139,11 @@ UPLOAD_DIR=data/uploads                     # Ablage der hochgeladenen Bilder
 AI_VISION_MODEL=                            # leer = automatische Wahl (siehe unten)
 # Lokal mit Ollama z. B.: AI_VISION_MODEL=llama3.2-vision
 
-STT_BASE_URL=                               # z. B. http://192.168.1.50:8000/v1
-STT_API_KEY=                                # optional, die meisten lokalen Server brauchen keinen
-STT_MODEL=Systran/faster-whisper-small      # CPU-freundlicher Standard
+STT_LOCAL_ENABLED=false                    # true = eingebauten lokalen Sidecar starten
+STT_LOCAL_MODEL=tiny                        # CPU-freundlicher NORVI-Standard
+STT_BASE_URL=                               # lokal: http://127.0.0.1:8000/v1
+STT_API_KEY=
+STT_MODEL=whisper-1
 ```
 
 > **Wichtig:** Änderungen an der `.env` greifen erst nach einem **echten Neustart** des
@@ -163,47 +165,51 @@ ollama pull llama3.2-vision
 # .env: AI_VISION_MODEL=llama3.2-vision
 ```
 
-### 8.4 Whisper-Server auf Ubuntu einrichten
+### 8.4 Lokale Spracheingabe auf dem NORVI-Server
 
-NORVI erwartet einen **OpenAI-kompatiblen** Endpunkt (`POST <STT_BASE_URL>/audio/transcriptions`).
-Am einfachsten mit `faster-whisper-server` per Docker:
+NORVI kann seinen eigenen OpenAI-kompatiblen Whisper-Sidecar automatisch mitstarten. Der
+Dienst lauscht ausschließlich auf `127.0.0.1`; Audiodaten verlassen den Server nicht. Für den
+kleinen CPU-Server ist das multilingual `tiny`-Modell der Standard.
 
-```bash
-# nur CPU
-docker run -d --name whisper --restart unless-stopped -p 8000:8000 \
-  fedirz/faster-whisper-server:latest-cpu
+```env
+STT_LOCAL_ENABLED=true
+STT_LOCAL_PORT=8000
+STT_LOCAL_MODEL=tiny
+WHISPER_API_HOME=data/whisper-api
 
-# mit NVIDIA-GPU (deutlich schneller)
-docker run -d --name whisper --restart unless-stopped --gpus all -p 8000:8000 \
-  fedirz/faster-whisper-server:latest-cuda
+STT_BASE_URL=http://127.0.0.1:8000/v1
+STT_API_KEY=norvi-loopback-only
+STT_MODEL=whisper-1
 ```
 
-Prüfen, ob er läuft:
+Der Sidecar wird zusammen mit NORVI gestartet und bei einem unerwarteten Absturz automatisch
+neu gestartet. Beim ersten Start werden die lokalen ONNX-Modellartefakte unter
+`data/whisper-api/` vorbereitet; spätere Starts verwenden den Cache.
+
+Prüfen:
 
 ```bash
-curl http://localhost:8000/v1/models
-curl -F "file=@test.m4a" -F "model=Systran/faster-whisper-small" \
-  http://localhost:8000/v1/audio/transcriptions
+curl http://127.0.0.1:8000/health
 ```
 
-Danach in der root `.env` eintragen und den NORVI-Server neu starten:
+Alternativ kann `STT_LOCAL_ENABLED=false` bleiben und `STT_BASE_URL` auf jeden anderen
+OpenAI-kompatiblen Transcriptions-Endpunkt zeigen. Damit funktionieren beispielsweise ein
+separater schnellerer Whisper-Rechner oder eine GPU-Instanz im eigenen Netz.
 
-```bash
-STT_BASE_URL=http://192.168.1.50:8000/v1    # LAN-IP des Whisper-Rechners, mit /v1 am Ende
-STT_MODEL=Systran/faster-whisper-small
-```
-
-Läuft Whisper auf **demselben** Rechner wie NORVI, genügt `http://localhost:8000/v1`.
-Deutsch und Englisch werden erkannt; die Sprache wird beim Aufnehmen mitgeschickt.
+**Browser-Hinweis:** Mikrofonzugriff benötigt einen sicheren Kontext. Auf einem anderen Gerät
+also NORVI über HTTPS öffnen; `http://localhost` ist die einzige übliche HTTP-Ausnahme.
 
 ### 8.5 Bedienung
 
-- **Desktop:** Büroklammer öffnet die Dateiauswahl (JPG, JPEG, PNG, WebP, max. 12 MB). Bilder
-  lassen sich auch direkt ins Eingabefeld einfügen (Strg+V).
-- **Smartphone:** Der Bild-Knopf fragt „Kamera oder Galerie" — die Kamera gibt es bewusst nur
-  auf dem Handy, nicht am Desktop.
-- **Mikrofon:** Derselbe Knopf startet und stoppt die Aufnahme. Der erkannte Text landet
-  **zuerst im Eingabefeld** und ist dort editierbar — abgeschickt wird er erst mit „Senden".
+- **Bilder:** per Bild-Knopf, Einfügen aus der Zwischenablage oder Drag & Drop; maximal vier
+  Bilder pro Nachricht.
+- **Mikrofon:** drücken zum Aufnehmen, erneut drücken zum Stoppen. Der erkannte Text landet
+  zuerst editierbar im Eingabefeld.
+- **Tastatur:** `Enter` sendet, `Shift+Enter` fügt eine Zeile ein und `Ctrl/⌘ K` fokussiert
+  den Composer.
+- **Antworten:** NORVI-Antworten lassen sich direkt kopieren. Wer im Verlauf nach oben scrollt,
+  wird beim Streaming nicht mehr automatisch nach unten gerissen; ein Button springt zurück
+  zur neuesten Nachricht.
 
 ### 8.6 Backup
 
@@ -486,11 +492,14 @@ systemctl status cloudflared
 Wenn Ollama und NORVI auf demselben Rechner laufen, sollte Ollama nur lokal erreichbar
 sein. Eine Freigabe über `OLLAMA_HOST=0.0.0.0` ist dafür nicht nötig.
 
-Speech-to-Text wird über den bereits eingebauten OpenAI-kompatiblen Endpoint angebunden:
+Speech-to-Text kann direkt mit NORVI als lokaler CPU-Sidecar laufen:
 
 ```env
+STT_LOCAL_ENABLED=true
+STT_LOCAL_MODEL=tiny
 STT_BASE_URL=http://127.0.0.1:8000/v1
-STT_MODEL=Systran/faster-whisper-small
+STT_API_KEY=norvi-loopback-only
+STT_MODEL=whisper-1
 ```
 
 Vision wird nur geladen, wenn tatsächlich ein Bild gesendet wird:

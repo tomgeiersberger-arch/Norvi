@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { BrainCircuit, Gauge, Loader2, Sparkles, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 
 interface SettingsDialogProps {
@@ -42,7 +42,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         onClick={onClose}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
-      <div className="rise relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+      <div className="glass-panel rise relative w-full max-w-lg rounded-[1.6rem] p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Einstellungen</h2>
@@ -92,27 +92,29 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </span>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  ["fast", "Schnell"],
-                  ["balanced", "Normal"],
-                  ["deep", "Gründlich"],
-                ] as const).map(([value, label]) => (
+                  ["fast", "Schnell", Zap, "1.7B · kein Thinking"],
+                  ["balanced", "Normal", Gauge, "1.7B · leichtes Thinking"],
+                  ["deep", "Gründlich", BrainCircuit, "4B · starkes Thinking"],
+                ] as const).map(([value, label, Icon, hint]) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setPerformanceMode(value)}
-                    className={`rounded-xl border px-2 py-2 text-[12px] transition ${
+                    className={`rounded-2xl border px-3 py-3 text-left transition ${
                       performanceMode === value
-                        ? "border-primary/60 bg-primary/10 text-foreground"
-                        : "border-border bg-background/50 text-muted-foreground hover:text-foreground"
+                        ? "border-primary/45 bg-primary/[0.09] text-foreground shadow-[0_10px_28px_-20px_rgba(255,122,89,0.8)]"
+                        : "border-white/[0.07] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
                     }`}
                   >
-                    {label}
+                    <Icon className={`mb-2 size-4 ${performanceMode === value ? "text-primary" : ""}`} />
+                    <div className="text-[12px] font-semibold">{label}</div>
+                    <div className="mt-0.5 text-[9.5px] leading-tight opacity-70">{hint}</div>
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Schnell spart Rechenzeit, Normal ist der Standard, Gründlich nutzt ein optionales
-                größeres Modell und ein höheres Antwortlimit.
+              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Sparkles className="size-3.5 text-primary" />
+                NORVI schaltet Modell, Denkmodus und Antwortbudget automatisch um.
               </p>
             </div>
 

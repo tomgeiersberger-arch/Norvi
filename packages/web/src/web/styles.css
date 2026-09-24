@@ -1,12 +1,11 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -33,26 +32,26 @@
 }
 
 :root {
-  --radius: 0.875rem;
-  --background: #0b0b0c;
-  --foreground: #f4f2ef;
-  --card: #16161a;
-  --card-foreground: #f4f2ef;
-  --popover: #16161a;
-  --popover-foreground: #f4f2ef;
-  --primary: #d97757;
-  --primary-foreground: #14100e;
-  --secondary: #1c1c21;
-  --secondary-foreground: #f4f2ef;
-  --muted: #1c1c21;
-  --muted-foreground: #9a968f;
-  --accent: #23232a;
-  --accent-foreground: #f4f2ef;
-  --destructive: #ef4444;
-  --border: rgba(255, 255, 255, 0.08);
+  --radius: 1rem;
+  --background: #07080b;
+  --foreground: #f7f8fa;
+  --card: #111319;
+  --card-foreground: #f7f8fa;
+  --popover: #111319;
+  --popover-foreground: #f7f8fa;
+  --primary: #ff7a59;
+  --primary-foreground: #190c08;
+  --secondary: #171a21;
+  --secondary-foreground: #f7f8fa;
+  --muted: #171a21;
+  --muted-foreground: #9299a6;
+  --accent: #20242d;
+  --accent-foreground: #f7f8fa;
+  --destructive: #ef5b67;
+  --border: rgba(255, 255, 255, 0.075);
   --input: rgba(255, 255, 255, 0.12);
-  --ring: #d97757;
-  --bubble: #23232a;
+  --ring: #ff7a59;
+  --bubble: #1b1f27;
 }
 
 @layer base {
@@ -69,9 +68,23 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     background-image:
-      radial-gradient(60rem 34rem at 50% -14rem, rgba(217, 119, 87, 0.14), transparent 70%),
-      radial-gradient(40rem 26rem at 100% 100%, rgba(120, 130, 255, 0.06), transparent 70%);
+      radial-gradient(54rem 32rem at 18% -10rem, rgba(255, 122, 89, 0.16), transparent 72%),
+      radial-gradient(42rem 32rem at 100% 18%, rgba(72, 196, 255, 0.07), transparent 72%),
+      linear-gradient(180deg, #090a0e 0%, #07080b 42%, #07080b 100%);
     background-attachment: fixed;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, black, transparent 74%);
   }
 
   ::selection {
@@ -80,20 +93,30 @@
 }
 
 @layer utilities {
-  /* thin, unobtrusive scrollbar for the transcript */
-  .scroll-slim {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  /* Keep scrolling, hide the bright native bars on chat and composer. */
+  .scroll-slim,
+  .composer-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .scroll-slim::-webkit-scrollbar {
-    width: 8px;
+  .scroll-slim::-webkit-scrollbar,
+  .composer-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
-  .scroll-slim::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
+
+  .glass-panel {
+    background: linear-gradient(180deg, rgba(21, 24, 31, 0.86), rgba(12, 14, 19, 0.82));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 24px 70px -34px rgba(0, 0, 0, 0.9),
+      inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(24px);
   }
-  .scroll-slim::-webkit-scrollbar-track {
-    background: transparent;
+
+  .status-dot {
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.08), 0 0 18px rgba(74, 222, 128, 0.35);
   }
 
   .noise {

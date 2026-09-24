@@ -15,6 +15,7 @@ import * as schema from "./database/schema";
 import { auth } from "./auth";
 import { AUTH_REQUIRED_MESSAGE, denyAnonymous } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
+import { startLocalStt } from "./lib/local-stt";
 import { SttError, transcribe } from "./lib/stt";
 import {
   absoluteFileUrl,
@@ -50,6 +51,10 @@ export type AppRouter = typeof router;
 export type AppRouterClient = RouterClient<AppRouter>;
 
 const app = createApp(router);
+
+// In self-hosted mode NORVI can own its local Whisper sidecar. Starting here
+// keeps the template-managed __server.ts untouched.
+startLocalStt();
 
 // Better Auth (E-Mail/Passwort) — mounted as a plain route.
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));

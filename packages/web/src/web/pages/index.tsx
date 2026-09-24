@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Cpu, Eye, Menu, Mic2, X } from "lucide-react";
 import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
 import { Sidebar } from "../components/chat/sidebar";
 import { getDeviceId } from "../lib/device";
+import { useCapabilities } from "../queries/capabilities";
 import { useChats, useDeleteChat, useRenameChat } from "../queries/chats";
 import { useModel } from "../queries/model";
 
@@ -15,6 +16,7 @@ interface Session {
 
 function Index() {
   const model = useModel();
+  const capabilities = useCapabilities();
   const chats = useChats();
   const renameChat = useRenameChat();
   const deleteChat = useDeleteChat();
@@ -65,7 +67,7 @@ function Index() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden w-[17rem] shrink-0 border-r border-border/70 md:block">
+      <aside className="hidden w-[18.5rem] shrink-0 border-r border-white/[0.06] bg-black/10 md:block">
         {sidebar}
       </aside>
 
@@ -93,8 +95,8 @@ function Index() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="z-10 border-b border-border/70 bg-background/70 backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
+        <header className="z-10 border-b border-white/[0.06] bg-background/55 backdrop-blur-2xl">
+          <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3.5 sm:px-6">
             <button
               type="button"
               aria-label="Chat-Verlauf öffnen"
@@ -105,8 +107,32 @@ function Index() {
             </button>
             <NorviMark className="size-8" />
             <div className="min-w-0 leading-tight">
-              <div className="truncate text-[0.95rem] font-medium tracking-tight">{agentName}</div>
+              <div className="flex items-center gap-2">
+                <div className="truncate text-[0.95rem] font-semibold tracking-tight">{agentName}</div>
+                <span className="status-dot size-1.5 rounded-full bg-green-400" title="NORVI ist online" />
+              </div>
               <div className="truncate text-[11px] text-muted-foreground">{modelLabel}</div>
+            </div>
+
+            <div className="ml-auto hidden items-center gap-1.5 sm:flex">
+              {capabilities.data?.localAi && (
+                <span className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[10.5px] text-muted-foreground">
+                  <Cpu className="size-3" />
+                  Lokal
+                </span>
+              )}
+              {capabilities.data?.vision && (
+                <span className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[10.5px] text-muted-foreground">
+                  <Eye className="size-3" />
+                  Vision
+                </span>
+              )}
+              {capabilities.data?.stt && (
+                <span className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[10.5px] text-muted-foreground">
+                  <Mic2 className="size-3" />
+                  Voice
+                </span>
+              )}
             </div>
             <AccountMenu />
           </div>

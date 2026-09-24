@@ -1,8 +1,8 @@
 import { os } from "@orpc/server";
-import { visionAvailable } from "../agent/gateway";
+import { providerKind, visionAvailable } from "../agent/gateway";
 import { requireAuthEnabled } from "../lib/access";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "../lib/uploads";
-import { sttConfigured } from "../lib/stt";
+import { sttAvailable, sttConfigured } from "../lib/stt";
 
 /**
  * What this NORVI installation can do right now.
@@ -11,9 +11,11 @@ import { sttConfigured } from "../lib/stt";
  * to show a helpful hint instead of running into a server error.
  */
 export const capabilities = {
-  get: os.handler(() => ({
+  get: os.handler(async () => ({
     vision: visionAvailable(),
-    stt: sttConfigured(),
+    stt: await sttAvailable(),
+    sttConfigured: sttConfigured(),
+    localAi: providerKind() === "openai-compatible",
     /** True, wenn diese Instanz eine Anmeldung erzwingt (REQUIRE_AUTH=true). */
     requireAuth: requireAuthEnabled(),
     imageTypes: [...ALLOWED_IMAGE_TYPES],
