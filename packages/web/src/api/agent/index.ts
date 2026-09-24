@@ -7,11 +7,14 @@ export const MODEL_LABEL = "NORVI AI";
 /** Model actually used when the caller has no personal preference. */
 export const MODEL_ID = defaultModelId();
 
-/** Builds an agent for one request — model and generation budget come from settings. */
+export type ReasoningEffort = "none" | "low" | "medium" | "high";
+
+/** Builds an agent for one request — model, generation budget and thinking mode come from settings. */
 export function createAgent(options?: {
   modelId?: string;
   temperature?: number;
   maxOutputTokens?: number;
+  reasoningEffort?: ReasoningEffort;
 }) {
   return new ToolLoopAgent({
   model: resolveModel(options?.modelId),
@@ -19,6 +22,15 @@ export function createAgent(options?: {
     ? { temperature: options.temperature }
     : {}),
   ...(options?.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
+  ...(providerKind() === "openai-compatible" && options?.reasoningEffort
+    ? {
+        providerOptions: {
+          norviLocal: {
+            reasoningEffort: options.reasoningEffort,
+          },
+        },
+      }
+    : {}),
   instructions: [
     {
       role: "system",
