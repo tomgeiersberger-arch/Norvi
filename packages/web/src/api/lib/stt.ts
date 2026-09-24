@@ -38,6 +38,27 @@ export class SttError extends Error {
   }
 }
 
+/** Lightweight readiness probe used by the capability endpoint. */
+export async function sttAvailable(timeoutMs = 1200): Promise<boolean> {
+  if (!sttConfigured()) return false;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const key = process.env.STT_API_KEY?.trim();
+
+  try {
+    const response = await fetch(`${baseUrl()}/models`, {
+      headers: key ? { Authorization: `Bearer ${key}` } : undefined,
+      signal: controller.signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Sends one recording to the Whisper server and returns the recognised text. */
 export async function transcribe(input: {
   audio: Blob;

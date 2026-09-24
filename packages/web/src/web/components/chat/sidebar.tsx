@@ -51,24 +51,30 @@ export function Sidebar({
   };
 
   return (
-    <div className="flex h-full flex-col bg-card/40">
-      <div className="flex items-center justify-between px-4 py-4">
+    <div className="flex h-full flex-col bg-gradient-to-b from-white/[0.025] to-transparent">
+      <div className="flex items-center justify-between px-5 py-5">
         <NorviWordmark />
+        <span className="rounded-full border border-white/[0.07] bg-white/[0.035] px-2 py-1 text-[9px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+          local
+        </span>
       </div>
 
-      <div className="px-3">
+      <div className="px-3.5">
         <button
           type="button"
           onClick={onNewChat}
-          className="flex w-full items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-sm font-medium transition hover:border-primary/40 hover:bg-secondary"
+          className="group flex w-full items-center gap-2.5 rounded-2xl border border-primary/20 bg-primary/[0.08] px-3.5 py-3 text-sm font-semibold transition hover:border-primary/40 hover:bg-primary/[0.12]"
         >
-          <Plus className="size-4 text-primary" />
+          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_8px_22px_-12px_rgba(255,122,89,0.9)]">
+            <Plus className="size-4" />
+          </span>
           Neuer Chat
         </button>
       </div>
 
-      <div className="mt-5 px-4 text-[10.5px] font-medium tracking-wider text-muted-foreground/80 uppercase">
-        Verlauf
+      <div className="mt-6 flex items-center justify-between px-5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground/70 uppercase">
+        <span>Verlauf</span>
+        <span>{chats.length}</span>
       </div>
 
       <div className="scroll-slim mt-2 flex-1 overflow-y-auto px-2 pb-4">

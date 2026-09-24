@@ -49,6 +49,7 @@ export function Composer({
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,17 @@ export function Composer({
     if (!busy && !recording) ref.current?.focus();
   }, [busy, recording]);
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        ref.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Live timer while recording.
   useEffect(() => {
     if (!recording) return;
@@ -79,11 +91,19 @@ export function Composer({
   const ready = images.filter((image) => image.uploaded).map((image) => image.uploaded!);
   const canSend = (value.trim().length > 0 || ready.length > 0) && !uploading && !busy;
 
-  const addFiles = async (files: FileList | null) => {
+  const addFiles = async (files: FileList | File[] | null) => {
     if (!files?.length) return;
     setNotice(null);
 
-    const accepted = Array.from(files).slice(0, 4);
+    const slots = Math.max(0, 4 - images.length);
+    const accepted = Array.from(files)
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, slots);
+
+    if (accepted.length === 0) {
+      setNotice(slots === 0 ? "Maximal 4 Bilder pro Nachricht." : "Bitte nur Bilddateien ablegen.");
+      return;
+    }
     const pending: Pending[] = accepted.map((file) => ({
       key: `${file.name}-${file.size}-${crypto.randomUUID()}`,
       preview: URL.createObjectURL(file),
@@ -163,7 +183,37 @@ export function Composer({
   const micDisabled = transcribing || busy;
 
   return (
-    <div className="rounded-[1.5rem] border border-border bg-card/80 p-2 shadow-[0_24px_70px_-30px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.03] backdrop-blur-2xl transition duration-300 focus-within:border-primary/45 focus-within:shadow-[0_28px_80px_-28px_rgba(217,119,87,0.35)]">
+    <div
+      className={`glass-panel relative rounded-[1.65rem] p-2.5 transition duration-300 focus-within:border-primary/35 focus-within:shadow-[0_28px_90px_-34px_rgba(255,122,89,0.32)] ${
+        dragging ? "border-primary/60 bg-primary/[0.055]" : ""
+      }`}
+      onDragEnter={(event) => {
+        if (!vision) return;
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragOver={(event) => {
+        if (!vision) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setDragging(false);
+      }}
+      onDrop={(event) => {
+        if (!vision) return;
+        event.preventDefault();
+        setDragging(false);
+        void addFiles(Array.from(event.dataTransfer.files));
+      }}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.3rem] border border-dashed border-primary/60 bg-background/88 text-sm font-medium text-primary backdrop-blur-md">
+          <ImagePlus className="mr-2 size-4.5" />
+          Bild hier ablegen
+        </div>
+      )}
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2 px-1.5 pt-1.5 pb-1">
           {images.map((image) => (
@@ -191,13 +241,22 @@ export function Composer({
       )}
 
       {recording && (
-        <div className="mx-1.5 mt-1.5 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-[0.8rem] text-primary">
-          <span className="relative flex size-2.5">
+        <div className="mx-1 mt-1 flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.075] px-3.5 py-2.5 text-[0.8rem] text-primary">
+          <span className="relative flex size-2.5 shrink-0">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/70" />
             <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
           </span>
-          Aufnahme läuft … {secondsLabel(seconds)}
-          <span className="ml-auto text-primary/70">Mikrofon-Symbol drücken zum Beenden</span>
+          <div className="flex h-4 items-center gap-[3px]" aria-hidden>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className="w-[2px] animate-pulse rounded-full bg-primary"
+                style={{ height: `${6 + ((i * 5) % 10)}px`, animationDelay: `${i * 90}ms` }}
+              />
+            ))}
+          </div>
+          <span className="font-medium">Aufnahme · {secondsLabel(seconds)}</span>
+          <span className="ml-auto hidden text-primary/65 sm:inline">Mic drücken zum Beenden</span>
         </div>
       )}
 
@@ -235,7 +294,7 @@ export function Composer({
             disabled={busy}
             aria-label="Bild anhängen"
             title="Bild anhängen (JPG, PNG, WebP)"
-            className="mb-0.5 flex size-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground disabled:opacity-40"
+            className="mb-0.5 flex size-10 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition hover:border-white/[0.06] hover:bg-white/[0.05] hover:text-foreground disabled:opacity-40"
           >
             <ImagePlus className="size-4.5" />
           </button>
@@ -248,10 +307,10 @@ export function Composer({
             disabled={micDisabled}
             aria-label={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
             title={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
-            className={`mb-0.5 flex size-9 items-center justify-center rounded-full transition disabled:opacity-40 ${
+            className={`mb-0.5 flex size-10 items-center justify-center rounded-xl border transition disabled:opacity-40 ${
               recording
-                ? "bg-primary/20 text-primary ring-1 ring-primary/40"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "border-primary/35 bg-primary/15 text-primary"
+                : "border-transparent text-muted-foreground hover:border-white/[0.06] hover:bg-white/[0.05] hover:text-foreground"
             }`}
           >
             {transcribing ? (
@@ -274,9 +333,7 @@ export function Composer({
             );
             if (files.length === 0) return;
             e.preventDefault();
-            const list = new DataTransfer();
-            for (const file of files) list.items.add(file);
-            void addFiles(list.files);
+            void addFiles(files);
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -286,7 +343,7 @@ export function Composer({
           }}
           placeholder={recording ? "Sprich einfach …" : "Nachricht schreiben…"}
           aria-label={`Nachricht an ${agentName}`}
-          className="max-h-52 flex-1 resize-none bg-transparent px-2 py-2.5 text-[0.97rem] leading-relaxed outline-none placeholder:text-muted-foreground/70"
+          className="composer-scrollbar max-h-52 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-[0.98rem] leading-relaxed outline-none placeholder:text-muted-foreground/60"
         />
 
         {busy ? (
@@ -294,7 +351,7 @@ export function Composer({
             type="button"
             onClick={onStop}
             aria-label="Antwort stoppen"
-            className="mb-0.5 flex size-9 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-accent"
+            className="mb-0.5 flex size-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.045] text-foreground transition hover:bg-white/[0.08]"
           >
             <Square className="size-3.5 fill-current" />
           </button>
@@ -304,7 +361,7 @@ export function Composer({
             onClick={submit}
             disabled={!canSend}
             aria-label="Senden"
-            className="mb-0.5 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_rgba(217,119,87,0.9)] transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
+            className="mb-0.5 flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_10px_28px_-12px_rgba(255,122,89,0.85)] transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
           >
             {uploading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -315,12 +372,13 @@ export function Composer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 px-2.5 pt-1 pb-1 text-[11px] text-muted-foreground/70">
+      <div className="flex flex-wrap items-center gap-x-2 px-2.5 pt-1.5 pb-0.5 text-[10.5px] text-muted-foreground/60">
         <span>
           <kbd className="font-sans">Enter</kbd> senden ·{" "}
-          <kbd className="font-sans">Shift + Enter</kbd> neue Zeile
+          <kbd className="font-sans">Shift + Enter</kbd> Zeile
         </span>
-        {vision && <span className="hidden sm:inline">· Bilder: JPG, PNG, WebP</span>}
+        <span className="hidden sm:inline">· Ctrl/⌘ K Fokus</span>
+        {vision && <span className="hidden sm:inline">· Bilder auch per Drag & Drop</span>}
       </div>
     </div>
   );
