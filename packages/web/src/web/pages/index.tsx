@@ -65,9 +65,9 @@ function Index() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="relative flex h-dvh overflow-hidden bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden w-[18.5rem] shrink-0 border-r border-white/[0.06] bg-black/10 md:block">
+      <aside className="relative hidden w-[18.75rem] shrink-0 border-r border-white/[0.06] bg-black/15 md:block">
         {sidebar}
       </aside>
 
@@ -95,8 +95,8 @@ function Index() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="z-10 border-b border-white/[0.06] bg-background/55 backdrop-blur-2xl">
-          <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3.5 sm:px-6">
+        <header className="glass-header z-10">
+          <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3.5 sm:px-6">
             <button
               type="button"
               aria-label="Chat-Verlauf öffnen"
@@ -109,9 +109,12 @@ function Index() {
             <div className="min-w-0 leading-tight">
               <div className="flex items-center gap-2">
                 <div className="truncate text-[0.95rem] font-semibold tracking-tight">{agentName}</div>
-                <span className="status-dot size-1.5 rounded-full bg-green-400" title="NORVI ist online" />
+                <span className="flex items-center gap-1.5 rounded-full border border-green-400/15 bg-green-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-green-300/90">
+                  <span className="status-dot size-1.5 rounded-full bg-green-400" />
+                  Online
+                </span>
               </div>
-              <div className="truncate text-[11px] text-muted-foreground">{modelLabel}</div>
+              <div className="truncate text-[11px] text-muted-foreground/85">{modelLabel}</div>
             </div>
 
             <div className="ml-auto hidden items-center gap-1.5 sm:flex">

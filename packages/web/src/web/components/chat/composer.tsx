@@ -184,7 +184,7 @@ export function Composer({
 
   return (
     <div
-      className={`glass-panel relative rounded-[1.65rem] p-2.5 transition duration-300 focus-within:border-primary/35 focus-within:shadow-[0_28px_90px_-34px_rgba(255,122,89,0.32)] ${
+      className={`glass-panel composer-shell relative rounded-[1.7rem] p-2.5 transition duration-300 focus-within:border-primary/35 ${
         dragging ? "border-primary/60 bg-primary/[0.055]" : ""
       }`}
       onDragEnter={(event) => {
@@ -294,7 +294,7 @@ export function Composer({
             disabled={busy}
             aria-label="Bild anhängen"
             title="Bild anhängen (JPG, PNG, WebP)"
-            className="mb-0.5 flex size-10 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition hover:border-white/[0.06] hover:bg-white/[0.05] hover:text-foreground disabled:opacity-40"
+            className="mb-0.5 flex size-10 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.025] text-muted-foreground transition hover:-translate-y-px hover:border-primary/25 hover:bg-primary/[0.07] hover:text-primary disabled:opacity-40"
           >
             <ImagePlus className="size-4.5" />
           </button>
@@ -310,7 +310,7 @@ export function Composer({
             className={`mb-0.5 flex size-10 items-center justify-center rounded-xl border transition disabled:opacity-40 ${
               recording
                 ? "border-primary/35 bg-primary/15 text-primary"
-                : "border-transparent text-muted-foreground hover:border-white/[0.06] hover:bg-white/[0.05] hover:text-foreground"
+                : "border-white/[0.055] bg-white/[0.025] text-muted-foreground hover:-translate-y-px hover:border-primary/25 hover:bg-primary/[0.07] hover:text-primary"
             }`}
           >
             {transcribing ? (
@@ -343,7 +343,7 @@ export function Composer({
           }}
           placeholder={recording ? "Sprich einfach …" : "Nachricht schreiben…"}
           aria-label={`Nachricht an ${agentName}`}
-          className="composer-scrollbar max-h-52 flex-1 resize-none bg-transparent px-2.5 py-2.5 text-[0.98rem] leading-relaxed outline-none placeholder:text-muted-foreground/60"
+          className="composer-scrollbar min-h-10 max-h-52 flex-1 resize-none overflow-y-auto bg-transparent px-2.5 py-2.5 text-[0.98rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/55"
         />
 
         {busy ? (

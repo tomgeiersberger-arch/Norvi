@@ -1,11 +1,11 @@
-import { ImagePlus, Mic2, Sparkles } from "lucide-react";
+import { Code2, ImagePlus, Lightbulb, Mic2, ServerCog, Sparkles } from "lucide-react";
 import { NorviMark } from "./norvi-mark";
 
 const SUGGESTIONS = [
-  "Erklär mir Vektordatenbanken in 5 Sätzen",
-  "Schreib eine Python-Funktion für Fibonacci mit Memoization",
-  "Gib mir 5 Namen für eine Espresso-Bar in Wien",
-  "Was ist der Unterschied zwischen TCP und UDP?",
+  { icon: Code2, label: "Code", text: "Hilf mir, diesen Code sauberer und schneller zu machen" },
+  { icon: ServerCog, label: "Server", text: "Prüfe mit mir Schritt für Schritt einen Linux-Server" },
+  { icon: Lightbulb, label: "Erklären", text: "Erklär mir ein schwieriges Thema kurz und verständlich" },
+  { icon: ImagePlus, label: "Vision", text: "Ich lade ein Bild hoch – analysiere, was darauf zu sehen ist" },
 ];
 
 interface EmptyStateProps {
@@ -51,17 +51,28 @@ export function EmptyState({ agentName, onPick, vision = false, stt = false }: E
         {agentName} läuft auf deinem Server, streamt Antworten live und versteht auf Wunsch Bilder und Sprache.
       </p>
       <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((suggestion, i) => (
-          <button
-            key={suggestion}
-            type="button"
-            onClick={() => onPick(suggestion)}
-            className="rise rounded-xl border border-border bg-card/60 px-4 py-3 text-left text-[0.86rem] leading-snug text-foreground/85 transition hover:border-primary/40 hover:bg-card hover:text-foreground"
-            style={{ animationDelay: `${280 + i * 70}ms` }}
-          >
-            {suggestion}
-          </button>
-        ))}
+        {SUGGESTIONS.map((suggestion, i) => {
+          const Icon = suggestion.icon;
+          return (
+            <button
+              key={suggestion.text}
+              type="button"
+              onClick={() => onPick(suggestion.text)}
+              className="rise group rounded-2xl border border-white/[0.065] bg-white/[0.025] p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white/[0.045] hover:shadow-[0_20px_55px_-35px_rgba(255,122,89,0.45)]"
+              style={{ animationDelay: `${280 + i * 70}ms` }}
+            >
+              <span className="mb-3 flex items-center gap-2 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                <span className="flex size-7 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.035] text-primary transition group-hover:border-primary/20 group-hover:bg-primary/[0.08]">
+                  <Icon className="size-3.5" />
+                </span>
+                {suggestion.label}
+              </span>
+              <span className="block text-[0.86rem] leading-relaxed text-foreground/82 transition group-hover:text-foreground">
+                {suggestion.text}
+              </span>
+            </button>
+          );
+        })}
       </div>
       {hints.length > 0 && (
         <div

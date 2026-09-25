@@ -110,7 +110,7 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
             </div>
           )}
           {text && (
-            <div className="rounded-2xl rounded-br-md bg-bubble px-4 py-2.5 text-[0.97rem] leading-relaxed whitespace-pre-wrap shadow-[0_10px_30px_-20px_rgba(0,0,0,0.9)]">
+            <div className="rounded-2xl rounded-br-md border border-white/[0.055] bg-[linear-gradient(145deg,rgba(31,35,44,0.96),rgba(24,27,34,0.94))] px-4 py-2.5 text-[0.97rem] leading-relaxed whitespace-pre-wrap shadow-[0_14px_36px_-24px_rgba(0,0,0,1)]">
               {text}
             </div>
           )}
@@ -124,7 +124,7 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
   return (
     <div className="rise group flex gap-3.5">
       <NorviMark className="mt-0.5 size-8 shrink-0" />
-      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-white/[0.055] bg-white/[0.018] px-4 py-3.5 sm:px-5">
+      <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-white/[0.06] bg-[linear-gradient(150deg,rgba(255,255,255,0.026),rgba(255,255,255,0.012))] px-4 py-3.5 shadow-[0_16px_50px_-42px_rgba(0,0,0,0.95)] sm:px-5">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
             {agentName}
@@ -135,7 +135,7 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
               onClick={() => void copyText()}
               aria-label="Antwort kopieren"
               title="Antwort kopieren"
-              className="flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-0 transition hover:bg-white/[0.06] hover:text-foreground group-hover:opacity-100 focus:opacity-100"
+              className="flex size-7 items-center justify-center rounded-lg text-muted-foreground opacity-60 transition hover:bg-white/[0.06] hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
             >
               {copied ? <Check className="size-3.5 text-green-400" /> : <Copy className="size-3.5" />}
             </button>

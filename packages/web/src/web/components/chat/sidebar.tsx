@@ -63,7 +63,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={onNewChat}
-          className="group flex w-full items-center gap-2.5 rounded-2xl border border-primary/20 bg-primary/[0.08] px-3.5 py-3 text-sm font-semibold transition hover:border-primary/40 hover:bg-primary/[0.12]"
+          className="group flex w-full items-center gap-2.5 rounded-2xl border border-primary/20 bg-[linear-gradient(145deg,rgba(255,122,89,0.11),rgba(255,122,89,0.055))] px-3.5 py-3 text-sm font-semibold shadow-[0_16px_40px_-30px_rgba(255,122,89,0.75)] transition hover:-translate-y-px hover:border-primary/40 hover:bg-primary/[0.12]"
         >
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_8px_22px_-12px_rgba(255,122,89,0.9)]">
             <Plus className="size-4" />
@@ -129,7 +129,9 @@ export function Sidebar({
                   ) : (
                     <div
                       className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 transition ${
-                        active ? "bg-secondary text-foreground" : "hover:bg-secondary/60"
+                        active
+                          ? "border border-white/[0.055] bg-[linear-gradient(90deg,rgba(255,122,89,0.10),rgba(255,255,255,0.025))] text-foreground shadow-[inset_3px_0_0_rgba(255,122,89,0.72)]"
+                          : "border border-transparent hover:border-white/[0.035] hover:bg-secondary/55"
                       }`}
                     >
                       <button
@@ -166,7 +168,7 @@ export function Sidebar({
                           </button>
                         </span>
                       ) : (
-                        <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+                        <span className="flex shrink-0 items-center gap-0.5 opacity-60 transition md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100">
                           <button
                             type="button"
                             onClick={() => startEdit(chat)}

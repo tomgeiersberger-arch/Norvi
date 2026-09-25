@@ -63,6 +63,12 @@
   body,
   #root {
     height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  html {
+    color-scheme: dark;
   }
 
   body {
@@ -87,6 +93,16 @@
     mask-image: linear-gradient(to bottom, black, transparent 74%);
   }
 
+  button,
+  input,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  textarea {
+    scrollbar-color: transparent transparent;
+  }
+
   ::selection {
     background: rgba(217, 119, 87, 0.32);
   }
@@ -107,12 +123,33 @@
   }
 
   .glass-panel {
-    background: linear-gradient(180deg, rgba(21, 24, 31, 0.86), rgba(12, 14, 19, 0.82));
+    background: linear-gradient(180deg, rgba(21, 24, 31, 0.88), rgba(12, 14, 19, 0.84));
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
       0 24px 70px -34px rgba(0, 0, 0, 0.9),
-      inset 0 1px 0 rgba(255, 255, 255, 0.025);
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(24px);
+  }
+
+  .glass-header {
+    background: linear-gradient(180deg, rgba(10, 12, 16, 0.84), rgba(7, 8, 11, 0.66));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 14px 42px -34px rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(28px) saturate(135%);
+  }
+
+  .composer-shell {
+    box-shadow:
+      0 28px 90px -38px rgba(0, 0, 0, 0.98),
+      0 18px 70px -48px rgba(255, 122, 89, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  .composer-shell:focus-within {
+    box-shadow:
+      0 30px 100px -40px rgba(0, 0, 0, 1),
+      0 20px 78px -42px rgba(255, 122, 89, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.045);
   }
 
   .status-dot {

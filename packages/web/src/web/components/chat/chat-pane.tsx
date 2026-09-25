@@ -224,7 +224,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         </button>
       )}
 
-      <div className="bg-gradient-to-t from-background via-background/96 to-transparent pt-5 pb-4 sm:pb-6">
+      <div className="bg-gradient-to-t from-background via-background/98 to-transparent pt-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
         <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
           <Composer
             agentName={agentName}
