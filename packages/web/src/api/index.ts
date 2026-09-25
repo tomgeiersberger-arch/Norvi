@@ -397,6 +397,11 @@ app.post("/api/agent/messages", async (c) => {
       // Errors mid-stream reach the client as readable text instead of a silent stop.
       onError: (error) => describeAgentError(error),
       onFinish: async ({ responseMessage, isAborted }) => {
+        // CPU-only Ollama often keeps one model resident. A vision turn can
+        // therefore evict the fast chat model; reload it in the background as
+        // soon as the image answer is complete so the next text turn is quick.
+        if (hasImages) warmLocalAi();
+
         const answer = textOf(responseMessage as UIMessage);
         if (!storedChatId || !answer) return;
         try {

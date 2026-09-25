@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import type { BundledLanguage, Highlighter } from "shiki";
+import type { HighlighterCore } from "shiki/core";
 
 const LANGS = [
   "typescript",
@@ -18,7 +18,7 @@ const LANGS = [
   "java",
   "yaml",
   "markdown",
-] as const satisfies readonly BundledLanguage[];
+] as const;
 
 const ALIASES: Record<string, string> = {
   ts: "typescript",
@@ -33,14 +33,35 @@ const ALIASES: Record<string, string> = {
   golang: "go",
 };
 
-let highlighterPromise: Promise<Highlighter> | null = null;
+let highlighterPromise: Promise<HighlighterCore> | null = null;
 
 function getHighlighter() {
-  if (!highlighterPromise) {
-    highlighterPromise = import("shiki").then((shiki) =>
-      shiki.createHighlighter({ themes: ["vesper"], langs: [...LANGS] }),
-    );
-  }
+  highlighterPromise ??= Promise.all([
+    import("shiki/core"),
+    import("shiki/engine/javascript"),
+    import("shiki/themes/vesper"),
+    import("shiki/langs/typescript"),
+    import("shiki/langs/tsx"),
+    import("shiki/langs/javascript"),
+    import("shiki/langs/jsx"),
+    import("shiki/langs/json"),
+    import("shiki/langs/bash"),
+    import("shiki/langs/python"),
+    import("shiki/langs/html"),
+    import("shiki/langs/css"),
+    import("shiki/langs/sql"),
+    import("shiki/langs/go"),
+    import("shiki/langs/rust"),
+    import("shiki/langs/java"),
+    import("shiki/langs/yaml"),
+    import("shiki/langs/markdown"),
+  ]).then(([core, engine, theme, ...languages]) =>
+    core.createHighlighterCore({
+      engine: engine.createJavaScriptRegexEngine(),
+      themes: [theme.default],
+      langs: languages.map((language) => language.default),
+    }),
+  );
   return highlighterPromise;
 }
 

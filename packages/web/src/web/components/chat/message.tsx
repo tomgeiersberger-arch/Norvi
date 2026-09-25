@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { UIMessage } from "ai";
 import { Check, Copy, X } from "lucide-react";
-import { Markdown } from "./markdown";
 import { NorviMark } from "./norvi-mark";
+
+let markdownModule: Promise<typeof import("./markdown")> | null = null;
+function loadMarkdown() {
+  markdownModule ??= import("./markdown");
+  return markdownModule;
+}
+const Markdown = lazy(() => loadMarkdown().then((module) => ({ default: module.Markdown })));
 
 function textOf(message: UIMessage) {
   return message.parts
@@ -142,7 +148,9 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
           )}
         </div>
         <div className={streaming && text.length > 0 ? "streaming-caret" : ""}>
-          <Markdown content={text} />
+          <Suspense fallback={<div className="whitespace-pre-wrap">{text}</div>}>
+            <Markdown content={text} />
+          </Suspense>
         </div>
       </div>
     </div>

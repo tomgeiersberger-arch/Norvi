@@ -1,0 +1,8 @@
+[Unit]
+Description=NORVI daily database and upload backup
+After=default.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/norviadmin/norvi
+ExecStart=/home/norviadmin/norvi/deploy/backup-norvi.sh

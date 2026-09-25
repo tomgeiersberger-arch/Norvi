@@ -214,7 +214,10 @@ also NORVI über HTTPS öffnen; `http://localhost` ist die einzige übliche HTTP
 ### 8.6 Backup
 
 Die Bilder liegen als Dateien auf der Platte, die Chats in der SQLite-Datei. Für ein
-vollständiges Backup **beides** sichern — `data/uploads/` und die Datenbank.
+vollständiges Backup **beides** sichern — `data/uploads/` und die Datenbank. Der Homeserver
+kann das mit `deploy/backup-norvi.sh` automatisch erledigen; die mitgelieferten
+`norvi-backup.service`/`.timer`-Units erzeugen täglich einen konsistenten Snapshot und
+behalten die letzten 14 Sicherungen.
 
 ## 9. Chat über den lokalen Ollama-Server
 

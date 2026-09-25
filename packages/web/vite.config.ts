@@ -36,5 +36,14 @@ export default defineConfig(({ mode }) => {
       hmr: { overlay: false },
       cors: false,
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules") && id.includes("@runablehq")) return "runable";
+          },
+        },
+      },
+    },
   };
 });
