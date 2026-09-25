@@ -231,7 +231,7 @@ export function Composer({
                 type="button"
                 onClick={() => removeImage(image.key)}
                 aria-label={`Bild ${image.name} entfernen`}
-                className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-background/85 text-foreground/80 opacity-0 transition group-hover:opacity-100 hover:text-foreground"
+                className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-background/90 text-foreground/85 opacity-90 transition sm:opacity-0 sm:group-hover:opacity-100 hover:text-foreground"
               >
                 <X className="size-3" />
               </button>

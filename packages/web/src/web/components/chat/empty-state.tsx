@@ -18,6 +18,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ agentName, onPick, vision = false, stt = false }: EmptyStateProps) {
+  const suggestions = vision ? SUGGESTIONS : SUGGESTIONS.filter((item) => item.label !== "Vision");
   const hints = [
     vision ? "Bild anhängen und Fragen dazu stellen" : null,
     stt ? "Per Mikrofon diktieren statt tippen" : null,
@@ -51,7 +52,7 @@ export function EmptyState({ agentName, onPick, vision = false, stt = false }: E
         {agentName} läuft auf deinem Server, streamt Antworten live und versteht auf Wunsch Bilder und Sprache.
       </p>
       <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((suggestion, i) => {
+        {suggestions.map((suggestion, i) => {
           const Icon = suggestion.icon;
           return (
             <button
@@ -77,7 +78,7 @@ export function EmptyState({ agentName, onPick, vision = false, stt = false }: E
       {hints.length > 0 && (
         <div
           className="rise mt-6 flex flex-wrap items-center justify-center gap-2"
-          style={{ animationDelay: `${280 + SUGGESTIONS.length * 70}ms` }}
+          style={{ animationDelay: `${280 + suggestions.length * 70}ms` }}
         >
           {hints.map((hint) => (
             <span
