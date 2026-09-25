@@ -1,0 +1,18 @@
+{
+  "name": "NORVI AI",
+  "short_name": "NORVI",
+  "description": "Private lokale KI mit Chat, Sprache und Bildanalyse.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07080b",
+  "theme_color": "#07080b",
+  "icons": [
+    {
+      "src": "/norvi.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

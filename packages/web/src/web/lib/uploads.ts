@@ -16,10 +16,48 @@ async function errorMessage(response: Response): Promise<string> {
   return data?.error ?? `Upload fehlgeschlagen (HTTP ${response.status}).`;
 }
 
+/**
+ * Shrinks very large phone photos before upload. The vision model does its own
+ * resizing anyway, so capping the longest side saves bandwidth and CPU without
+ * touching normal screenshots or already-small images.
+ */
+async function prepareImage(file: File): Promise<File> {
+  if (file.size < 1_000_000 || typeof createImageBitmap === "undefined") return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    if (longest <= 1600) {
+      bitmap.close();
+      return file;
+    }
+
+    const scale = 1600 / longest;
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close();
+      return file;
+    }
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const type = file.type === "image/png" ? "image/png" : file.type === "image/webp" ? "image/webp" : "image/jpeg";
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.9));
+    return blob && blob.size < file.size ? new File([blob], file.name, { type }) : file;
+  } catch {
+    return file;
+  }
+}
+
 /** Uploads one image and returns its stored reference. */
 export async function uploadImage(file: File): Promise<UploadedImage> {
+  const prepared = await prepareImage(file);
   const form = new FormData();
-  form.append("file", file, file.name);
+  form.append("file", prepared, prepared.name);
   form.append("deviceId", getDeviceId());
 
   const response = await fetch("/api/upload", { method: "POST", body: form });

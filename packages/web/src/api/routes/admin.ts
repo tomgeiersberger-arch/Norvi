@@ -1,8 +1,11 @@
 import { ORPCError } from "@orpc/server";
+import { freemem, loadavg, totalmem, uptime } from "node:os";
 import { count, desc, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { adminOnly } from "../middleware/auth";
+import { defaultModelId, providerKind, visionAvailable } from "../agent/gateway";
 import { db } from "../database";
+import { sttAvailable } from "../lib/stt";
 import * as schema from "../database/schema";
 
 const userId = z.string().min(1).max(120);
@@ -80,6 +83,25 @@ export const admin = {
       if (!updated) throw new ORPCError("NOT_FOUND", { message: "Konto nicht gefunden." });
       return updated;
     }),
+
+  /** Safe runtime diagnostics for the owner UI — no credentials or tokens. */
+  system: adminOnly.handler(async () => {
+    const total = totalmem();
+    const free = freemem();
+    return {
+      provider: providerKind(),
+      model: defaultModelId(),
+      fastModel: process.env.AI_FAST_MODEL?.trim() || defaultModelId(),
+      deepModel: process.env.AI_DEEP_MODEL?.trim() || null,
+      visionModel: process.env.AI_VISION_MODEL?.trim() || null,
+      vision: visionAvailable(),
+      stt: await sttAvailable(1_500),
+      uptimeSeconds: Math.floor(uptime()),
+      memoryUsedBytes: Math.max(0, total - free),
+      memoryTotalBytes: total,
+      load1: loadavg()[0] ?? 0,
+    };
+  }),
 
   /** Real usage numbers straight from the database — no estimates. */
   stats: adminOnly.handler(async () => {

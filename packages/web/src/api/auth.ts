@@ -5,6 +5,15 @@ import { expo } from "@better-auth/expo";
 import { db } from "./database";
 import * as schema from "./database/schema";
 
+function trustedOrigins(): string[] {
+  const configured = (process.env.TRUSTED_ORIGINS ?? "")
+    .split(",")
+    .map((origin: string) => origin.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  const website = process.env.WEBSITE_URL?.trim().replace(/\/$/, "");
+  return [...new Set([...(website ? [website] : []), ...configured])];
+}
+
 /**
  * NORVI AI authentication.
  *
@@ -17,10 +26,9 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "sqlite" }),
   emailAndPassword: { enabled: true, minPasswordLength: 8 },
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: (request) => {
-    const origin = request?.headers.get("origin");
-    return origin ? [origin] : ["*"];
-  },
+  // Never trust an arbitrary browser Origin. Add extra frontends explicitly
+  // with TRUSTED_ORIGINS=https://one.example,https://two.example.
+  trustedOrigins: trustedOrigins(),
   user: {
     additionalFields: {
       // Owner/admin flag — never settable from the client.

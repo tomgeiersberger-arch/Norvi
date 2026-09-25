@@ -6,7 +6,7 @@ import {
   uploadImage,
   type UploadedImage,
 } from "../../lib/uploads";
-import { recordingSupported, startRecording } from "../../lib/recorder";
+import { startRecording } from "../../lib/recorder";
 
 interface ComposerProps {
   agentName: string;
@@ -300,7 +300,7 @@ export function Composer({
           </button>
         )}
 
-        {stt && recordingSupported() && (
+        {stt && (
           <button
             type="button"
             onClick={() => void toggleRecording()}

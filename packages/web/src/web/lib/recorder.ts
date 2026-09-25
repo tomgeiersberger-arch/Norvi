@@ -45,14 +45,14 @@ export async function startRecording(): Promise<{
   stop: () => Promise<Recording>;
   cancel: () => void;
 }> {
+  if (!window.isSecureContext) {
+    throw new Error(
+      "Sprachaufnahme braucht HTTPS. Bitte NORVI über eine sichere HTTPS-Adresse öffnen.",
+    );
+  }
   if (!recordingSupported()) {
     throw new Error(
       "Dieser Browser unterstützt keine Sprachaufnahme. Bitte Chrome, Edge, Firefox oder Safari in aktueller Version verwenden.",
-    );
-  }
-  if (!window.isSecureContext) {
-    throw new Error(
-      "Sprachaufnahme braucht eine sichere Verbindung (HTTPS oder localhost). Bitte NORVI über HTTPS oder http://localhost öffnen.",
     );
   }
 

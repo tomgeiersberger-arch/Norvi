@@ -329,6 +329,7 @@ In der `.env` mindestens setzen:
 ```bash
 NODE_ENV=production
 WEBSITE_URL=http://100.114.15.10:4200        # oder https://norvi.example.com
+TRUSTED_ORIGINS=                              # optional: weitere erlaubte Browser-Origins
 DATABASE_URL=file:./data/norvi.db            # lokale SQLite-Datei, kein Cloud-Dienst
 DATABASE_AUTH_TOKEN=
 BETTER_AUTH_SECRET=                          # openssl rand -base64 32
@@ -338,6 +339,9 @@ AI_MODEL=norvi:latest
 AI_MODELS=norvi:latest
 AI_FAST_MODEL=norvi:latest
 AI_DEEP_MODEL=                                  # optional, z. B. norvi4b
+AI_LOCAL_WARMUP=true                            # Hauptmodell nach Serverstart vorladen
+AI_LOCAL_WARM_VISION=false                      # auf 16-GB-Servern optional true
+AI_LOCAL_KEEP_ALIVE=30m
 AI_FAST_MAX_TOKENS=256
 AI_BALANCED_MAX_TOKENS=512
 AI_DEEP_MAX_TOKENS=1024
@@ -502,8 +506,7 @@ STT_API_KEY=norvi-loopback-only
 STT_MODEL=whisper-1
 ```
 
-Vision wird nur geladen, wenn tatsächlich ein Bild gesendet wird:
-
+Vision wird standardmäßig erst geladen, wenn tatsächlich ein Bild gesendet wird. Auf einem\n16-GB-Server kann `AI_LOCAL_WARM_VISION=true` gesetzt werden, damit auch das Vision-Modell\nnach dem NORVI-Start im Hintergrund vorgeladen wird und die erste Bildanalyse keinen langen\nCold-Start hat:\n\n
 ```bash
 ollama pull qwen3-vl:2b-instruct
 ```

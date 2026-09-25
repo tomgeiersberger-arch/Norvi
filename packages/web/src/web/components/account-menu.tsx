@@ -75,7 +75,7 @@ export function AccountMenu() {
         {open && (
           <div
             role="menu"
-            className="rise absolute right-0 z-50 mt-2 w-56 rounded-xl border border-border bg-card p-1.5 shadow-2xl"
+            className="glass-panel rise absolute right-0 z-50 mt-2 w-60 rounded-2xl p-1.5 shadow-2xl"
           >
             <div className="px-2.5 py-2">
               <div className="truncate text-[13px] font-medium">

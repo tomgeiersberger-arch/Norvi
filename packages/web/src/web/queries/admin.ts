@@ -11,6 +11,17 @@ export function useAdminStats(enabled: boolean) {
   return useQuery(orpc.admin.stats.queryOptions({ enabled, retry: false }));
 }
 
+/** Owner-only: runtime health of the local NORVI server. */
+export function useAdminSystem(enabled: boolean) {
+  return useQuery(
+    orpc.admin.system.queryOptions({
+      enabled,
+      retry: false,
+      refetchInterval: 15_000,
+    }),
+  );
+}
+
 function useInvalidateAdmin() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: orpc.admin.key() });

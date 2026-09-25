@@ -67,7 +67,7 @@ function SignIn() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-10">
       <div className="rise w-full max-w-[26rem]">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <NorviMark className="size-12" />
@@ -79,7 +79,7 @@ function SignIn() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/60 p-6 shadow-xl backdrop-blur">
+        <div className="glass-panel rounded-[1.6rem] p-6 shadow-[0_30px_100px_-45px_rgba(0,0,0,1)]">
           <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-secondary/50 p-1">
             {(
               [
