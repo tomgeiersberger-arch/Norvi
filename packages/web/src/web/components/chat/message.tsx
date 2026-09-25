@@ -157,7 +157,13 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
   );
 }
 
-export function TypingIndicator({ agentName }: { agentName: string }) {
+export function TypingIndicator({
+  agentName,
+  vision = false,
+}: {
+  agentName: string;
+  vision?: boolean;
+}) {
   return (
     <div className="flex gap-3">
       <NorviMark className="mt-0.5 size-7" pulse />
@@ -165,14 +171,17 @@ export function TypingIndicator({ agentName }: { agentName: string }) {
         <div className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground">
           {agentName}
         </div>
-        <div className="flex items-center gap-1.5 py-1">
-          {[0, 1, 2].map((i) => (
-            <span
-              key={i}
-              className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
-              style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
-            />
-          ))}
+        <div className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
+                style={{ animationDelay: `${i * 140}ms`, animationDuration: "1s" }}
+              />
+            ))}
+          </span>
+          {vision && <span>Bildanalyse läuft lokal …</span>}
         </div>
       </div>
     </div>

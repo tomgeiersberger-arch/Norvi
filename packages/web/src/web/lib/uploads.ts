@@ -22,16 +22,20 @@ async function errorMessage(response: Response): Promise<string> {
  * touching normal screenshots or already-small images.
  */
 async function prepareImage(file: File): Promise<File> {
-  if (file.size < 1_000_000 || typeof createImageBitmap === "undefined") return file;
+  // Tiny screenshots are already cheap to send and often contain text that
+  // benefits from keeping the original pixels. Larger photos get capped more
+  // aggressively because local vision inference is CPU-bound.
+  if (file.size < 300_000 || typeof createImageBitmap === "undefined") return file;
   try {
     const bitmap = await createImageBitmap(file);
     const longest = Math.max(bitmap.width, bitmap.height);
-    if (longest <= 1600) {
+    const maxSide = file.type === "image/png" ? 1200 : 768;
+    if (longest <= maxSide) {
       bitmap.close();
       return file;
     }
 
-    const scale = 1600 / longest;
+    const scale = maxSide / longest;
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement("canvas");
@@ -46,7 +50,7 @@ async function prepareImage(file: File): Promise<File> {
     bitmap.close();
 
     const type = file.type === "image/png" ? "image/png" : file.type === "image/webp" ? "image/webp" : "image/jpeg";
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.9));
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.86));
     return blob && blob.size < file.size ? new File([blob], file.name, { type }) : file;
   } catch {
     return file;

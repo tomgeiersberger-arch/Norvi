@@ -140,6 +140,22 @@ async function withInlineImages(messages: UIMessage[], requestUrl: string): Prom
   )) as UIMessage[];
 }
 
+/**
+ * Keep image bytes only on the latest user turn.
+ *
+ * Re-sending old images on every follow-up made every later text message route
+ * back through the much slower vision model. The assistant answer from the
+ * image turn stays in history, so normal follow-ups keep useful context without
+ * re-encoding the same pixels again.
+ */
+function stripHistoricalFiles(messages: UIMessage[], latestUser: UIMessage | undefined): UIMessage[] {
+  return messages.map((message) =>
+    message === latestUser
+      ? message
+      : { ...message, parts: message.parts.filter((part) => part.type !== "file") },
+  ) as UIMessage[];
+}
+
 /** Rate-limit helper shared by the upload and transcription endpoints. */
 function positiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
@@ -376,20 +392,26 @@ app.post("/api/agent/messages", async (c) => {
     // Per-account model / answer style, falling back to the server default.
     const prefs = await settingsFor(user?.id);
 
-    // Route normal text through the selected performance profile. Vision always
-    // wins when an image is present so a text-only fast/deep model never guesses.
+    // Route by the latest user turn, not the whole chat history. Otherwise one
+    // old photo would force every later text message through the slow vision model.
     const profile = performanceProfile(prefs.performanceMode, prefs.modelId);
-    const hasImages = (messages as UIMessage[]).some((message) => imagesOf(message).length > 0);
+    const rawMessages = messages as UIMessage[];
+    const latestUser = [...rawMessages].reverse().find((message) => message.role === "user");
+    const hasImages = imagesOf(latestUser).length > 0;
     const modelId = hasImages ? visionModelId(profile.modelId) : profile.modelId;
+    const historyForModel = stripHistoricalFiles(rawMessages, latestUser);
     const uiMessages = hasImages
-      ? await withInlineImages(messages as UIMessage[], c.req.url)
-      : (messages as UIMessage[]);
+      ? await withInlineImages(historyForModel, c.req.url)
+      : historyForModel;
+    const visionMaxTokens = positiveInt(process.env.AI_VISION_MAX_TOKENS, 192);
 
     return await createAgentUIStreamResponse({
       agent: createAgent({
         modelId,
         temperature: prefs.supportsTemperature ? prefs.temperature / 100 : undefined,
-        maxOutputTokens: profile.maxOutputTokens,
+        maxOutputTokens: hasImages
+          ? Math.min(profile.maxOutputTokens, visionMaxTokens)
+          : profile.maxOutputTokens,
         // Keep vision requests provider-neutral; not every vision model supports reasoning controls.
         reasoningEffort: hasImages ? undefined : profile.reasoningEffort,
       }),

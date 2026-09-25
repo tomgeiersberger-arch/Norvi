@@ -106,6 +106,10 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   const busy = status === "submitted" || status === "streaming";
   const last = messages.at(-1);
   const waitingForFirstToken = status === "submitted" || (last?.role === "user" && busy);
+  const analyzingImage =
+    waitingForFirstToken &&
+    last?.role === "user" &&
+    last.parts.some((part) => part.type === "file" && part.mediaType?.startsWith("image/"));
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = scrollRef.current;
@@ -193,7 +197,9 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
                   streaming={status === "streaming" && i === messages.length - 1}
                 />
               ))}
-              {waitingForFirstToken && <TypingIndicator agentName={agentName} />}
+              {waitingForFirstToken && (
+                <TypingIndicator agentName={agentName} vision={analyzingImage} />
+              )}
               {error && (
                 <div className="rise rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3.5 text-sm">
                   <p className="text-destructive">{error.message}</p>
