@@ -5,7 +5,7 @@ import { expo } from "@better-auth/expo";
 import { db } from "./database";
 import * as schema from "./database/schema";
 
-function trustedOrigins(): string[] {
+export function trustedOrigins(): string[] {
   const configured = (process.env.TRUSTED_ORIGINS ?? "")
     .split(",")
     .map((origin: string) => origin.trim().replace(/\/$/, ""))

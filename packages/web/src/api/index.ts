@@ -12,7 +12,7 @@ import {
 import { visionModelId } from "./agent/gateway";
 import { db } from "./database";
 import * as schema from "./database/schema";
-import { auth } from "./auth";
+import { auth, trustedOrigins } from "./auth";
 import { AUTH_REQUIRED_MESSAGE, denyAnonymous } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { warmLocalAi } from "./lib/local-ai";
@@ -52,6 +52,17 @@ export type AppRouter = typeof router;
 export type AppRouterClient = RouterClient<AppRouter>;
 
 const app = createApp(router);
+
+// Browser writes must come from an explicitly trusted NORVI origin. Requests
+// without Origin stay allowed for the native/mobile client and local CLI tools.
+const browserOrigins = new Set(trustedOrigins().map((origin) => origin.replace(/\/$/, "")));
+app.use("/api/*", async (c, next) => {
+  const origin = c.req.header("origin")?.replace(/\/$/, "");
+  if (origin && !browserOrigins.has(origin)) {
+    return c.json({ error: "Nicht erlaubter Browser-Ursprung." }, 403);
+  }
+  await next();
+});
 
 // In self-hosted mode NORVI can own its local Whisper sidecar. Starting here
 // keeps the template-managed __server.ts untouched.
