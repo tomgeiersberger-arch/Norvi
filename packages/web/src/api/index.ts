@@ -183,7 +183,9 @@ function performanceProfile(
   return {
     modelId: selectedModel,
     maxOutputTokens: positiveInt(process.env.AI_BALANCED_MAX_TOKENS, 512),
-    reasoningEffort: "low",
+    // The CPU-only homeserver is much faster with Qwen thinking disabled.
+    // Deep mode remains available when the user explicitly wants reasoning.
+    reasoningEffort: "none",
   };
 }
 
@@ -412,8 +414,9 @@ app.post("/api/agent/messages", async (c) => {
         maxOutputTokens: hasImages
           ? Math.min(profile.maxOutputTokens, visionMaxTokens)
           : profile.maxOutputTokens,
-        // Keep vision requests provider-neutral; not every vision model supports reasoning controls.
-        reasoningEffort: hasImages ? undefined : profile.reasoningEffort,
+        // Local Ollama accepts reasoning_effort=none for both chat and vision.
+        // Hosted gateway models ignore this because createAgent only forwards it locally.
+        reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
       }),
       uiMessages,
       // Errors mid-stream reach the client as readable text instead of a silent stop.
