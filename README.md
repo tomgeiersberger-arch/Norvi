@@ -509,7 +509,12 @@ STT_API_KEY=norvi-loopback-only
 STT_MODEL=whisper-1
 ```
 
-Vision wird standardmäßig erst geladen, wenn tatsächlich ein Bild gesendet wird. Auf einem\n16-GB-Server kann `AI_LOCAL_WARM_VISION=true` gesetzt werden, damit auch das Vision-Modell\nnach dem NORVI-Start im Hintergrund vorgeladen wird und die erste Bildanalyse keinen langen\nCold-Start hat:\n\n
+Vision wird standardmäßig erst geladen, wenn tatsächlich ein Bild gesendet wird. Auf dem
+CPU-only 16-GB-Homeserver sollte `AI_LOCAL_WARM_VISION=false` bleiben: Ollama hält dort
+praktisch nur ein Modell gleichzeitig warm, und ein vorgewärmtes Vision-Modell würde das
+schnelle Chat-Modell verdrängen. Nach einer Bildantwort lädt NORVI deshalb das Chat-Modell
+automatisch wieder im Hintergrund nach.
+
 ```bash
 ollama pull qwen3-vl:2b-instruct
 ```
