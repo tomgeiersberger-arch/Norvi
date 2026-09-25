@@ -1,5 +1,10 @@
 import type { RouterClient } from "@orpc/server";
-import { createAgentUIStreamResponse, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createAgentUIStreamResponse,
+  UI_MESSAGE_STREAM_HEADERS,
+  type UIMessage,
+} from "ai";
 import { and, eq, isNull } from "drizzle-orm";
 import { createApp } from "./__core/app";
 import {
@@ -407,17 +412,77 @@ app.post("/api/agent/messages", async (c) => {
       : historyForModel;
     const visionMaxTokens = positiveInt(process.env.AI_VISION_MAX_TOKENS, 192);
 
+    const activeAgent = createAgent({
+      modelId,
+      temperature: prefs.supportsTemperature ? prefs.temperature / 100 : undefined,
+      maxOutputTokens: hasImages
+        ? Math.min(profile.maxOutputTokens, visionMaxTokens)
+        : profile.maxOutputTokens,
+      // Local Ollama accepts reasoning_effort=none for both chat and vision.
+      // Hosted gateway models ignore this because createAgent only forwards it locally.
+      reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
+    });
+
+    const persistAssistant = async (messageId: string, answer: string) => {
+      if (!storedChatId || !answer) return;
+      try {
+        await db
+          .insert(schema.chatMessages)
+          .values({
+            id: rowId(storedChatId, messageId),
+            chatId: storedChatId,
+            role: "assistant",
+            content: answer,
+          })
+          .onConflictDoNothing();
+        await db
+          .update(schema.chats)
+          .set({ updatedAt: new Date() })
+          .where(eq(schema.chats.id, storedChatId));
+      } catch (error) {
+        console.error("[agent] persisting answer failed:", error);
+      }
+    };
+
+    // Cloudflare Quick Tunnels have intermittently cut NORVI's long-lived SSE
+    // connection with "unexpected EOF". The web client opts into this buffered
+    // path: generation finishes locally first, then a tiny complete AI-SDK event
+    // stream is returned as one normal HTTP response.
+    if (c.req.header("x-norvi-buffered") === "1") {
+      const modelMessages = await convertToModelMessages(uiMessages);
+      const result = await activeAgent.generate({ messages: modelMessages });
+      const answer = result.text.trim();
+      if (hasImages) warmLocalAi();
+
+      if (!answer) {
+        return c.json({ error: "NORVI hat keine Textantwort erzeugt. Bitte erneut senden." }, 502);
+      }
+
+      const responseId = crypto.randomUUID();
+      const textId = `txt-${responseId}`;
+      await persistAssistant(responseId, answer);
+
+      const chunks = [
+        { type: "start", messageId: responseId },
+        { type: "start-step" },
+        { type: "text-start", id: textId },
+        { type: "text-delta", id: textId, delta: answer },
+        { type: "text-end", id: textId },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ];
+      const body =
+        chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("") +
+        "data: [DONE]\n\n";
+
+      return new Response(body, {
+        status: 200,
+        headers: UI_MESSAGE_STREAM_HEADERS,
+      });
+    }
+
     return await createAgentUIStreamResponse({
-      agent: createAgent({
-        modelId,
-        temperature: prefs.supportsTemperature ? prefs.temperature / 100 : undefined,
-        maxOutputTokens: hasImages
-          ? Math.min(profile.maxOutputTokens, visionMaxTokens)
-          : profile.maxOutputTokens,
-        // Local Ollama accepts reasoning_effort=none for both chat and vision.
-        // Hosted gateway models ignore this because createAgent only forwards it locally.
-        reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
-      }),
+      agent: activeAgent,
       uiMessages,
       // Errors mid-stream reach the client as readable text instead of a silent stop.
       onError: (error) => describeAgentError(error),
@@ -428,24 +493,8 @@ app.post("/api/agent/messages", async (c) => {
         if (hasImages) warmLocalAi();
 
         const answer = textOf(responseMessage as UIMessage);
-        if (!storedChatId || !answer) return;
-        try {
-          await db
-            .insert(schema.chatMessages)
-            .values({
-              id: rowId(storedChatId, responseMessage.id),
-              chatId: storedChatId,
-              role: "assistant",
-              content: answer,
-            })
-            .onConflictDoNothing();
-          await db
-            .update(schema.chats)
-            .set({ updatedAt: new Date() })
-            .where(eq(schema.chats.id, storedChatId));
-        } catch (error) {
-          console.error("[agent] persisting answer failed:", error, { isAborted });
-        }
+        await persistAssistant(responseMessage.id, answer);
+        if (isAborted) console.warn("[agent] stream aborted before completion");
       },
     });
   } catch (error) {

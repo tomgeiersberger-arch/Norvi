@@ -100,7 +100,13 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
 
   const { messages, sendMessage, stop, regenerate, status, error } = useChat({
     messages: initialMessages,
-    transport: new DefaultChatTransport({ api: "/api/agent/messages" }),
+    // Cloudflare Quick Tunnels occasionally terminate long-lived SSE responses.
+    // NORVI therefore asks the API to generate fully on the server, then return
+    // one short AI-SDK-compatible event stream in a single HTTP response.
+    transport: new DefaultChatTransport({
+      api: "/api/agent/messages",
+      headers: { "X-Norvi-Buffered": "1" },
+    }),
   });
 
   const busy = status === "submitted" || status === "streaming";
