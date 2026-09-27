@@ -464,7 +464,6 @@ app.post("/api/agent/messages", async (c) => {
       const modelMessages = await convertToModelMessages(uiMessages);
       const result = await activeAgent.generate({ messages: modelMessages });
       const answer = result.text.trim();
-      if (hasImages) warmLocalAi();
 
       if (!answer) {
         return c.json({ error: "NORVI hat keine Textantwort erzeugt. Bitte erneut senden." }, 502);
@@ -499,11 +498,9 @@ app.post("/api/agent/messages", async (c) => {
       // Errors mid-stream reach the client as readable text instead of a silent stop.
       onError: (error) => describeAgentError(error),
       onFinish: async ({ responseMessage, isAborted }) => {
-        // CPU-only Ollama often keeps one model resident. A vision turn can
-        // therefore evict the fast chat model; reload it in the background as
-        // soon as the image answer is complete so the next text turn is quick.
-        if (hasImages) warmLocalAi();
-
+        // Do not launch a competing warm-up directly after vision. On the
+        // 16-GB homeserver both small models can remain resident, and an
+        // immediate warm-up can steal CPU from the user's next text request.
         const answer = textOf(responseMessage as UIMessage);
         await persistAssistant(responseMessage.id, answer);
         if (isAborted) console.warn("[agent] stream aborted before completion");
