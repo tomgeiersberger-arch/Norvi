@@ -1,6 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { base } from "../__core/app";
 import { auth } from "../auth";
+import { hasPremiumAccess } from "../lib/access";
 
 /** Shape of the session user we hand down to procedures. */
 export type SessionUser = {
@@ -12,6 +13,7 @@ export type SessionUser = {
   isActive: boolean;
   isPremium: boolean;
   premiumUntil?: Date | null;
+  premiumAccess: boolean;
 };
 
 function asUser(user: unknown): SessionUser {
@@ -21,6 +23,7 @@ function asUser(user: unknown): SessionUser {
     role: u.role ?? "user",
     isActive: u.isActive ?? true,
     isPremium: u.isPremium ?? false,
+    premiumAccess: hasPremiumAccess(u),
   };
 }
 

@@ -18,7 +18,7 @@ import { visionModelId } from "./agent/gateway";
 import { db } from "./database";
 import * as schema from "./database/schema";
 import { auth, trustedOrigins } from "./auth";
-import { AUTH_REQUIRED_MESSAGE, denyAnonymous } from "./lib/access";
+import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasPremiumAccess } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { warmLocalAi } from "./lib/local-ai";
 import { startLocalStt } from "./lib/local-stt";
@@ -328,16 +328,25 @@ app.post("/api/agent/messages", async (c) => {
 
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     const user = session?.user as
-      | { id: string; isActive?: boolean; isPremium?: boolean }
+      | {
+          id: string;
+          role?: string;
+          isActive?: boolean;
+          isPremium?: boolean;
+          premiumUntil?: Date | string | number | null;
+        }
       | undefined;
     if (user && user.isActive === false) {
       return c.json({ error: "Dieses Konto ist deaktiviert." }, 403);
     }
     if (denyAnonymous(user)) return c.json({ error: AUTH_REQUIRED_MESSAGE }, 401);
 
-    // Rate-limit guard rail per account (or per device for the login-less client).
+    const premiumAccess = hasPremiumAccess(user);
+
+    // Premium (and owner/admin) gets a larger burst allowance while the
+    // standard tier remains conservative for the small CPU-only homeserver.
     const limitKey = user ? `user:${user.id}` : deviceId ? `device:${deviceId}` : "anon";
-    const limit = rateLimit(limitKey, 30, 10 * 60 * 1000);
+    const limit = rateLimit(limitKey, premiumAccess ? 60 : 30, 10 * 60 * 1000);
     if (!limit.allowed) {
       return c.json(
         {
@@ -397,7 +406,7 @@ app.post("/api/agent/messages", async (c) => {
     }
 
     // Per-account model / answer style, falling back to the server default.
-    const prefs = await settingsFor(user?.id);
+    const prefs = await settingsFor(user?.id, premiumAccess);
 
     // Route by the latest user turn, not the whole chat history. Otherwise one
     // old photo would force every later text message through the slow vision model.

@@ -26,6 +26,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   if (!open) return null;
 
+  const premiumAccess = settings.data?.premiumAccess ?? false;
+
   const save = () => {
     setSaved(false);
     update.mutate(
@@ -92,25 +94,31 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </span>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  ["fast", "Schnell", Zap, "1.7B · kein Thinking"],
-                  ["balanced", "Normal", Gauge, "1.7B · leichtes Thinking"],
-                  ["deep", "Gründlich", BrainCircuit, "4B · starkes Thinking"],
-                ] as const).map(([value, label, Icon, hint]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setPerformanceMode(value)}
-                    className={`rounded-2xl border px-3 py-3 text-left transition ${
-                      performanceMode === value
-                        ? "border-primary/45 bg-primary/[0.09] text-foreground shadow-[0_10px_28px_-20px_rgba(255,122,89,0.8)]"
-                        : "border-white/[0.07] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className={`mb-2 size-4 ${performanceMode === value ? "text-primary" : ""}`} />
-                    <div className="text-[12px] font-semibold">{label}</div>
-                    <div className="mt-0.5 text-[9.5px] leading-tight opacity-70">{hint}</div>
-                  </button>
-                ))}
+                  ["fast", "Schnell", Zap, "kurz · kein Thinking"],
+                  ["balanced", "Normal", Gauge, "ausgewogen · kein Thinking"],
+                  ["deep", "Gründlich", BrainCircuit, "größeres Budget · Thinking"],
+                ] as const).map(([value, label, Icon, hint]) => {
+                  const locked = value === "deep" && !premiumAccess;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => !locked && setPerformanceMode(value)}
+                      className={`rounded-2xl border px-3 py-3 text-left transition ${
+                        performanceMode === value
+                          ? "border-primary/45 bg-primary/[0.09] text-foreground shadow-[0_10px_28px_-20px_rgba(255,122,89,0.8)]"
+                          : "border-white/[0.07] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                      } ${locked ? "cursor-not-allowed opacity-45 hover:bg-white/[0.02] hover:text-muted-foreground" : ""}`}
+                    >
+                      <Icon className={`mb-2 size-4 ${performanceMode === value ? "text-primary" : ""}`} />
+                      <div className="text-[12px] font-semibold">{label}</div>
+                      <div className="mt-0.5 text-[9.5px] leading-tight opacity-70">
+                        {locked ? "Premium · größeres Budget · Thinking" : hint}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Sparkles className="size-3.5 text-primary" />

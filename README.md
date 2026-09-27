@@ -472,6 +472,11 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 Der Modus lässt sich in den Web-Einstellungen auswählen. Ist `AI_DEEP_MODEL` leer,
 bleibt auch „Gründlich“ auf dem gewählten Modell und erhöht nur das Antwortbudget.
 
+„Gründlich“ ist für Premium-Konten sowie Administratoren freigeschaltet. Premium verdoppelt
+außerdem das Chat-Burst-Limit von 30 auf 60 Nachrichten pro 10 Minuten. Ein gesetztes
+`premiumUntil` wird bei jedem Request geprüft; abgelaufene Premium-Zugänge fallen automatisch
+auf den normalen Leistungsumfang zurück.
+
 ### Externer Zugriff
 
 Für Tests ohne eigene Domain kann `deploy/norvi-quick-tunnel.service` als User-Service

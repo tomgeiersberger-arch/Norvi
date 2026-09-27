@@ -26,6 +26,26 @@ export function allowAdditionalSignups(): boolean {
   return enabled(process.env.ALLOW_SIGNUP);
 }
 
+/** Active Premium access. Administrators always get the full local feature set. */
+export function hasPremiumAccess(
+  user:
+    | {
+        role?: string;
+        isPremium?: boolean;
+        premiumUntil?: Date | string | number | null;
+      }
+    | null
+    | undefined,
+): boolean {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (!user.isPremium) return false;
+  if (!user.premiumUntil) return true;
+
+  const until = new Date(user.premiumUntil).getTime();
+  return Number.isFinite(until) && until > Date.now();
+}
+
 /** Meldung für abgewiesene anonyme Anfragen — identisch auf allen Endpunkten. */
 export const AUTH_REQUIRED_MESSAGE =
   "Für diese NORVI-Instanz ist eine Anmeldung erforderlich. Bitte anmelden.";

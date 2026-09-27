@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { authed } from "../middleware/auth";
@@ -16,6 +17,7 @@ export type UserSettings = {
   models: string[];
   supportsTemperature: boolean;
   performanceMode: PerformanceMode;
+  premiumAccess: boolean;
 };
 
 function present(
@@ -26,6 +28,7 @@ function present(
         performanceMode: string | null;
       }
     | undefined,
+  premiumAccess: boolean,
 ) {
   const models = availableModels();
   const stored = row?.modelId && models.includes(row.modelId) ? row.modelId : defaultModelId();
@@ -36,9 +39,12 @@ function present(
     // The hosted gateway ignores temperature for reasoning models, so the UI
     // only offers it on the OpenAI-compatible (self-hosted) provider.
     supportsTemperature: providerKind() === "openai-compatible",
-    performanceMode: performanceMode.safeParse(row?.performanceMode).success
-      ? (row!.performanceMode as PerformanceMode)
-      : "balanced",
+    performanceMode:
+      performanceMode.safeParse(row?.performanceMode).success &&
+      (row!.performanceMode !== "deep" || premiumAccess)
+        ? (row!.performanceMode as PerformanceMode)
+        : "balanced",
+    premiumAccess,
   } satisfies UserSettings;
 }
 
@@ -49,7 +55,7 @@ export const settings = {
       .from(schema.userSettings)
       .where(eq(schema.userSettings.userId, context.user.id))
       .limit(1);
-    return present(row);
+    return present(row, context.user.premiumAccess);
   }),
 
   update: authed
@@ -61,6 +67,12 @@ export const settings = {
       }),
     )
     .handler(async ({ input, context }) => {
+      if (input.performanceMode === "deep" && !context.user.premiumAccess) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "Der Gründlich-Modus ist für Premium-Konten verfügbar.",
+        });
+      }
+
       const models = availableModels();
       const modelId =
         input.modelId && models.includes(input.modelId) ? input.modelId : undefined;
@@ -91,17 +103,17 @@ export const settings = {
         .from(schema.userSettings)
         .where(eq(schema.userSettings.userId, context.user.id))
         .limit(1);
-      return present(row);
+      return present(row, context.user.premiumAccess);
     }),
 };
 
 /** Server-side lookup used by the streaming endpoint. */
-export async function settingsFor(userId: string | undefined) {
-  if (!userId) return present(undefined);
+export async function settingsFor(userId: string | undefined, premiumAccess = false) {
+  if (!userId) return present(undefined, false);
   const [row] = await db
     .select()
     .from(schema.userSettings)
     .where(eq(schema.userSettings.userId, userId))
     .limit(1);
-  return present(row);
+  return present(row, premiumAccess);
 }

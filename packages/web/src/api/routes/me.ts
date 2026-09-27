@@ -11,5 +11,6 @@ export const me = withUser.handler(({ context }) => {
     role: user.role,
     isPremium: user.isPremium,
     premiumUntil: user.premiumUntil ?? null,
+    premiumAccess: user.premiumAccess,
   };
 });
