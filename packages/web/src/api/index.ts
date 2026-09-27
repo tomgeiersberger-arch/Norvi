@@ -20,6 +20,7 @@ import * as schema from "./database/schema";
 import { auth, trustedOrigins } from "./auth";
 import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasPremiumAccess } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
+import { recordAiRequest } from "./lib/ai-metrics";
 import { warmLocalAi } from "./lib/local-ai";
 import { startLocalStt } from "./lib/local-stt";
 import { SttError, transcribe } from "./lib/stt";
@@ -423,6 +424,13 @@ app.post("/api/agent/messages", async (c) => {
       ? await withInlineImages(historyForModel, c.req.url)
       : historyForModel;
     const visionMaxTokens = positiveInt(process.env.AI_VISION_MAX_TOKENS, 192);
+    const requestStartedAt = Date.now();
+    let metricRecorded = false;
+    const finishMetric = (ok: boolean) => {
+      if (metricRecorded) return;
+      metricRecorded = true;
+      recordAiRequest(hasImages ? "vision" : "text", Date.now() - requestStartedAt, ok);
+    };
 
     const activeAgent = createAgent({
       modelId,
@@ -462,7 +470,16 @@ app.post("/api/agent/messages", async (c) => {
     // stream is returned as one normal HTTP response.
     if (c.req.header("x-norvi-buffered") === "1") {
       const modelMessages = await convertToModelMessages(uiMessages);
-      const result = await activeAgent.generate({ messages: modelMessages });
+      const result = await activeAgent.generate({ messages: modelMessages }).then(
+        (value) => {
+          finishMetric(true);
+          return value;
+        },
+        (error) => {
+          finishMetric(false);
+          throw error;
+        },
+      );
       const answer = result.text.trim();
 
       if (!answer) {
@@ -496,8 +513,12 @@ app.post("/api/agent/messages", async (c) => {
       agent: activeAgent,
       uiMessages,
       // Errors mid-stream reach the client as readable text instead of a silent stop.
-      onError: (error) => describeAgentError(error),
+      onError: (error) => {
+        finishMetric(false);
+        return describeAgentError(error);
+      },
       onFinish: async ({ responseMessage, isAborted }) => {
+        finishMetric(!isAborted);
         // Do not launch a competing warm-up directly after vision. On the
         // 16-GB homeserver both small models can remain resident, and an
         // immediate warm-up can steal CPU from the user's next text request.
