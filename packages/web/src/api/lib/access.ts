@@ -22,8 +22,21 @@ export function requireAuthEnabled(): boolean {
 }
 
 /** Additional account registration is closed by default after owner bootstrap. */
+let runtimeSignupOverride: boolean | null = null;
+
 export function allowAdditionalSignups(): boolean {
-  return enabled(process.env.ALLOW_SIGNUP);
+  return runtimeSignupOverride ?? enabled(process.env.ALLOW_SIGNUP);
+}
+
+/**
+ * Owner-only runtime switch used by the admin UI.
+ *
+ * It intentionally resets after a server restart, so accidentally opening
+ * registration never becomes a permanent public setting.
+ */
+export function setRuntimeSignupEnabled(value: boolean): boolean {
+  runtimeSignupOverride = value;
+  return allowAdditionalSignups();
 }
 
 /** Active Premium access. Administrators always get the full local feature set. */
