@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Activity, ArrowLeft, Cpu, Eye, Loader2, MemoryStick, Mic2 } from "lucide-react";
+import {
+  Activity,
+  ArrowLeft,
+  Cpu,
+  Eye,
+  Loader2,
+  MemoryStick,
+  Mic2,
+  UserPlus,
+} from "lucide-react";
 import { NorviMark } from "../components/chat/norvi-mark";
 import {
   useAdminStats,
@@ -8,6 +17,7 @@ import {
   useAdminUsers,
   useSetActive,
   useSetPremium,
+  useSetRegistration,
 } from "../queries/admin";
 
 function formatDate(value: string | Date | null | undefined) {
@@ -43,6 +53,7 @@ function Admin() {
   const system = useAdminSystem(true);
   const setActive = useSetActive();
   const setPremium = useSetPremium();
+  const setRegistration = useSetRegistration();
   const [dateDraft, setDateDraft] = useState<Record<string, string>>({});
 
   return (
@@ -94,7 +105,7 @@ function Admin() {
             <Loader2 className="size-5 animate-spin" />
           </div>
         ) : system.data ? (
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div className="glass-panel rounded-2xl p-4">
               <Cpu className="size-4 text-primary" />
               <div className="mt-3 text-[11px] text-muted-foreground">KI-Modell</div>
@@ -122,6 +133,27 @@ function Admin() {
               <div className="mt-3 text-[11px] text-muted-foreground">Server</div>
               <div className="mt-0.5 text-[13px] font-semibold">{formatUptime(system.data.uptimeSeconds)}</div>
               <div className="mt-1 text-[10.5px] text-muted-foreground">Load {system.data.load1.toFixed(2)}</div>
+            </div>
+            <div className="glass-panel rounded-2xl p-4">
+              <UserPlus
+                className={`size-4 ${system.data.registrationOpen ? "text-amber-400" : "text-green-400"}`}
+              />
+              <div className="mt-3 text-[11px] text-muted-foreground">Registrierung</div>
+              <button
+                type="button"
+                disabled={setRegistration.isPending}
+                onClick={() =>
+                  setRegistration.mutate({ enabled: !system.data.registrationOpen })
+                }
+                className={`mt-0.5 text-left text-[13px] font-semibold transition hover:text-primary disabled:opacity-50 ${
+                  system.data.registrationOpen ? "text-amber-400" : "text-green-400"
+                }`}
+              >
+                {system.data.registrationOpen ? "Offen · schließen" : "Geschlossen · öffnen"}
+              </button>
+              <div className="mt-1 text-[9.5px] leading-tight text-muted-foreground">
+                Offen nur bis Neustart
+              </div>
             </div>
           </section>
         ) : (
@@ -236,7 +268,7 @@ function Admin() {
           </table>
         </div>
 
-        {(setActive.error || setPremium.error) && (
+        {(setActive.error || setPremium.error || setRegistration.error) && (
           <p className="mt-4 text-[13px] text-destructive">
             Änderung fehlgeschlagen. Bitte erneut versuchen.
           </p>
