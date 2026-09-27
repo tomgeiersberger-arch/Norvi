@@ -98,14 +98,17 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   const idRef = useRef<string | null>(chatId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const quickTunnel =
+    typeof window !== "undefined" && window.location.hostname.endsWith(".trycloudflare.com");
+
   const { messages, sendMessage, stop, regenerate, status, error } = useChat({
     messages: initialMessages,
     // Cloudflare Quick Tunnels occasionally terminate long-lived SSE responses.
-    // NORVI therefore asks the API to generate fully on the server, then return
-    // one short AI-SDK-compatible event stream in a single HTTP response.
+    // Buffer only there; LAN, Tailscale and stable reverse proxies keep true
+    // token streaming for a noticeably faster-feeling chat experience.
     transport: new DefaultChatTransport({
       api: "/api/agent/messages",
-      headers: { "X-Norvi-Buffered": "1" },
+      headers: quickTunnel ? { "X-Norvi-Buffered": "1" } : undefined,
     }),
   });
 
