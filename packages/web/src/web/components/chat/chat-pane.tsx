@@ -108,7 +108,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     // token streaming for a noticeably faster-feeling chat experience.
     transport: new DefaultChatTransport({
       api: "/api/agent/messages",
-      headers: quickTunnel ? { "X-Norvi-Buffered": "1" } : undefined,
+      ...(quickTunnel ? { headers: { "X-Norvi-Buffered": "1" } } : {}),
     }),
   });
 
