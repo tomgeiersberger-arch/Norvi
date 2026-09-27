@@ -8,6 +8,7 @@ import {
   Loader2,
   MemoryStick,
   Mic2,
+  Timer,
   UserPlus,
 } from "lucide-react";
 import { NorviMark } from "../components/chat/norvi-mark";
@@ -133,6 +134,20 @@ function Admin() {
               <div className="mt-3 text-[11px] text-muted-foreground">Server</div>
               <div className="mt-0.5 text-[13px] font-semibold">{formatUptime(system.data.uptimeSeconds)}</div>
               <div className="mt-1 text-[10.5px] text-muted-foreground">Load {system.data.load1.toFixed(2)}</div>
+            </div>
+            <div className="glass-panel rounded-2xl p-4">
+              <Timer className="size-4 text-primary" />
+              <div className="mt-3 text-[11px] text-muted-foreground">Antwortzeit</div>
+              <div className="mt-0.5 text-[13px] font-semibold">
+                {system.data.ai.averageMs === null
+                  ? "Noch keine Daten"
+                  : `${(system.data.ai.averageMs / 1000).toFixed(1)} s Ø`}
+              </div>
+              <div className="mt-1 text-[9.5px] leading-tight text-muted-foreground">
+                {system.data.ai.p95Ms === null
+                  ? "—"
+                  : `P95 ${(system.data.ai.p95Ms / 1000).toFixed(1)} s · ${system.data.ai.errors} Fehler`}
+              </div>
             </div>
             <div className="glass-panel rounded-2xl p-4">
               <UserPlus
