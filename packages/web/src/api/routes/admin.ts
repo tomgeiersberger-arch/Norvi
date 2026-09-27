@@ -6,6 +6,7 @@ import { adminOnly } from "../middleware/auth";
 import { defaultModelId, providerKind, visionAvailable } from "../agent/gateway";
 import { db } from "../database";
 import { sttAvailable } from "../lib/stt";
+import { aiMetricsSnapshot } from "../lib/ai-metrics";
 import { allowAdditionalSignups, setRuntimeSignupEnabled } from "../lib/access";
 import * as schema from "../database/schema";
 
@@ -105,6 +106,7 @@ export const admin = {
       vision: visionAvailable(),
       stt: await sttAvailable(1_500),
       registrationOpen: allowAdditionalSignups(),
+      ai: aiMetricsSnapshot(),
       uptimeSeconds: Math.floor(uptime()),
       memoryUsedBytes: Math.max(0, total - free),
       memoryTotalBytes: total,
