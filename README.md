@@ -330,7 +330,6 @@ nano .env
 In der `.env` mindestens setzen:
 
 ```bash
-NODE_ENV=production
 WEBSITE_URL=http://100.114.15.10:4200        # oder https://norvi.example.com
 TRUSTED_ORIGINS=                              # optional: weitere erlaubte Browser-Origins
 DATABASE_URL=file:./data/norvi.db            # lokale SQLite-Datei, kein Cloud-Dienst
@@ -416,13 +415,26 @@ bunx pm2 save && bunx pm2 startup      # ausgegebenen sudo-Befehl ausfuehren
 
 ### 10.5 Updates einspielen
 
+Auf dem NORVI-Homeserver kann das Update ohne Root-Zugriff auf den App-Prozess
+weitgehend automatisiert werden:
+
 ```bash
 cd ~/norvi
-git pull
-bun install
-bun run db:push
-bun run build
-sudo systemctl restart norvi
+git pull --ff-only
+bash deploy/update-production.sh
+```
+
+Das Update-Skript erstellt zuerst ein Backup, installiert Abhängigkeiten, aktualisiert das
+Datenbankschema, führt Typecheck/Lint/Web-Build aus, installiert die User-Units für Backup
+und Quick Tunnel, lädt NORVI neu und führt anschließend einen Laufzeit-Selbsttest aus.
+Ein vorhandener getrackter lokaler Edit führt bewusst zum Abbruch statt überschrieben zu werden.
+
+Nur prüfen, ohne etwas zu ändern:
+
+```bash
+bash deploy/norvi-self-test.sh
+# nur Dienste/DB/Ollama/HTTPS:
+bash deploy/norvi-self-test.sh --runtime-only
 ```
 
 ### 10.6 Optional: HTTPS über nginx
@@ -509,8 +521,11 @@ AI_BASE_URL=http://127.0.0.1:11434/v1
 ```
 
 Der erste Account kann einen frischen Server weiterhin initialisieren. Sobald bereits ein
-Nutzer existiert, blockiert NORVI weitere Registrierungen serverseitig, solange
-`ALLOW_SIGNUP` nicht ausdrücklich auf `true` gesetzt ist.
+Nutzer existiert, blockiert NORVI weitere Registrierungen serverseitig. Der Admin kann die
+Registrierung im Admin-Bereich temporär öffnen, um z. B. einen Freund anzulegen, und danach
+sofort wieder schließen. Diese Laufzeit-Freigabe wird bei jedem NORVI-Neustart automatisch
+zurückgesetzt. `ALLOW_SIGNUP=true` ist nur für eine bewusst dauerhaft offene Registrierung
+gedacht.
 
 Danach prüfen:
 
@@ -536,10 +551,12 @@ STT_MODEL=whisper-1
 ```
 
 Vision wird standardmäßig erst geladen, wenn tatsächlich ein Bild gesendet wird. Auf dem
-CPU-only 16-GB-Homeserver sollte `AI_LOCAL_WARM_VISION=false` bleiben: Ollama hält dort
-praktisch nur ein Modell gleichzeitig warm, und ein vorgewärmtes Vision-Modell würde das
-schnelle Chat-Modell verdrängen. Nach einer Bildantwort lädt NORVI deshalb das Chat-Modell
-automatisch wieder im Hintergrund nach.
+CPU-only 16-GB-Homeserver sollte `AI_LOCAL_WARM_VISION=false` bleiben, damit beim Start
+keine unnötige Vision-Last entsteht. NORVI startet nach einer Bildantwort absichtlich keinen
+konkurrierenden Warm-up-Request mehr: das vermeidet CPU-Konkurrenz, wenn direkt danach eine
+Textnachricht gesendet wird. Ollama kann die kleinen Modelle im RAM behalten; falls eines
+doch ausgelagert wurde, lädt die nächste echte Anfrage es regulär wieder. Große Fotos werden
+vor dem Upload verkleinert, damit die lokale Bildanalyse deutlich weniger CPU-Zeit benötigt.
 
 ```bash
 ollama pull qwen3-vl:2b-instruct
