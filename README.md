@@ -472,12 +472,20 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 Der Modus lässt sich in den Web-Einstellungen auswählen. Ist `AI_DEEP_MODEL` leer,
 bleibt auch „Gründlich“ auf dem gewählten Modell und erhöht nur das Antwortbudget.
 
-### Dauerhafter externer Zugriff
+### Externer Zugriff
 
-Für echten Dauerbetrieb keinen zufälligen Quick Tunnel verwenden. Einen benannten
-Cloudflare Tunnel anlegen und `cloudflared` als Systemdienst installieren. Der Tunnel
-soll ausschließlich NORVI auf `http://127.0.0.1:4200` veröffentlichen; Ollama auf
-Port 11434 bleibt lokal.
+Für Tests ohne eigene Domain kann `deploy/norvi-quick-tunnel.service` als User-Service
+laufen. `deploy/start-quick-tunnel.sh` startet einen Cloudflare Quick Tunnel über HTTP/2,
+schreibt die aktuelle URL nach `data/public-url.txt`, aktualisiert `WEBSITE_URL` und
+lädt NORVI bei einer neuen Tunnel-Adresse automatisch neu. Mit aktiviertem User-Linger
+kommt der Tunnel damit auch nach einem Server-Neustart wieder hoch. Die URL kann sich
+bei jedem Tunnel-Neustart ändern; die Weboberfläche zeigt deshalb einen „Teilen“-Button,
+der die jeweils aktuelle öffentliche URL kopiert.
+
+Für echten Dauerbetrieb mit unveränderlicher Adresse weiterhin keinen zufälligen Quick
+Tunnel verwenden. Stattdessen einen benannten Cloudflare Tunnel mit eigener Domain
+anlegen. Der Tunnel soll ausschließlich NORVI auf `http://127.0.0.1:4200` veröffentlichen;
+Ollama auf Port 11434 bleibt lokal.
 
 Vor dem Freigeben ins Internet:
 

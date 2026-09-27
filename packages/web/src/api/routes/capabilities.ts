@@ -18,6 +18,10 @@ export const capabilities = {
     localAi: providerKind() === "openai-compatible",
     /** True, wenn diese Instanz eine Anmeldung erzwingt (REQUIRE_AUTH=true). */
     requireAuth: requireAuthEnabled(),
+    // Expose only the public browser URL, never any secret or tunnel token.
+    publicUrl: /^https:\/\//i.test(process.env.WEBSITE_URL ?? "")
+      ? process.env.WEBSITE_URL
+      : null,
     imageTypes: [...ALLOWED_IMAGE_TYPES],
     maxImageBytes: MAX_IMAGE_BYTES,
   })),

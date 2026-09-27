@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes("node_modules") && id.includes("@runablehq")) return "runable";
+            if (id.includes("node_modules") && id.includes("lucide-react")) return "icons";
           },
         },
       },

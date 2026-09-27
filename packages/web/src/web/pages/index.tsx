@@ -24,6 +24,7 @@ function Index() {
   const [session, setSession] = useState<Session>({ key: "new-initial", chatId: null });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const agentName = model.data?.agent ?? "NORVI";
   const modelLabel = model.isLoading ? "verbinde…" : (model.data?.label ?? "NORVI AI");
@@ -38,6 +39,14 @@ function Index() {
     setSession({ key: `new-${Date.now()}`, chatId: null });
     setActiveId(null);
     setDrawer(false);
+  };
+
+  const copyPublicLink = async () => {
+    const publicUrl = capabilities.data?.publicUrl;
+    if (!publicUrl) return;
+    await navigator.clipboard.writeText(publicUrl);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1400);
   };
 
   const list = (chats.data ?? []).map((chat) => ({
@@ -137,6 +146,19 @@ function Index() {
                 </span>
               )}
             </div>
+            {capabilities.data?.publicUrl && (
+              <button
+                type="button"
+                onClick={() => void copyPublicLink()}
+                title="Öffentlichen NORVI-Link kopieren"
+                aria-label="Öffentlichen NORVI-Link kopieren"
+                className="flex h-8 items-center justify-center rounded-lg px-2 text-[10px] font-medium text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+              >
+                <span className={linkCopied ? "text-green-400" : ""}>
+                  {linkCopied ? "Kopiert" : "Teilen"}
+                </span>
+              </button>
+            )}
             <AccountMenu />
           </div>
         </header>
