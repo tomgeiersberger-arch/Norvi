@@ -470,21 +470,17 @@ app.post("/api/agent/messages", async (c) => {
     // stream is returned as one normal HTTP response.
     if (c.req.header("x-norvi-buffered") === "1") {
       const modelMessages = await convertToModelMessages(uiMessages);
-      const result = await activeAgent.generate({ messages: modelMessages }).then(
-        (value) => {
-          finishMetric(true);
-          return value;
-        },
-        (error) => {
-          finishMetric(false);
-          throw error;
-        },
-      );
+      const result = await activeAgent.generate({ messages: modelMessages }).catch((error) => {
+        finishMetric(false);
+        throw error;
+      });
       const answer = result.text.trim();
 
       if (!answer) {
+        finishMetric(false);
         return c.json({ error: "NORVI hat keine Textantwort erzeugt. Bitte erneut senden." }, 502);
       }
+      finishMetric(true);
 
       const responseId = crypto.randomUUID();
       const textId = `txt-${responseId}`;
@@ -518,11 +514,11 @@ app.post("/api/agent/messages", async (c) => {
         return describeAgentError(error);
       },
       onFinish: async ({ responseMessage, isAborted }) => {
-        finishMetric(!isAborted);
         // Do not launch a competing warm-up directly after vision. On the
         // 16-GB homeserver both small models can remain resident, and an
         // immediate warm-up can steal CPU from the user's next text request.
         const answer = textOf(responseMessage as UIMessage);
+        finishMetric(!isAborted && Boolean(answer));
         await persistAssistant(responseMessage.id, answer);
         if (isAborted) console.warn("[agent] stream aborted before completion");
       },
