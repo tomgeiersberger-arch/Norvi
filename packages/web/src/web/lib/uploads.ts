@@ -29,7 +29,7 @@ async function prepareImage(file: File): Promise<File> {
   try {
     const bitmap = await createImageBitmap(file);
     const longest = Math.max(bitmap.width, bitmap.height);
-    const maxSide = file.type === "image/png" ? 1200 : 768;
+    const maxSide = file.type === "image/png" ? 1200 : 640;
     if (longest <= maxSide) {
       bitmap.close();
       return file;
