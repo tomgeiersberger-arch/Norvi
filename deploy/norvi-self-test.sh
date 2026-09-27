@@ -76,6 +76,8 @@ if curl -fsS --max-time 5 http://127.0.0.1:11434/api/tags >/dev/null; then
       [[ -z "$model" ]] && continue
       if ollama list 2>/dev/null | awk 'NR>1 {print $1}' | grep -Fxq "$model"; then
         ok "$key=$model vorhanden"
+      elif [[ "$key" == "AI_DEEP_MODEL" ]]; then
+        warn "$key=$model fehlt in Ollama (nur Gründlich-Modus betroffen)"
       else
         bad "$key=$model fehlt in Ollama"
       fi
