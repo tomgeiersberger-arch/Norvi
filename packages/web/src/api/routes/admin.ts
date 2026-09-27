@@ -6,6 +6,7 @@ import { adminOnly } from "../middleware/auth";
 import { defaultModelId, providerKind, visionAvailable } from "../agent/gateway";
 import { db } from "../database";
 import { sttAvailable } from "../lib/stt";
+import { allowAdditionalSignups, setRuntimeSignupEnabled } from "../lib/access";
 import * as schema from "../database/schema";
 
 const userId = z.string().min(1).max(120);
@@ -84,6 +85,13 @@ export const admin = {
       return updated;
     }),
 
+  /** Temporarily open/close account registration until the next server restart. */
+  setRegistration: adminOnly
+    .input(z.object({ enabled: z.boolean() }))
+    .handler(({ input }) => ({
+      enabled: setRuntimeSignupEnabled(input.enabled),
+    })),
+
   /** Safe runtime diagnostics for the owner UI — no credentials or tokens. */
   system: adminOnly.handler(async () => {
     const total = totalmem();
@@ -96,6 +104,7 @@ export const admin = {
       visionModel: process.env.AI_VISION_MODEL?.trim() || null,
       vision: visionAvailable(),
       stt: await sttAvailable(1_500),
+      registrationOpen: allowAdditionalSignups(),
       uptimeSeconds: Math.floor(uptime()),
       memoryUsedBytes: Math.max(0, total - free),
       memoryTotalBytes: total,
