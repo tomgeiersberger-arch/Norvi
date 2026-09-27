@@ -29,14 +29,16 @@ git merge --ff-only origin/main
 
 chmod +x deploy/*.sh 2>/dev/null || true
 
-echo "==> Abhängigkeiten + Datenbank"
+echo "==> Abhängigkeiten"
 "$BUN" install --frozen-lockfile
-"$BUN" run db:push
 
 echo "==> Qualitätssicherung"
 "$BUN" run typecheck
 "$BUN" run lint
 "$BUN" run build:web
+
+echo "==> Datenbankschema"
+"$BUN" run db:push
 
 echo "==> User-Services installieren"
 USER_SYSTEMD="$HOME/.config/systemd/user"
@@ -74,7 +76,10 @@ if [[ "$auth" =~ ^(true|1|yes|on)$ ]] && [[ -n "${secret//[[:space:]]/}" ]] && c
   # parallel öffentlich erreichbar bleibt.
   while read -r oldpid; do
     [[ -n "$oldpid" ]] && kill "$oldpid" 2>/dev/null || true
-  done < <(pgrep -u "$(id -u)" -x cloudflared || true)
+  done < <(
+    ps -u "$(id -u)" -o pid=,args= |
+      awk '/cloudflared tunnel/ && /--url http:\/\/127\.0\.0\.1:4200/ {print $1}'
+  )
 
   rm -f data/public-url.txt
   systemctl --user enable --now norvi-quick-tunnel.service
