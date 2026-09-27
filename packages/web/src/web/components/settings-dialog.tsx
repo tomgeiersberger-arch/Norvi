@@ -96,7 +96,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 {([
                   ["fast", "Schnell", Zap, "kurz · kein Thinking"],
                   ["balanced", "Normal", Gauge, "ausgewogen · kein Thinking"],
-                  ["deep", "Gründlich", BrainCircuit, "größeres Budget · Thinking"],
+                  ["deep", "Gründlich", BrainCircuit, "4B Instruct · längere Antworten"],
                 ] as const).map(([value, label, Icon, hint]) => {
                   const locked = value === "deep" && !premiumAccess;
                   return (
@@ -114,7 +114,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <Icon className={`mb-2 size-4 ${performanceMode === value ? "text-primary" : ""}`} />
                       <div className="text-[12px] font-semibold">{label}</div>
                       <div className="mt-0.5 text-[9.5px] leading-tight opacity-70">
-                        {locked ? "Premium · größeres Budget · Thinking" : hint}
+                        {locked ? "Premium · 4B Instruct" : hint}
                       </div>
                     </button>
                   );
@@ -122,7 +122,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </div>
               <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Sparkles className="size-3.5 text-primary" />
-                NORVI schaltet Modell, Denkmodus und Antwortbudget automatisch um.
+                NORVI schaltet Modell und Antwortbudget automatisch um.
               </p>
             </div>
 

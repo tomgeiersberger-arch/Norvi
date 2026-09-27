@@ -341,7 +341,7 @@ AI_BASE_URL=http://127.0.0.1:11434/v1         # gleicher Rechner: localhost bevo
 AI_MODEL=norvi:latest
 AI_MODELS=norvi:latest
 AI_FAST_MODEL=norvi:latest
-AI_DEEP_MODEL=                                  # optional, z. B. norvi4b
+AI_DEEP_MODEL=norvi-deep:latest                # via ./deploy/install-deep-model.sh
 AI_LOCAL_WARMUP=true                            # Hauptmodell nach Serverstart vorladen
 AI_LOCAL_WARM_VISION=false                      # auf 16-GB-Servern optional true
 AI_LOCAL_KEEP_ALIVE=30m
@@ -467,10 +467,18 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 | --- | --- | --- |
 | Schnell | kurze Alltagsfragen, geringste CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
 | Normal | Standard-Chat | gewähltes Modell, 512 Output-Tokens |
-| Gründlich | längere Antworten / optional größeres Modell | `AI_DEEP_MODEL`, 1024 Output-Tokens |
+| Gründlich | größeres Instruct-Modell, längere Antworten | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
-Der Modus lässt sich in den Web-Einstellungen auswählen. Ist `AI_DEEP_MODEL` leer,
-bleibt auch „Gründlich“ auf dem gewählten Modell und erhöht nur das Antwortbudget.
+Der Modus lässt sich in den Web-Einstellungen auswählen. Für den CPU-only Homeserver ist
+`qwen3:4b-instruct-2507-q4_K_M` die empfohlene 4B-Basis für „Gründlich“. Die normale
+`qwen3:4b`-2507-Variante ist thinking-only und kann auf CPU viel Zeit und Output-Budget in
+Reasoning verbrauchen. Installieren:
+
+```bash
+./deploy/install-deep-model.sh
+# .env:
+AI_DEEP_MODEL=norvi-deep:latest
+```
 
 „Gründlich“ ist für Premium-Konten sowie Administratoren freigeschaltet. Premium verdoppelt
 außerdem das Chat-Burst-Limit von 30 auf 60 Nachrichten pro 10 Minuten. Ein gesetztes

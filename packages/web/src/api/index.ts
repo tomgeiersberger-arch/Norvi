@@ -182,7 +182,10 @@ function performanceProfile(
     return {
       modelId: process.env.AI_DEEP_MODEL?.trim() || selectedModel,
       maxOutputTokens: positiveInt(process.env.AI_DEEP_MAX_TOKENS, 1024),
-      reasoningEffort: "high",
+      // The recommended 4B deep model is Qwen3 Instruct (non-thinking).
+      // This avoids the Qwen3:4b thinking-only 2507 variant leaking/consuming
+      // its whole token budget as hidden reasoning on CPU-only Ollama.
+      reasoningEffort: "none",
     };
   }
   return {
