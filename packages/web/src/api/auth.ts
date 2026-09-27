@@ -1,9 +1,11 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer } from "better-auth/plugins";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
 import * as schema from "./database/schema";
+import { allowAdditionalSignups } from "./lib/access";
 
 export function trustedOrigins(): string[] {
   const configured = (process.env.TRUSTED_ORIGINS ?? "")
@@ -29,6 +31,11 @@ export const auth = betterAuth({
   // Never trust an arbitrary browser Origin. Add extra frontends explicitly
   // with TRUSTED_ORIGINS=https://one.example,https://two.example.
   trustedOrigins: trustedOrigins(),
+  advanced: {
+    // cloudflared injects the real client address. Falling back to
+    // x-forwarded-for keeps other explicit reverse proxies compatible.
+    ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] },
+  },
   user: {
     additionalFields: {
       // Owner/admin flag — never settable from the client.
@@ -48,6 +55,13 @@ export const auth = betterAuth({
           const isConfiguredAdmin =
             !!adminEmail && newUser.email.trim().toLowerCase() === adminEmail;
           const [existing] = await db.select({ id: schema.user.id }).from(schema.user).limit(1);
+          if (existing && !allowAdditionalSignups()) {
+            throw APIError.from("FORBIDDEN", {
+              message: "Registrierung ist auf diesem NORVI-Server geschlossen.",
+              code: "SIGNUP_DISABLED",
+            });
+          }
+
           const role = isConfiguredAdmin || !existing ? "admin" : "user";
           return { data: { ...newUser, role } };
         },

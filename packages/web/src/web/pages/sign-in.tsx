@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { NorviMark } from "../components/chat/norvi-mark";
 import { authClient } from "../lib/auth";
+import { useCapabilities } from "../queries/capabilities";
 import { useResetSession } from "../queries/me";
 
 type Mode = "signin" | "signup";
@@ -14,6 +15,9 @@ function messageFor(error: unknown): string {
       : String(error ?? "");
   if (/invalid email or password|INVALID_EMAIL_OR_PASSWORD/i.test(raw)) {
     return "E-Mail oder Passwort stimmt nicht.";
+  }
+  if (/SIGNUP_DISABLED|Registrierung ist .* geschlossen/i.test(raw)) {
+    return "Die Registrierung ist auf diesem NORVI-Server geschlossen.";
   }
   if (/already exists|USER_ALREADY_EXISTS/i.test(raw)) {
     return "Für diese E-Mail gibt es bereits ein Konto.";
@@ -31,6 +35,7 @@ function messageFor(error: unknown): string {
 function SignIn() {
   const [, navigate] = useLocation();
   const resetSession = useResetSession();
+  const capabilities = useCapabilities();
 
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
@@ -38,6 +43,11 @@ function SignIn() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const registrationOpen = capabilities.data?.registrationOpen === true;
+
+  useEffect(() => {
+    if (!registrationOpen && mode === "signup") setMode("signin");
+  }, [registrationOpen, mode]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -80,29 +90,41 @@ function SignIn() {
         </div>
 
         <div className="glass-panel rounded-[1.6rem] p-6 shadow-[0_30px_100px_-45px_rgba(0,0,0,1)]">
-          <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-secondary/50 p-1">
-            {(
-              [
-                ["signin", "Anmelden"],
-                ["signup", "Registrieren"],
-              ] as const
-            ).map(([value, label]) => (
+          <div
+            className={`mb-6 grid gap-1 rounded-xl bg-secondary/50 p-1 ${
+              registrationOpen ? "grid-cols-2" : "grid-cols-1"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                setError(null);
+              }}
+              className={`rounded-lg px-3 py-2 text-[13px] font-medium transition ${
+                mode === "signin"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Anmelden
+            </button>
+            {registrationOpen && (
               <button
-                key={value}
                 type="button"
                 onClick={() => {
-                  setMode(value);
+                  setMode("signup");
                   setError(null);
                 }}
                 className={`rounded-lg px-3 py-2 text-[13px] font-medium transition ${
-                  mode === value
+                  mode === "signup"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {label}
+                Registrieren
               </button>
-            ))}
+            )}
           </div>
 
           <form onSubmit={submit} className="space-y-4">
@@ -169,7 +191,9 @@ function SignIn() {
         </div>
 
         <p className="mt-5 text-center text-[11.5px] leading-relaxed text-muted-foreground">
-          Der erste registrierte Account wird automatisch Administrator.
+          {registrationOpen
+            ? "Der erste registrierte Account wird automatisch Administrator."
+            : "Neue Registrierungen sind auf diesem NORVI-Server deaktiviert."}
         </p>
       </div>
     </div>

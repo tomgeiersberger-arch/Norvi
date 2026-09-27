@@ -12,9 +12,18 @@
  */
 
 /** True, wenn die Instanz eine Anmeldung erzwingt. */
-export function requireAuthEnabled(): boolean {
-  const raw = (process.env.REQUIRE_AUTH ?? "").trim().toLowerCase();
+function enabled(value: string | undefined): boolean {
+  const raw = (value ?? "").trim().toLowerCase();
   return raw === "true" || raw === "1" || raw === "yes" || raw === "on";
+}
+
+export function requireAuthEnabled(): boolean {
+  return enabled(process.env.REQUIRE_AUTH);
+}
+
+/** Additional account registration is closed by default after owner bootstrap. */
+export function allowAdditionalSignups(): boolean {
+  return enabled(process.env.ALLOW_SIGNUP);
 }
 
 /** Meldung für abgewiesene anonyme Anfragen — identisch auf allen Endpunkten. */

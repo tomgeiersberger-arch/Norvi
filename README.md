@@ -491,8 +491,13 @@ Vor dem Freigeben ins Internet:
 
 ```env
 REQUIRE_AUTH=true
+ALLOW_SIGNUP=false
 AI_BASE_URL=http://127.0.0.1:11434/v1
 ```
+
+Der erste Account kann einen frischen Server weiterhin initialisieren. Sobald bereits ein
+Nutzer existiert, blockiert NORVI weitere Registrierungen serverseitig, solange
+`ALLOW_SIGNUP` nicht ausdrücklich auf `true` gesetzt ist.
 
 Danach prüfen:
 
