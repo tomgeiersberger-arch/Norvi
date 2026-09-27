@@ -36,3 +36,8 @@ export function useSetPremium() {
   const invalidate = useInvalidateAdmin();
   return useMutation(orpc.admin.setPremium.mutationOptions({ onSuccess: invalidate }));
 }
+
+export function useSetRegistration() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation(orpc.admin.setRegistration.mutationOptions({ onSuccess: invalidate }));
+}
