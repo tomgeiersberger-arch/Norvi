@@ -54,11 +54,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         className="fixed inset-0 bg-black/72 backdrop-blur-md"
       />
       <div className="relative z-10 flex min-h-full items-start justify-center sm:items-center">
-        <div
-          role="dialog"
-          aria-modal="true"
+        <dialog
+          open
           aria-labelledby="norvi-settings-title"
-          className="premium-surface rise relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.4rem] sm:max-h-[calc(100dvh-3rem)]"
+          className="premium-surface rise relative m-0 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.4rem] border-0 p-0 text-foreground sm:max-h-[calc(100dvh-3rem)]"
         >
           <div className="relative z-20 flex shrink-0 items-start justify-between border-b border-white/[0.055] bg-black/10 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
             <div>
@@ -190,7 +189,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </div>
         )}
           </div>
-        </div>
+        </dialog>
       </div>
     </div>
   );
