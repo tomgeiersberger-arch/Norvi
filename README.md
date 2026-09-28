@@ -509,12 +509,12 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 | --- | --- | --- |
 | Schnell | kurze Alltagsfragen, geringste CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
 | Normal | Standard-Chat | gewähltes Modell, 512 Output-Tokens |
-| Gründlich | größeres Instruct-Modell, längere Antworten | `AI_DEEP_MODEL`, 1024 Output-Tokens |
+| Gründlich | 4B-Instruct-Modell mit starkem Thinking | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
 Der Modus lässt sich in den Web-Einstellungen auswählen. Für den CPU-only Homeserver ist
-`qwen3:4b-instruct-2507-q4_K_M` die empfohlene 4B-Basis für „Gründlich“. Die normale
-`qwen3:4b`-2507-Variante ist thinking-only und kann auf CPU viel Zeit und Output-Budget in
-Reasoning verbrauchen. Installieren:
+`qwen3:4b-instruct-2507-q4_K_M` die empfohlene 4B-Basis für „Gründlich“. NORVI aktiviert
+in diesem Profil bewusst starkes, separat übertragenes Thinking; die sichtbare Antwort bleibt
+davon getrennt. Auf CPU ist „Gründlich“ deshalb deutlich langsamer als Schnell/Normal. Installieren:
 
 ```bash
 ./deploy/install-deep-model.sh
