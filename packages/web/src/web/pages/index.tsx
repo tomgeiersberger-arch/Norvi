@@ -7,7 +7,6 @@ import { Sidebar } from "../components/chat/sidebar";
 import { getDeviceId } from "../lib/device";
 import { useCapabilities } from "../queries/capabilities";
 import { useChats, useDeleteChat, useRenameChat } from "../queries/chats";
-import { useHealth } from "../queries/health";
 import { useModel } from "../queries/model";
 
 interface Session {
@@ -17,7 +16,6 @@ interface Session {
 
 function Index() {
   const model = useModel();
-  const health = useHealth();
   const capabilities = useCapabilities();
   const chats = useChats();
   const renameChat = useRenameChat();
@@ -30,7 +28,7 @@ function Index() {
 
   const agentName = model.data?.agent ?? "NORVI";
   const modelLabel = model.isLoading ? "verbinde…" : (model.data?.label ?? "NORVI AI");
-  const healthState = health.isPending ? "connecting" : health.isError ? "offline" : "online";
+  const healthState = capabilities.isPending ? "connecting" : capabilities.isError ? "offline" : "online";
 
   const openChat = (id: string) => {
     setSession({ key: id, chatId: id });
