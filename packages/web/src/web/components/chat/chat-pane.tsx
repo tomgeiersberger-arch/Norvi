@@ -178,7 +178,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   };
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div className="heaven-stage relative z-10 flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollRef}
         onScroll={() => {
@@ -188,7 +188,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         }}
         className="scroll-slim relative min-h-0 flex-1 overflow-y-auto"
       >
-        <div className="mx-auto w-full max-w-[58rem] px-4 sm:px-7 lg:px-9">
+        <div className="mx-auto w-full max-w-[60rem] px-4 sm:px-7 lg:px-9">
           {messages.length === 0 ? (
             <EmptyState
               agentName={agentName}
@@ -239,8 +239,8 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         </button>
       )}
 
-      <div className="relative z-20 bg-[linear-gradient(180deg,transparent,rgba(7,7,9,0.86)_24%,rgba(7,7,9,0.985)_60%)] pt-7 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
-        <div className="mx-auto w-full max-w-[58rem] px-4 sm:px-7 lg:px-9">
+      <div className="relative z-20 bg-[linear-gradient(180deg,transparent,rgba(7,7,10,0.70)_22%,rgba(7,7,10,0.94)_58%)] pt-7 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+        <div className="mx-auto w-full max-w-[60rem] px-4 sm:px-7 lg:px-9">
           <Composer
             agentName={agentName}
             onSend={(text, images) => void send(text, images)}
