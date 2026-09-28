@@ -91,7 +91,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         ) : (
           <div className="space-y-5">
             <label className="block">
-              <span className="mb-1.5 block text-[12px] text-muted-foreground">Modell</span>
+              <span className="mb-1.5 block text-[12px] text-muted-foreground">Technisches Modell</span>
               <select
                 value={modelId}
                 onChange={(e) => setModelId(e.target.value)}
@@ -107,14 +107,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </label>
 
             <div>
-              <span className="mb-1.5 block text-[12px] text-muted-foreground">
-                Leistungsmodus
-              </span>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-muted-foreground">NORVI-Version</span>
+                <span className="rounded-full border border-white/[0.06] bg-white/[0.025] px-2 py-0.5 text-[9px] text-muted-foreground/70">
+                  3 Versionen
+                </span>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  ["fast", "Schnell", Zap, "kurz · kein Thinking"],
-                  ["balanced", "Normal", Gauge, "ausgewogen · kein Thinking"],
-                  ["deep", "Gründlich", BrainCircuit, "4B · starkes Thinking"],
+                  ["fast", "NORVI Fast", Zap, "2B · maximal schnell"],
+                  ["balanced", "NORVI Standard", Gauge, "2B · beste Balance"],
+                  ["deep", "NORVI Deep", BrainCircuit, "4B · starkes Thinking"],
                 ] as const).map(([value, label, Icon, hint]) => {
                   const locked = value === "deep" && !premiumAccess;
                   return (
@@ -138,8 +141,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   );
                 })}
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                NORVI schaltet Modell und Antwortbudget automatisch um.
+              <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                Fast reagiert am schnellsten, Standard ist für normale Chats gedacht und Deep nutzt das stärkere 4B-Modell mit Thinking.
               </p>
             </div>
 

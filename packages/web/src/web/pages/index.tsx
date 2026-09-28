@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, Menu, Mic2, Share2, X } from "lucide-react";
+import { Check, Eye, Menu, Mic2, Share2, X } from "lucide-react";
 import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
@@ -24,7 +24,7 @@ function Index() {
   const [session, setSession] = useState<Session>({ key: "new-initial", chatId: null });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "shared" | "copied" | "error">("idle");
 
   const agentName = model.data?.agent ?? "NORVI";
   const healthState = capabilities.isPending
@@ -47,12 +47,46 @@ function Index() {
     setDrawer(false);
   };
 
-  const copyPublicLink = async () => {
-    const publicUrl = capabilities.data?.publicUrl;
-    if (!publicUrl) return;
-    await navigator.clipboard.writeText(publicUrl);
-    setLinkCopied(true);
-    window.setTimeout(() => setLinkCopied(false), 1400);
+  const sharePublicLink = async () => {
+    const publicUrl = capabilities.data?.publicUrl || window.location.href;
+
+    try {
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share({
+            title: "NORVI",
+            text: "NORVI öffnen",
+            url: publicUrl,
+          });
+          setShareState("shared");
+          window.setTimeout(() => setShareState("idle"), 1600);
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(publicUrl);
+      } catch {
+        const textarea = document.createElement("textarea");
+        textarea.value = publicUrl;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied) throw new Error("copy failed");
+      }
+
+      setShareState("copied");
+      window.setTimeout(() => setShareState("idle"), 1600);
+    } catch {
+      setShareState("error");
+      window.setTimeout(() => setShareState("idle"), 2200);
+    }
   };
 
   const list = (chats.data ?? []).map((chat) => ({
@@ -163,12 +197,24 @@ function Index() {
               {capabilities.data?.publicUrl && (
                 <button
                   type="button"
-                  onClick={() => void copyPublicLink()}
-                  title={linkCopied ? "Link kopiert" : "NORVI-Link kopieren"}
-                  aria-label="NORVI-Link kopieren"
+                  onClick={() => void sharePublicLink()}
+                  title={
+                    shareState === "shared"
+                      ? "Geteilt"
+                      : shareState === "copied"
+                        ? "Link kopiert"
+                        : shareState === "error"
+                          ? "Teilen fehlgeschlagen"
+                          : "NORVI teilen"
+                  }
+                  aria-label="NORVI teilen"
                   className="icon-action flex size-9 items-center justify-center rounded-xl text-muted-foreground transition"
                 >
-                  <Share2 className="size-4" />
+                  {shareState === "shared" || shareState === "copied" ? (
+                    <Check className="size-4 text-green-400" />
+                  ) : (
+                    <Share2 className="size-4" />
+                  )}
                 </button>
               )}
               <AccountMenu />
