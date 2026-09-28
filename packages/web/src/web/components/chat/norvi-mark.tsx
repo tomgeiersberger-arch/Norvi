@@ -7,7 +7,7 @@ interface NorviMarkProps {
 export function NorviMark({ className = "size-7", pulse = false }: NorviMarkProps) {
   return (
     <span
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-[0.72rem] border border-white/[0.09] bg-[linear-gradient(145deg,#1d1c20,#0e0e11)] shadow-[0_10px_30px_-20px_rgba(255,128,87,0.8),inset_0_1px_0_rgba(255,255,255,0.055)] ${className}`}
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-[0.72rem] border border-white/[0.09] bg-[linear-gradient(145deg,rgba(255,255,255,0.10),rgba(255,255,255,0.02)),rgba(16,15,19,0.78)] shadow-[0_16px_40px_-24px_rgba(255,128,87,0.9),inset_0_1px_0_rgba(255,255,255,0.10)] backdrop-blur-xl ${className}`}
     >
       <span className="absolute inset-x-[18%] top-0 h-px bg-gradient-to-r from-transparent via-[#ffd4c2]/35 to-transparent" />
       <svg
