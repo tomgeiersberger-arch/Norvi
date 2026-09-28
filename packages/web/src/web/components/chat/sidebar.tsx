@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, MessageSquare, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, MessageSquare, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { NorviWordmark } from "./norvi-mark";
 
 export interface ChatListItem {
@@ -32,11 +32,28 @@ export function Sidebar({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editingId) inputRef.current?.select();
   }, [editingId]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const filteredChats = query.trim()
+    ? chats.filter((chat) => chat.title.toLowerCase().includes(query.trim().toLowerCase()))
+    : chats;
 
   const startEdit = (chat: ChatListItem) => {
     setConfirmId(null);
@@ -72,9 +89,36 @@ export function Sidebar({
         </button>
       </div>
 
-      <div className="mt-6 flex items-center justify-between px-5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground/70 uppercase">
+      <div className="mt-5 px-3.5">
+        <label className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-muted-foreground transition focus-within:border-primary/30 focus-within:bg-white/[0.04] focus-within:text-foreground">
+          <Search className="size-3.5 shrink-0" />
+          <input
+            ref={searchRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Chats durchsuchen"
+            aria-label="Chats durchsuchen"
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/60"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                searchRef.current?.focus();
+              }}
+              aria-label="Suche leeren"
+              className="rounded p-0.5 text-muted-foreground transition hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </label>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between px-5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground/70 uppercase">
         <span>Verlauf</span>
-        <span>{chats.length}</span>
+        <span>{query ? `${filteredChats.length}/${chats.length}` : chats.length}</span>
       </div>
 
       <div className="scroll-slim mt-2 flex-1 overflow-y-auto px-2 pb-4">
@@ -88,9 +132,13 @@ export function Sidebar({
           <p className="px-2 py-3 text-[12.5px] leading-relaxed text-muted-foreground">
             Noch keine Chats. Deine Unterhaltungen erscheinen hier automatisch.
           </p>
+        ) : filteredChats.length === 0 ? (
+          <p className="px-2 py-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            Kein Chat passt zu „{query.trim()}“.
+          </p>
         ) : (
           <ul className="space-y-0.5">
-            {chats.map((chat) => {
+            {filteredChats.map((chat) => {
               const active = chat.id === activeId;
               const editing = chat.id === editingId;
 
