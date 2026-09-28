@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { BrainCircuit, Gauge, Loader2, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 
@@ -45,8 +46,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-y-auto p-3 sm:p-6">
       <button
         type="button"
         aria-label="Einstellungen schließen"
@@ -191,6 +192,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </div>
         </dialog>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
