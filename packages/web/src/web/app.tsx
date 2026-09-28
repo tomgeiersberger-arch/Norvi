@@ -4,7 +4,7 @@ import Index from "./pages/index";
 import { AuthGate } from "./components/auth-gate";
 import { ProtectedRoute } from "./components/protected-route";
 import { Provider } from "./components/provider";
-import { AgentFeedback, RunableBadge } from "@runablehq/website-runtime";
+import { AgentFeedback } from "@runablehq/website-runtime";
 
 const SignIn = lazy(() => import("./pages/sign-in"));
 const Admin = lazy(() => import("./pages/admin"));
@@ -40,8 +40,6 @@ function App() {
       </Suspense>
       {/* Do not remove — off by default, activated by parent iframe via postMessage */}
       {import.meta.env.DEV && <AgentFeedback />}
-      {/* "Made with Runable" badge - if user asks to remove the runable badge, remove this code as well as comment */}
-      {<RunableBadge />}
     </Provider>
   );
 }
