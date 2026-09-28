@@ -8,6 +8,8 @@
 export interface Recording {
   blob: Blob;
   filename: string;
+  /** False when the browser saw no meaningful microphone activity. */
+  voiceDetected: boolean;
 }
 
 /** Picks a container the browser can actually produce (Chrome: webm, Safari: mp4). */
@@ -69,9 +71,57 @@ export async function startRecording(): Promise<{
   recorder.ondataavailable = (event) => {
     if (event.data.size > 0) chunks.push(event.data);
   };
+
+  // Lightweight client-side voice activity check. Whisper can hallucinate short
+  // words on pure silence, so skip server inference when the microphone never
+  // rose meaningfully above its noise floor. If Web Audio is unavailable we
+  // deliberately fall back to sending the recording instead of blocking voice.
+  let analyser: AnalyserNode | null = null;
+  let source: MediaStreamAudioSourceNode | null = null;
+  let audioContext: AudioContext | null = null;
+  let animationFrame = 0;
+  let speechFrames = 0;
+  try {
+    audioContext = new AudioContext();
+    source = audioContext.createMediaStreamSource(stream);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    void audioContext.resume().catch(() => undefined);
+
+    const samples = new Uint8Array(analyser.fftSize);
+    const measure = () => {
+      if (!analyser) return;
+      analyser.getByteTimeDomainData(samples);
+      let energy = 0;
+      for (const sample of samples) {
+        const value = (sample - 128) / 128;
+        energy += value * value;
+      }
+      const rms = Math.sqrt(energy / samples.length);
+      if (rms >= 0.012) speechFrames += 1;
+      animationFrame = requestAnimationFrame(measure);
+    };
+    measure();
+  } catch {
+    analyser = null;
+    source = null;
+    audioContext = null;
+  }
+
   recorder.start(250);
 
+  let released = false;
   const release = () => {
+    if (released) return;
+    released = true;
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+    try {
+      source?.disconnect();
+    } catch {
+      // Stream cleanup below is still enough if the audio graph already closed.
+    }
+    void audioContext?.close().catch(() => undefined);
     for (const track of stream.getTracks()) track.stop();
   };
 
@@ -83,12 +133,16 @@ export async function startRecording(): Promise<{
           reject(new Error("Die Aufnahme wurde vom Browser abgebrochen."));
         };
         recorder.onstop = () => {
+          // Roughly 8 active animation frames ~= a short voiced burst. This is
+          // intentionally permissive so quiet speech is kept.
+          const voiceDetected = analyser === null || speechFrames >= 8;
           release();
           const type = recorder.mimeType || mimeType || "audio/webm";
           const extension = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
           resolve({
             blob: new Blob(chunks, { type: type.split(";")[0] }),
             filename: `aufnahme.${extension}`,
+            voiceDetected,
           });
         };
         if (recorder.state === "inactive") recorder.onstop?.(new Event("stop"));
