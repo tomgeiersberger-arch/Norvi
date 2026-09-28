@@ -42,12 +42,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         type="button"
         aria-label="Einstellungen schließen"
         onClick={onClose}
-        className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/72 backdrop-blur-md"
       />
-      <div className="premium-surface rise relative w-full max-w-lg rounded-2xl p-6">
+      <div className="premium-surface rise relative w-full max-w-lg overflow-hidden rounded-[1.4rem] p-6">
         <div className="relative z-10 mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Einstellungen</h2>
+            <h2 className="brand-title text-lg font-semibold tracking-[-0.025em]">Einstellungen</h2>
             <p className="text-[12px] text-muted-foreground">
               Gilt nur für dein NORVI-Konto.
             </p>
@@ -163,7 +163,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 type="button"
                 onClick={save}
                 disabled={update.isPending}
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-105 disabled:opacity-60"
+                className="send-glow flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground transition disabled:opacity-60"
               >
                 {update.isPending && <Loader2 className="size-4 animate-spin" />}
                 Speichern

@@ -68,26 +68,26 @@ export function Sidebar({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-5 pb-4 pt-5">
+    <div className="relative flex h-full flex-col">
+      <div className="px-5 pb-5 pt-5">
         <NorviWordmark />
       </div>
 
-      <div className="px-3">
+      <div className="px-3.5">
         <button
           type="button"
           onClick={onNewChat}
-          className="flex w-full items-center gap-2.5 rounded-xl bg-primary px-3 py-2.5 text-[13px] font-semibold text-primary-foreground transition hover:brightness-105 active:scale-[0.99]"
+          className="new-chat-button flex w-full items-center gap-2.5 rounded-[1.05rem] px-3 py-2.5 text-[13px] font-semibold text-primary-foreground transition duration-200 active:scale-[0.99]"
         >
-          <span className="flex size-7 items-center justify-center rounded-lg bg-black/10">
+          <span className="flex size-7 items-center justify-center rounded-lg border border-black/10 bg-black/10">
             <Plus className="size-4" />
           </span>
           Neuer Chat
         </button>
       </div>
 
-      <div className="mt-4 px-3">
-        <label className="flex items-center gap-2 rounded-xl border border-white/[0.065] bg-white/[0.025] px-3 py-2.5 text-muted-foreground transition focus-within:border-white/[0.12] focus-within:bg-white/[0.035] focus-within:text-foreground">
+      <div className="mt-4 px-3.5">
+        <label className="flex items-center gap-2 rounded-xl border border-white/[0.065] bg-white/[0.022] px-3 py-2.5 text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] transition focus-within:border-primary/20 focus-within:bg-white/[0.035] focus-within:text-foreground">
           <Search className="size-3.5 shrink-0" />
           <input
             ref={searchRef}
@@ -95,7 +95,7 @@ export function Sidebar({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Chats durchsuchen"
             aria-label="Chats durchsuchen"
-            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/60"
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-foreground outline-none placeholder:text-muted-foreground/55"
           />
           {query && (
             <button
@@ -113,16 +113,16 @@ export function Sidebar({
         </label>
       </div>
 
-      <div className="mt-5 flex items-center justify-between px-5 text-[10px] font-medium text-muted-foreground/60">
+      <div className="mt-5 flex items-center justify-between px-5 text-[10px] font-medium text-muted-foreground/55">
         <span>Verlauf</span>
         <span>{query ? `${filteredChats.length}/${chats.length}` : chats.length}</span>
       </div>
 
-      <div className="scroll-slim mt-2 flex-1 overflow-y-auto px-2 pb-4">
+      <div className="scroll-slim mt-2 flex-1 overflow-y-auto px-2.5 pb-4">
         {loading ? (
           <div className="space-y-1.5 px-1">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-9 animate-pulse rounded-lg bg-white/[0.03]" />
+              <div key={i} className="h-9 animate-pulse rounded-lg bg-white/[0.025]" />
             ))}
           </div>
         ) : chats.length === 0 ? (
@@ -134,7 +134,7 @@ export function Sidebar({
             Kein Chat passt zu „{query.trim()}“.
           </p>
         ) : (
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {filteredChats.map((chat) => {
               const active = chat.id === activeId;
               const editing = chat.id === editingId;
@@ -142,7 +142,7 @@ export function Sidebar({
               return (
                 <li key={chat.id}>
                   {editing ? (
-                    <div className="flex items-center gap-1 rounded-lg bg-white/[0.04] px-2 py-1.5">
+                    <div className="flex items-center gap-1 rounded-xl border border-white/[0.07] bg-white/[0.035] px-2 py-1.5">
                       <input
                         ref={inputRef}
                         value={draft}
@@ -163,18 +163,18 @@ export function Sidebar({
                     </div>
                   ) : (
                     <div
-                      className={`group flex items-center gap-1 rounded-lg border px-2 py-1.5 transition ${
+                      className={`group flex items-center gap-1 rounded-xl border px-2.5 py-2 transition duration-200 ${
                         active
-                          ? "border-primary/20 bg-primary/[0.075] text-foreground"
-                          : "border-transparent hover:bg-white/[0.035]"
+                          ? "border-primary/16 bg-[linear-gradient(90deg,rgba(255,128,87,0.105),rgba(255,255,255,0.022))] text-foreground shadow-[inset_2px_0_0_rgba(255,128,87,0.78),0_14px_38px_-32px_rgba(255,128,87,0.6)]"
+                          : "border-transparent hover:border-white/[0.045] hover:bg-white/[0.028]"
                       }`}
                     >
                       <button
                         type="button"
                         onClick={() => onSelect(chat.id)}
-                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                       >
-                        <MessageSquare className={`size-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                        <MessageSquare className={`size-3.5 shrink-0 ${active ? "text-primary" : "text-muted-foreground/70"}`} />
                         <span className="truncate text-[13px]">{chat.title}</span>
                       </button>
 
@@ -196,7 +196,7 @@ export function Sidebar({
                           </button>
                         </span>
                       ) : (
-                        <span className="flex shrink-0 items-center gap-0.5 opacity-60 transition md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100">
+                        <span className="flex shrink-0 items-center gap-0.5 opacity-55 transition md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100">
                           <button type="button" onClick={() => startEdit(chat)} aria-label="Chat umbenennen" className="rounded p-1 text-muted-foreground hover:bg-white/5 hover:text-foreground">
                             <Pencil className="size-3.5" />
                           </button>
@@ -214,7 +214,7 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="px-5 pb-4 text-[10px] text-muted-foreground/45">
+      <div className="mx-4 mb-4 border-t border-white/[0.045] pt-3 text-[9.5px] text-muted-foreground/38">
         Ctrl/⌘ K · Eingabe
       </div>
     </div>
