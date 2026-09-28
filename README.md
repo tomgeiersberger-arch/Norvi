@@ -429,18 +429,26 @@ Zuerst einmal interaktiv autorisieren:
 npx --yes @wonderwhy-er/desktop-commander@0.2.51 remote
 ```
 
-Nach erfolgreicher Gerätefreigabe die dauerhafte Unit installieren:
+Nach erfolgreicher Gerätefreigabe die dauerhafte **User-Unit** installieren. Dafür ist kein
+sudo nötig:
 
 ```bash
 cd ~/norvi
 bash deploy/install-desktop-commander-remote.sh
-systemctl status desktop-commander-remote --no-pager
+systemctl --user status desktop-commander-remote --no-pager
+```
+
+Der Installer prüft außerdem `Linger`. Nur falls es auf dem Host noch deaktiviert ist, ist
+einmalig Root nötig, damit der User-Service auch nach Logout und Reboot weiterläuft:
+
+```bash
+sudo loginctl enable-linger $(id -un)
 ```
 
 Logs:
 
 ```bash
-journalctl -u desktop-commander-remote -f
+journalctl --user -u desktop-commander-remote -f
 ```
 
 ### 10.6 Updates einspielen
