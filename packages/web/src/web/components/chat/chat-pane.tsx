@@ -188,7 +188,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         }}
         className="scroll-slim relative min-h-0 flex-1 overflow-y-auto"
       >
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-7 lg:px-10">
+        <div className="mx-auto w-full max-w-[58rem] px-4 sm:px-7 lg:px-9">
           {messages.length === 0 ? (
             <EmptyState
               agentName={agentName}
@@ -197,7 +197,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
               stt={capabilities.data?.stt ?? false}
             />
           ) : (
-            <div className="flex flex-col gap-7 py-8 sm:py-10">
+            <div className="flex flex-col gap-7 py-8 sm:py-11">
               {messages.map((message, i) => (
                 <Message
                   key={message.id || i}
@@ -239,8 +239,8 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         </button>
       )}
 
-      <div className="relative z-20 bg-[linear-gradient(180deg,transparent,rgba(5,6,9,0.86)_24%,rgba(5,6,9,0.98)_58%)] pt-7 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-7 lg:px-10">
+      <div className="relative z-20 bg-[linear-gradient(180deg,transparent,rgba(7,7,9,0.86)_24%,rgba(7,7,9,0.985)_60%)] pt-7 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+        <div className="mx-auto w-full max-w-[58rem] px-4 sm:px-7 lg:px-9">
           <Composer
             agentName={agentName}
             onSend={(text, images) => void send(text, images)}
