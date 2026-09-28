@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrainCircuit, Gauge, Loader2, Sparkles, X, Zap } from "lucide-react";
+import { BrainCircuit, Gauge, Loader2, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 
 interface SettingsDialogProps {
@@ -7,7 +7,7 @@ interface SettingsDialogProps {
   onClose: () => void;
 }
 
-/** Personal NORVI AI settings: model and, where supported, answer style. */
+/** Personal NORVI settings: model and, where supported, answer style. */
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const settings = useSettings(open);
   const update = useUpdateSettings();
@@ -42,14 +42,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         type="button"
         aria-label="Einstellungen schließen"
         onClick={onClose}
-        className="absolute inset-0 bg-black/72 backdrop-blur-xl"
+        className="absolute inset-0 bg-black/65 backdrop-blur-sm"
       />
-      <div className="premium-surface rise relative w-full max-w-xl overflow-hidden rounded-[1.8rem] p-6 sm:p-7">
+      <div className="premium-surface rise relative w-full max-w-lg rounded-2xl p-6">
         <div className="relative z-10 mb-6 flex items-start justify-between">
           <div>
-            <div className="mb-1 text-[9px] font-semibold tracking-[0.2em] text-primary/80 uppercase">NORVI Control</div><h2 className="text-xl font-semibold tracking-[-0.03em]">Einstellungen</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Einstellungen</h2>
             <p className="text-[12px] text-muted-foreground">
-              Gilt nur für dein NORVI AI Konto.
+              Gilt nur für dein NORVI-Konto.
             </p>
           </div>
           <button
@@ -120,8 +120,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   );
                 })}
               </div>
-              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Sparkles className="size-3.5 text-primary" />
+              <p className="mt-2 text-[11px] text-muted-foreground">
                 NORVI schaltet Modell und Antwortbudget automatisch um.
               </p>
             </div>
@@ -164,7 +163,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 type="button"
                 onClick={save}
                 disabled={update.isPending}
-                className="send-glow flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:-translate-y-px disabled:opacity-60"
+                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-105 disabled:opacity-60"
               >
                 {update.isPending && <Loader2 className="size-4 animate-spin" />}
                 Speichern
