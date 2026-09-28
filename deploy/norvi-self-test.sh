@@ -10,6 +10,9 @@ if [[ ! -x "$BUN" ]]; then
   BUN="$(command -v bun || true)"
 fi
 [[ -n "$BUN" ]] || { echo "[FAIL] Bun fehlt." >&2; exit 1; }
+# Turborepo and package scripts invoke Bun by name. Remote/systemd shells may
+# know the absolute BUN_BIN while not having its directory in PATH.
+export PATH="$(dirname "$BUN"):$PATH"
 
 fail=0
 ok() { printf '[ OK ] %s\n' "$*"; }
