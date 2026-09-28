@@ -188,7 +188,7 @@ export function Composer({
 
   return (
     <div
-      className={`composer-shell relative rounded-[1.3rem] p-2.5 transition duration-200 ${
+      className={`composer-shell relative rounded-[1.45rem] p-2.5 sm:p-3 transition duration-250 ${
         dragging ? "border-primary/60 bg-primary/[0.055]" : ""
       }`}
       onDragEnter={(event) => {
@@ -213,7 +213,7 @@ export function Composer({
       }}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.15rem] border border-dashed border-primary/55 bg-background/90 text-sm font-medium text-primary backdrop-blur-xl">
+        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.25rem] border border-dashed border-primary/50 bg-background/92 text-sm font-medium text-primary backdrop-blur-xl">
           <ImagePlus className="mr-2 size-4.5" />
           Bild hier ablegen
         </div>
@@ -223,7 +223,7 @@ export function Composer({
           {images.map((image) => (
             <div
               key={image.key}
-              className="rise group relative size-16 overflow-hidden rounded-[0.95rem] border border-white/[0.08] bg-secondary shadow-[0_12px_32px_-22px_rgba(0,0,0,1)]"
+              className="rise group relative size-16 overflow-hidden rounded-[1rem] border border-white/[0.08] bg-secondary shadow-[0_14px_36px_-24px_rgba(0,0,0,1)]"
             >
               <img src={image.preview} alt={image.name} className="size-full object-cover" />
               {!image.uploaded && (
@@ -298,7 +298,7 @@ export function Composer({
             disabled={busy}
             aria-label="Bild anhängen"
             title="Bild anhängen (JPG, PNG, WebP)"
-            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-xl text-muted-foreground transition duration-200  disabled:opacity-40"
+            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-[0.9rem] text-muted-foreground transition duration-200 disabled:opacity-40"
           >
             <ImagePlus className="size-4.5" />
           </button>
@@ -311,7 +311,7 @@ export function Composer({
             disabled={micDisabled}
             aria-label={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
             title={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
-            className={`mb-0.5 flex size-10 items-center justify-center rounded-xl border transition disabled:opacity-40 ${
+            className={`mb-0.5 flex size-10 items-center justify-center rounded-[0.9rem] border transition duration-200 disabled:opacity-40 ${
               recording
                 ? "border-primary/35 bg-primary/15 text-primary"
                 : "icon-action text-muted-foreground "
@@ -347,7 +347,7 @@ export function Composer({
           }}
           placeholder={recording ? "Sprich einfach …" : "Nachricht schreiben…"}
           aria-label={`Nachricht an ${agentName}`}
-          className="composer-scrollbar min-h-10 max-h-52 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[0.98rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/45"
+          className="composer-scrollbar min-h-10 max-h-52 flex-1 resize-none overflow-y-auto bg-transparent px-3.5 py-2.5 text-[0.98rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/42"
         />
 
         {busy ? (
@@ -355,7 +355,7 @@ export function Composer({
             type="button"
             onClick={onStop}
             aria-label="Antwort stoppen"
-            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-xl text-foreground transition hover:bg-white/[0.08]"
+            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-[0.9rem] text-foreground transition hover:bg-white/[0.08]"
           >
             <Square className="size-3.5 fill-current" />
           </button>
@@ -365,7 +365,7 @@ export function Composer({
             onClick={submit}
             disabled={!canSend}
             aria-label="Senden"
-            className="send-glow mb-0.5 flex size-10 items-center justify-center rounded-xl text-primary-foreground transition duration-200  active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
+            className="send-glow mb-0.5 flex size-10 items-center justify-center rounded-[0.9rem] text-primary-foreground transition duration-200 active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
           >
             {uploading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -376,7 +376,7 @@ export function Composer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 px-2.5 pb-0.5 pt-1.5 text-[9.5px] text-muted-foreground/45">
+      <div className="flex flex-wrap items-center gap-x-2 px-2.5 pb-0.5 pt-1.5 text-[9.5px] text-muted-foreground/38">
         <span>
           <kbd className="font-sans">Enter</kbd> senden ·{" "}
           <kbd className="font-sans">Shift + Enter</kbd> Zeile
