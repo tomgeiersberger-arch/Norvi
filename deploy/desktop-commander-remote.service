@@ -1,15 +1,7 @@
-# Optional: keep Desktop Commander Remote connected after SSH closes.
-# This service contains no credentials. The CLI reuses the authorization stored
-# in norviadmin's home directory after you completed the device flow once.
-#
-# Install with:
-#   sudo cp deploy/desktop-commander-remote.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now desktop-commander-remote
-#
-# Security: enabling this grants the connected Desktop Commander account remote
-# terminal/file access to this server as user norviadmin. Only enable it if that
-# is intentional.
+# Optional user service: keep Desktop Commander Remote connected after SSH closes.
+# Run the interactive authorization once before enabling this unit. No token is
+# stored in this file; Desktop Commander reuses its authorization from the
+# user's home directory.
 
 [Unit]
 Description=Desktop Commander Remote for NORVI
@@ -18,20 +10,15 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=norviadmin
-Group=norviadmin
-Environment=HOME=/home/norviadmin
-WorkingDirectory=/home/norviadmin
-ExecStart=/usr/bin/npx --yes @wonderwhy-er/desktop-commander@0.2.51 remote
+WorkingDirectory=%h
+ExecStart=%h/.local/share/desktop-commander/node_modules/.bin/desktop-commander remote
 Restart=always
 RestartSec=5
 TimeoutStopSec=15
 KillSignal=SIGTERM
-NoNewPrivileges=true
-PrivateTmp=true
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=norvi-remote
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
