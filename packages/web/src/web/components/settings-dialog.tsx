@@ -24,6 +24,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setPerformanceMode(settings.data.performanceMode);
   }, [settings.data]);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const premiumAccess = settings.data?.premiumAccess ?? false;
@@ -37,31 +46,40 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-6">
       <button
         type="button"
         aria-label="Einstellungen schließen"
         onClick={onClose}
-        className="absolute inset-0 bg-black/72 backdrop-blur-md"
+        className="fixed inset-0 bg-black/72 backdrop-blur-md"
       />
-      <div className="premium-surface rise relative w-full max-w-lg overflow-hidden rounded-[1.4rem] p-6">
-        <div className="relative z-10 mb-6 flex items-start justify-between">
-          <div>
-            <h2 className="brand-title text-lg font-semibold tracking-[-0.025em]">Einstellungen</h2>
-            <p className="text-[12px] text-muted-foreground">
-              Gilt nur für dein NORVI-Konto.
-            </p>
+      <div className="relative z-10 flex min-h-full items-start justify-center sm:items-center">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="norvi-settings-title"
+          className="premium-surface rise relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.4rem] sm:max-h-[calc(100dvh-3rem)]"
+        >
+          <div className="relative z-20 flex shrink-0 items-start justify-between border-b border-white/[0.055] bg-black/10 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
+            <div>
+              <h2 id="norvi-settings-title" className="brand-title text-lg font-semibold tracking-[-0.025em]">
+                Einstellungen
+              </h2>
+              <p className="text-[12px] text-muted-foreground">
+                Gilt nur für dein NORVI-Konto.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Schließen"
+              className="icon-action flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Schließen"
-            className="icon-action flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:text-foreground"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
 
+          <div className="scroll-slim min-h-0 overflow-y-auto px-4 py-5 sm:px-6 sm:py-5">
         {settings.isLoading ? (
           <div className="flex justify-center py-8 text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
@@ -171,6 +189,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
