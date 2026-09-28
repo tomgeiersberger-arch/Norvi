@@ -102,6 +102,34 @@ function titleFrom(text: string): string {
   return `${clean.slice(0, 57)}…`;
 }
 
+/**
+ * Tiny local shortcut for very common casual turns.
+ *
+ * The 2B chat model is intentionally small and fast, but it can overthink short
+ * slang such as "was geht". Handling only a few exact casual intents here makes
+ * those replies instant without changing normal questions or model routing.
+ */
+function quickCasualReply(message: UIMessage | undefined): string | null {
+  const normalised = textOf(message)
+    .toLocaleLowerCase("de-DE")
+    .replace(/[!?.,:;]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (
+    /^(?:(?:hallo|hey|servus)\s+)?(?:norvi\s+)?was ?geht(?:\s+norvi)?$/.test(normalised) ||
+    normalised === "wsg"
+  ) {
+    return "Hey, alles gut. Was brauchst du?";
+  }
+
+  if (/^deutsch(?: bitte)?$/.test(normalised)) {
+    return "Ja klar. Schreib einfach auf Deutsch.";
+  }
+
+  return null;
+}
+
 /** One image attached to a chat message. */
 interface ImageRef {
   url: string;
@@ -463,6 +491,31 @@ app.post("/api/agent/messages", async (c) => {
         console.error("[agent] persisting answer failed:", error);
       }
     };
+
+    const quickReply = hasImages ? null : quickCasualReply(latestUser);
+    if (quickReply) {
+      const responseId = crypto.randomUUID();
+      const textId = `txt-${responseId}`;
+      await persistAssistant(responseId, quickReply);
+
+      const chunks = [
+        { type: "start", messageId: responseId },
+        { type: "start-step" },
+        { type: "text-start", id: textId },
+        { type: "text-delta", id: textId, delta: quickReply },
+        { type: "text-end", id: textId },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "stop" },
+      ];
+      const body =
+        chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join("") +
+        "data: [DONE]\n\n";
+
+      return new Response(body, {
+        status: 200,
+        headers: UI_MESSAGE_STREAM_HEADERS,
+      });
+    }
 
     // Cloudflare Quick Tunnels have intermittently cut NORVI's long-lived SSE
     // connection with "unexpected EOF". The web client opts into this buffered
