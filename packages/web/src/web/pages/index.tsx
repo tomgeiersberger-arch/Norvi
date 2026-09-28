@@ -90,7 +90,7 @@ function Index() {
 
   return (
     <div className="norvi-app relative flex h-dvh overflow-hidden bg-background">
-      <aside className="sidebar-shell relative hidden w-[18.75rem] shrink-0 border-r border-white/[0.06] md:block">
+      <aside className="sidebar-shell relative hidden w-[19rem] shrink-0 border-r border-white/[0.055] md:block">
         {sidebar}
       </aside>
 
@@ -100,14 +100,14 @@ function Index() {
             type="button"
             aria-label="Menü schließen"
             onClick={() => setDrawer(false)}
-            className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
           />
-          <div className="sidebar-shell rise absolute inset-y-0 left-0 w-[84%] max-w-[19rem] border-r border-white/[0.07] shadow-2xl">
+          <div className="sidebar-shell rise absolute inset-y-0 left-0 w-[84%] max-w-[19.5rem] border-r border-white/[0.065] shadow-[24px_0_80px_-36px_rgba(0,0,0,1)]">
             <button
               type="button"
               aria-label="Menü schließen"
               onClick={() => setDrawer(false)}
-              className="absolute right-3 top-4 z-20 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-white/[0.05] hover:text-foreground"
+              className="icon-action absolute right-3 top-4 z-20 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground"
             >
               <X className="size-4" />
             </button>
@@ -116,45 +116,55 @@ function Index() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
         <header className="glass-header relative z-30">
-          <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center gap-3 px-4 sm:px-6">
+          <div className="mx-auto flex h-[4.15rem] w-full max-w-[92rem] items-center gap-3 px-4 sm:px-6">
             <button
               type="button"
               aria-label="Chat-Verlauf öffnen"
               onClick={() => setDrawer(true)}
-              className="icon-action -ml-1 flex size-9 items-center justify-center rounded-lg text-muted-foreground transition md:hidden"
+              className="icon-action -ml-1 flex size-9 items-center justify-center rounded-xl text-muted-foreground transition md:hidden"
             >
               <Menu className="size-4.5" />
             </button>
 
-            <NorviMark className="size-8" />
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-[0.95rem] font-semibold tracking-[-0.02em]">{agentName}</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span
-                    className={`size-1.5 rounded-full ${
-                      healthState === "online"
-                        ? "bg-green-400"
-                        : healthState === "connecting"
-                          ? "bg-amber-400"
-                          : "bg-red-400"
-                    }`}
-                  />
-                  {statusLabel}
-                </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <NorviMark className="size-8" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="truncate text-[0.96rem] font-semibold tracking-[-0.025em]">
+                    {agentName}
+                  </span>
+                  <span className="system-pill flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9.5px] text-muted-foreground">
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        healthState === "online"
+                          ? "status-dot bg-green-400"
+                          : healthState === "connecting"
+                            ? "bg-amber-400"
+                            : "bg-red-400"
+                      }`}
+                    />
+                    {statusLabel}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1.5">
               {capabilities.data?.vision && (
-                <span title="Bilder verfügbar" className="icon-action hidden size-9 items-center justify-center rounded-lg text-muted-foreground sm:flex">
+                <span
+                  title="Bilder verfügbar"
+                  className="icon-action hidden size-9 items-center justify-center rounded-xl text-muted-foreground sm:flex"
+                >
                   <Eye className="size-4" />
                 </span>
               )}
               {capabilities.data?.stt && (
-                <span title="Spracheingabe verfügbar" className="icon-action hidden size-9 items-center justify-center rounded-lg text-muted-foreground sm:flex">
+                <span
+                  title="Spracheingabe verfügbar"
+                  className="icon-action hidden size-9 items-center justify-center rounded-xl text-muted-foreground sm:flex"
+                >
                   <Mic2 className="size-4" />
                 </span>
               )}
@@ -162,12 +172,11 @@ function Index() {
                 <button
                   type="button"
                   onClick={() => void copyPublicLink()}
-                  title="NORVI-Link kopieren"
+                  title={linkCopied ? "Link kopiert" : "NORVI-Link kopieren"}
                   aria-label="NORVI-Link kopieren"
-                  className="icon-action flex size-9 items-center justify-center rounded-lg text-muted-foreground transition"
+                  className="icon-action flex size-9 items-center justify-center rounded-xl text-muted-foreground transition"
                 >
                   <Share2 className="size-4" />
-                  <span className="sr-only">{linkCopied ? "Kopiert" : "Teilen"}</span>
                 </button>
               )}
               <AccountMenu />
