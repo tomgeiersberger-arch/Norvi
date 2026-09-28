@@ -188,7 +188,7 @@ export function Composer({
 
   return (
     <div
-      className={`glass-panel composer-shell relative rounded-[1.7rem] p-2.5 transition duration-300 focus-within:border-primary/35 ${
+      className={`glass-panel composer-shell premium-surface relative rounded-[1.55rem] p-2.5 transition duration-300 ${
         dragging ? "border-primary/60 bg-primary/[0.055]" : ""
       }`}
       onDragEnter={(event) => {
@@ -213,7 +213,7 @@ export function Composer({
       }}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.3rem] border border-dashed border-primary/60 bg-background/88 text-sm font-medium text-primary backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.15rem] border border-dashed border-primary/55 bg-background/90 text-sm font-medium text-primary backdrop-blur-xl">
           <ImagePlus className="mr-2 size-4.5" />
           Bild hier ablegen
         </div>
@@ -223,7 +223,7 @@ export function Composer({
           {images.map((image) => (
             <div
               key={image.key}
-              className="rise group relative size-16 overflow-hidden rounded-xl border border-border/80 bg-secondary"
+              className="rise group relative size-16 overflow-hidden rounded-[0.95rem] border border-white/[0.08] bg-secondary shadow-[0_12px_32px_-22px_rgba(0,0,0,1)]"
             >
               <img src={image.preview} alt={image.name} className="size-full object-cover" />
               {!image.uploaded && (
@@ -245,7 +245,7 @@ export function Composer({
       )}
 
       {recording && (
-        <div className="mx-1 mt-1 flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/[0.075] px-3.5 py-2.5 text-[0.8rem] text-primary">
+        <div className="mx-1 mt-1 flex items-center gap-3 rounded-[1.05rem] border border-primary/20 bg-[linear-gradient(90deg,rgba(255,125,87,0.10),rgba(255,125,87,0.035))] px-3.5 py-2.5 text-[0.8rem] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
           <span className="relative flex size-2.5 shrink-0">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/70" />
             <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
@@ -277,7 +277,15 @@ export function Composer({
         </div>
       )}
 
-      <div className="flex items-end gap-1.5">
+      <div className="relative z-10 mb-1 flex items-center justify-between px-2 pt-0.5 text-[9px] font-medium tracking-[0.16em] text-muted-foreground/45 uppercase">
+        <span>Command dock</span>
+        <span className="flex items-center gap-1.5">
+          <span className="status-dot size-1.5 rounded-full bg-green-400" />
+          Local
+        </span>
+      </div>
+
+      <div className="relative z-10 flex items-end gap-1.5">
         <input
           ref={fileRef}
           type="file"
@@ -298,7 +306,7 @@ export function Composer({
             disabled={busy}
             aria-label="Bild anhängen"
             title="Bild anhängen (JPG, PNG, WebP)"
-            className="mb-0.5 flex size-10 items-center justify-center rounded-xl border border-white/[0.055] bg-white/[0.025] text-muted-foreground transition hover:-translate-y-px hover:border-primary/25 hover:bg-primary/[0.07] hover:text-primary disabled:opacity-40"
+            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-xl text-muted-foreground transition duration-200 hover:-translate-y-px disabled:opacity-40"
           >
             <ImagePlus className="size-4.5" />
           </button>
@@ -314,7 +322,7 @@ export function Composer({
             className={`mb-0.5 flex size-10 items-center justify-center rounded-xl border transition disabled:opacity-40 ${
               recording
                 ? "border-primary/35 bg-primary/15 text-primary"
-                : "border-white/[0.055] bg-white/[0.025] text-muted-foreground hover:-translate-y-px hover:border-primary/25 hover:bg-primary/[0.07] hover:text-primary"
+                : "icon-action text-muted-foreground hover:-translate-y-px"
             }`}
           >
             {transcribing ? (
@@ -347,7 +355,7 @@ export function Composer({
           }}
           placeholder={recording ? "Sprich einfach …" : "Nachricht schreiben…"}
           aria-label={`Nachricht an ${agentName}`}
-          className="composer-scrollbar min-h-10 max-h-52 flex-1 resize-none overflow-y-auto bg-transparent px-2.5 py-2.5 text-[0.98rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/55"
+          className="composer-scrollbar min-h-10 max-h-52 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[0.98rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/45"
         />
 
         {busy ? (
@@ -355,7 +363,7 @@ export function Composer({
             type="button"
             onClick={onStop}
             aria-label="Antwort stoppen"
-            className="mb-0.5 flex size-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.045] text-foreground transition hover:bg-white/[0.08]"
+            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-xl text-foreground transition hover:bg-white/[0.08]"
           >
             <Square className="size-3.5 fill-current" />
           </button>
@@ -365,7 +373,7 @@ export function Composer({
             onClick={submit}
             disabled={!canSend}
             aria-label="Senden"
-            className="mb-0.5 flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_10px_28px_-12px_rgba(255,122,89,0.85)] transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
+            className="send-glow mb-0.5 flex size-10 items-center justify-center rounded-xl text-primary-foreground transition duration-200 hover:-translate-y-px active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
           >
             {uploading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -376,7 +384,7 @@ export function Composer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-2 px-2.5 pt-1.5 pb-0.5 text-[10.5px] text-muted-foreground/60">
+      <div className="relative z-10 flex flex-wrap items-center gap-x-2 px-2.5 pb-0.5 pt-1.5 text-[9.5px] tracking-[0.02em] text-muted-foreground/45">
         <span>
           <kbd className="font-sans">Enter</kbd> senden ·{" "}
           <kbd className="font-sans">Shift + Enter</kbd> Zeile
