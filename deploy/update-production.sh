@@ -30,7 +30,6 @@ git fetch origin main
 git checkout main
 git merge --ff-only origin/main
 
-chmod +x deploy/*.sh 2>/dev/null || true
 
 echo "==> Abhängigkeiten"
 "$BUN" install --frozen-lockfile
