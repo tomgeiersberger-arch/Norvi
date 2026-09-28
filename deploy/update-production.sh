@@ -71,34 +71,44 @@ curl -fsS --max-time 5 http://127.0.0.1:4200/api/health >/dev/null
 auth="$(grep -m1 '^REQUIRE_AUTH=' .env | cut -d= -f2- | tr '[:upper:]' '[:lower:]' | xargs || true)"
 secret="$(grep -m1 '^BETTER_AUTH_SECRET=' .env | cut -d= -f2- || true)"
 if [[ "$auth" =~ ^(true|1|yes|on)$ ]] && [[ -n "${secret//[[:space:]]/}" ]] && command -v cloudflared >/dev/null 2>&1; then
-  echo "==> Öffentlichen HTTPS-Tunnel aktivieren"
-  systemctl --user stop norvi-quick-tunnel.service 2>/dev/null || true
+  echo "==> Öffentlichen HTTPS-Tunnel prüfen"
+  public_url="$(head -n1 data/public-url.txt 2>/dev/null || true)"
+  website_url="$(grep -m1 '^WEBSITE_URL=' .env | cut -d= -f2- || true)"
 
-  # Alte manuell gestartete Quick-Tunnel beenden, damit kein veralteter Link
-  # parallel öffentlich erreichbar bleibt.
-  while read -r oldpid; do
-    [[ -n "$oldpid" ]] && kill "$oldpid" 2>/dev/null || true
-  done < <(
-    ps -u "$(id -u)" -o pid=,args= |
-      awk '/cloudflared tunnel/ && /--url http:\/\/127\.0\.0\.1:4200/ {print $1}'
-  )
+  if systemctl --user is-active --quiet norvi-quick-tunnel.service &&
+     [[ -n "$public_url" ]] &&
+     [[ "$website_url" == "$public_url" ]]; then
+    echo "==> Vorhandenen Quick Tunnel weiterverwenden: $public_url"
+  else
+    echo "==> Quick Tunnel neu starten"
+    systemctl --user stop norvi-quick-tunnel.service 2>/dev/null || true
 
-  rm -f data/public-url.txt
-  systemctl --user enable --now norvi-quick-tunnel.service
+    # Alte manuell gestartete Quick-Tunnel beenden, damit kein veralteter Link
+    # parallel öffentlich erreichbar bleibt.
+    while read -r oldpid; do
+      [[ -n "$oldpid" ]] && kill "$oldpid" 2>/dev/null || true
+    done < <(
+      ps -u "$(id -u)" -o pid=,args= |
+        awk '/cloudflared tunnel/ && /--url http:\/\/127\.0\.0\.1:4200/ {print $1}'
+    )
 
-  for _ in $(seq 1 70); do
-    [[ -s data/public-url.txt ]] && break
-    sleep 1
-  done
+    rm -f data/public-url.txt
+    systemctl --user enable --now norvi-quick-tunnel.service
 
-  # Der Tunnel aktualisiert WEBSITE_URL und startet NORVI bei einer neuen URL
-  # selbst neu. Deshalb nach der URL noch einmal auf lokale Bereitschaft warten.
-  for _ in $(seq 1 30); do
-    if curl -fsS --max-time 2 http://127.0.0.1:4200/api/health >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
+    for _ in $(seq 1 70); do
+      [[ -s data/public-url.txt ]] && break
+      sleep 1
+    done
+
+    # Der Tunnel aktualisiert WEBSITE_URL und startet NORVI bei einer neuen URL
+    # selbst neu. Deshalb nach der URL noch einmal auf lokale Bereitschaft warten.
+    for _ in $(seq 1 30); do
+      if curl -fsS --max-time 2 http://127.0.0.1:4200/api/health >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+  fi
 else
   echo "==> Quick Tunnel übersprungen (Auth/Secret/cloudflared nicht sicher bereit)"
 fi
