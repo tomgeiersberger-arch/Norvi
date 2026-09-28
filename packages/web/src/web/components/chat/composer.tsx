@@ -155,7 +155,11 @@ export function Composer({
       if (!handle) return;
       setTranscribing(true);
       try {
-        const { blob, filename } = await handle.stop();
+        const { blob, filename, voiceDetected } = await handle.stop();
+        if (!voiceDetected) {
+          setNotice("Keine Sprache erkannt. Bitte nochmal sprechen.");
+          return;
+        }
         // German first — Whisper handles English input fine with a German hint,
         // and this is a German-language installation.
         const text = await transcribeAudio(blob, "de", filename);
