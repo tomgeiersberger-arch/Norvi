@@ -9,6 +9,9 @@ if [[ ! -x "$BUN" ]]; then
   BUN="$(command -v bun || true)"
 fi
 [[ -n "$BUN" ]] || { echo "Bun fehlt." >&2; exit 1; }
+# Turborepo invokes the package manager by name. When this script is started
+# from systemd/remote shells, Bun may only be known via BUN_BIN and not PATH.
+export PATH="$(dirname "$BUN"):$PATH"
 [[ -f .env ]] || { echo ".env fehlt." >&2; exit 1; }
 
 if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
@@ -27,7 +30,6 @@ git fetch origin main
 git checkout main
 git merge --ff-only origin/main
 
-chmod +x deploy/*.sh 2>/dev/null || true
 
 echo "==> Abhängigkeiten"
 "$BUN" install --frozen-lockfile
