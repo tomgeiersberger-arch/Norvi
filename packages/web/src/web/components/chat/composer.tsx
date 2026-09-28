@@ -365,12 +365,12 @@ export function Composer({
             onClick={submit}
             disabled={!canSend}
             aria-label="Senden"
-            className="send-glow mb-0.5 flex size-10 items-center justify-center rounded-[1rem] text-primary-foreground transition duration-200 active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
+            className="send-glow mb-0.5 mr-0.5 flex size-11 items-center justify-center rounded-[1.05rem] text-[#2a1008] transition duration-200 hover:-translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:shadow-none"
           >
             {uploading ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <ArrowUp className="size-4.5" />
+              <ArrowUp className="size-5" strokeWidth={2.6} />
             )}
           </button>
         )}
