@@ -28,7 +28,13 @@ function Index() {
 
   const agentName = model.data?.agent ?? "NORVI";
   const modelLabel = model.isLoading ? "verbinde…" : (model.data?.label ?? "NORVI AI");
-  const healthState = capabilities.isPending ? "connecting" : capabilities.isError ? "offline" : "online";
+  const healthState = capabilities.isPending
+    ? "connecting"
+    : capabilities.isError
+      ? "offline"
+      : capabilities.data?.aiOnline === false
+        ? "ai-offline"
+        : "online";
 
   const openChat = (id: string) => {
     setSession({ key: id, chatId: id });
@@ -123,32 +129,36 @@ function Index() {
                   className={
                     healthState === "online"
                       ? "flex items-center gap-1.5 rounded-full border border-green-400/15 bg-green-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-green-300/90"
-                      : healthState === "offline"
+                      : healthState === "offline" || healthState === "ai-offline"
                         ? "flex items-center gap-1.5 rounded-full border border-red-400/15 bg-red-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-red-300/90"
                         : "flex items-center gap-1.5 rounded-full border border-amber-400/15 bg-amber-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-amber-300/90"
                   }
                   title={
                     healthState === "online"
-                      ? "NORVI-Server erreichbar"
-                      : healthState === "offline"
-                        ? "NORVI-Server nicht erreichbar"
-                        : "Verbindung wird geprüft"
+                      ? "NORVI und lokaler KI-Dienst sind erreichbar"
+                      : healthState === "ai-offline"
+                        ? "NORVI läuft, aber der KI-Dienst ist nicht erreichbar"
+                        : healthState === "offline"
+                          ? "NORVI-Server nicht erreichbar"
+                          : "Verbindung wird geprüft"
                   }
                 >
                   <span
                     className={
                       healthState === "online"
                         ? "status-dot size-1.5 rounded-full bg-green-400"
-                        : healthState === "offline"
+                        : healthState === "offline" || healthState === "ai-offline"
                           ? "size-1.5 rounded-full bg-red-400"
                           : "size-1.5 animate-pulse rounded-full bg-amber-400"
                     }
                   />
                   {healthState === "online"
                     ? "Online"
-                    : healthState === "offline"
-                      ? "Offline"
-                      : "Verbinde"}
+                    : healthState === "ai-offline"
+                      ? "KI offline"
+                      : healthState === "offline"
+                        ? "Offline"
+                        : "Verbinde"}
                 </span>
               </div>
               <div className="truncate text-[11px] text-muted-foreground/85">{modelLabel}</div>
