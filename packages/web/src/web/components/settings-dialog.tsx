@@ -96,7 +96,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 {([
                   ["fast", "Schnell", Zap, "kurz · kein Thinking"],
                   ["balanced", "Normal", Gauge, "ausgewogen · kein Thinking"],
-                  ["deep", "Gründlich", BrainCircuit, "4B Instruct · längere Antworten"],
+                  ["deep", "Gründlich", BrainCircuit, "4B · starkes Thinking"],
                 ] as const).map(([value, label, Icon, hint]) => {
                   const locked = value === "deep" && !premiumAccess;
                   return (
@@ -114,7 +114,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <Icon className={`mb-2 size-4 ${performanceMode === value ? "text-primary" : ""}`} />
                       <div className="text-[12px] font-semibold">{label}</div>
                       <div className="mt-0.5 text-[9.5px] leading-tight opacity-70">
-                        {locked ? "Premium · 4B Instruct" : hint}
+                        {locked ? "Premium · 4B + Thinking" : hint}
                       </div>
                     </button>
                   );
