@@ -101,6 +101,7 @@ export function EmptyState({ agentName, onPick, vision = false, stt = false }: E
             <button
               key={suggestion.text}
               type="button"
+              aria-label={suggestion.text}
               onClick={() => onPick(suggestion.text)}
               className="suggestion-card rise group rounded-[1.35rem] p-4.5 text-left transition duration-300 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_24px_70px_-42px_rgba(255,125,87,0.52)]"
               style={{ animationDelay: `${300 + i * 65}ms` }}
