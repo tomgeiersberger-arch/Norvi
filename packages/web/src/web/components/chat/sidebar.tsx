@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, MessageSquare, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, Command, MessageSquare, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { NorviWordmark } from "./norvi-mark";
 
 export interface ChatListItem {
@@ -68,11 +68,12 @@ export function Sidebar({
   };
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-white/[0.025] to-transparent">
-      <div className="flex items-center justify-between px-5 py-5">
+    <div className="relative z-10 flex h-full flex-col">
+      <div className="flex items-center justify-between px-5 pb-4 pt-5">
         <NorviWordmark />
-        <span className="rounded-full border border-white/[0.07] bg-white/[0.035] px-2 py-1 text-[9px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-          local
+        <span className="system-pill flex items-center gap-1.5 rounded-full px-2 py-1 text-[8.5px] font-semibold tracking-[0.13em] text-green-300/80 uppercase">
+          <span className="status-dot size-1.5 rounded-full bg-green-400" />
+          Local
         </span>
       </div>
 
@@ -80,17 +81,17 @@ export function Sidebar({
         <button
           type="button"
           onClick={onNewChat}
-          className="group flex w-full items-center gap-2.5 rounded-2xl border border-primary/20 bg-[linear-gradient(145deg,rgba(255,122,89,0.11),rgba(255,122,89,0.055))] px-3.5 py-3 text-sm font-semibold shadow-[0_16px_40px_-30px_rgba(255,122,89,0.75)] transition hover:-translate-y-px hover:border-primary/40 hover:bg-primary/[0.12]"
+          className="group flex w-full items-center gap-2.5 rounded-[1.15rem] border border-primary/20 bg-[linear-gradient(145deg,rgba(255,125,87,0.14),rgba(255,125,87,0.055))] px-3 py-2.5 text-[13px] font-semibold shadow-[0_18px_50px_-34px_rgba(255,125,87,0.85),inset_0_1px_0_rgba(255,255,255,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-primary/38 hover:bg-primary/[0.12]"
         >
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_8px_22px_-12px_rgba(255,122,89,0.9)]">
+          <span className="send-glow flex size-8 items-center justify-center rounded-xl text-primary-foreground">
             <Plus className="size-4" />
           </span>
           Neuer Chat
         </button>
       </div>
 
-      <div className="mt-5 px-3.5">
-        <label className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-muted-foreground transition focus-within:border-primary/30 focus-within:bg-white/[0.04] focus-within:text-foreground">
+      <div className="mt-4 px-3.5">
+        <label className="capability-pill flex items-center gap-2 rounded-xl px-3 py-2.5 text-muted-foreground transition focus-within:border-primary/25 focus-within:bg-white/[0.04] focus-within:text-foreground">
           <Search className="size-3.5 shrink-0" />
           <input
             ref={searchRef}
@@ -116,7 +117,7 @@ export function Sidebar({
         </label>
       </div>
 
-      <div className="mt-4 flex items-center justify-between px-5 text-[10px] font-semibold tracking-[0.16em] text-muted-foreground/70 uppercase">
+      <div className="mt-5 flex items-center justify-between px-5 text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/55 uppercase">
         <span>Verlauf</span>
         <span>{query ? `${filteredChats.length}/${chats.length}` : chats.length}</span>
       </div>
@@ -178,8 +179,8 @@ export function Sidebar({
                     <div
                       className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 transition ${
                         active
-                          ? "border border-white/[0.055] bg-[linear-gradient(90deg,rgba(255,122,89,0.10),rgba(255,255,255,0.025))] text-foreground shadow-[inset_3px_0_0_rgba(255,122,89,0.72)]"
-                          : "border border-transparent hover:border-white/[0.035] hover:bg-secondary/55"
+                          ? "border border-primary/14 bg-[linear-gradient(90deg,rgba(255,125,87,0.105),rgba(255,255,255,0.025))] text-foreground shadow-[inset_2px_0_0_rgba(255,125,87,0.8),0_12px_34px_-28px_rgba(255,125,87,0.55)]"
+                          : "border border-transparent hover:border-white/[0.045] hover:bg-white/[0.028]"
                       }`}
                     >
                       <button
@@ -242,6 +243,14 @@ export function Sidebar({
             })}
           </ul>
         )}
+      </div>
+
+      <div className="mx-3 mb-3 flex items-center justify-between rounded-xl border border-white/[0.045] bg-white/[0.018] px-3 py-2 text-[9.5px] text-muted-foreground/55">
+        <span className="flex items-center gap-1.5">
+          <Command className="size-3" />
+          Ctrl/⌘ K
+        </span>
+        <span>Private AI</span>
       </div>
     </div>
   );

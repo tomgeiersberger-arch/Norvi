@@ -56,18 +56,18 @@ export function AccountMenu() {
   };
 
   const itemClass =
-    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-foreground transition hover:bg-secondary disabled:opacity-60";
+    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-[13px] text-foreground/88 transition hover:bg-white/[0.045] hover:text-foreground disabled:opacity-60";
 
   return (
     <>
-      <div className="relative ml-auto" ref={boxRef}>
+      <div className="relative" ref={boxRef}>
         <button
           type="button"
           aria-label="Konto"
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          className="icon-action flex size-9 items-center justify-center rounded-xl text-muted-foreground transition hover:text-foreground"
         >
           <User className="size-5" />
         </button>
@@ -75,17 +75,17 @@ export function AccountMenu() {
         {open && (
           <div
             role="menu"
-            className="glass-panel rise absolute right-0 z-50 mt-2 w-60 rounded-2xl p-1.5 shadow-2xl"
+            className="premium-surface rise absolute right-0 z-50 mt-2 w-64 rounded-[1.3rem] p-1.5 shadow-2xl"
           >
-            <div className="px-2.5 py-2">
-              <div className="truncate text-[13px] font-medium">
+            <div className="px-3 py-2.5">
+              <div className="truncate text-[13px] font-semibold tracking-tight">
                 {user ? (user.name || user.email) : "Nicht angemeldet"}
               </div>
               <div className="truncate text-[11px] text-muted-foreground">
                 {user ? user.email : "Chats bleiben nur auf diesem Gerät"}
               </div>
               {user && (user.role === "admin" || user.premiumAccess) && (
-                <span className="mt-1.5 inline-flex rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-0.5 text-[9.5px] font-medium text-primary">
+                <span className="mt-2 inline-flex rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-0.5 text-[9px] font-semibold tracking-[0.1em] text-primary uppercase">
                   {user.role === "admin" ? "Admin · Vollzugriff" : "Premium"}
                 </span>
               )}

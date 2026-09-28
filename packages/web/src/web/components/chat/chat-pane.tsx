@@ -186,9 +186,9 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
           if (!el) return;
           setNearBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 140);
         }}
-        className="scroll-slim min-h-0 flex-1 overflow-y-auto"
+        className="scroll-slim relative min-h-0 flex-1 overflow-y-auto"
       >
-        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-7 lg:px-10">
           {messages.length === 0 ? (
             <EmptyState
               agentName={agentName}
@@ -197,7 +197,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
               stt={capabilities.data?.stt ?? false}
             />
           ) : (
-            <div className="flex flex-col gap-8 py-8">
+            <div className="flex flex-col gap-7 py-8 sm:py-10">
               {messages.map((message, i) => (
                 <Message
                   key={message.id || i}
@@ -233,14 +233,14 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
           type="button"
           onClick={() => scrollToBottom()}
           aria-label="Zum neuesten Beitrag springen"
-          className="glass-panel absolute right-5 bottom-[8.3rem] z-20 flex size-9 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground sm:right-8"
+          className="icon-action absolute right-5 bottom-[8.6rem] z-20 flex size-9 items-center justify-center rounded-full text-muted-foreground shadow-[0_18px_50px_-28px_rgba(0,0,0,1)] backdrop-blur-xl transition hover:text-foreground sm:right-8"
         >
           <ChevronDown className="size-4" />
         </button>
       )}
 
-      <div className="bg-gradient-to-t from-background via-background/98 to-transparent pt-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
-        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+      <div className="relative z-20 bg-[linear-gradient(180deg,transparent,rgba(5,6,9,0.86)_24%,rgba(5,6,9,0.98)_58%)] pt-7 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-7 lg:px-10">
           <Composer
             agentName={agentName}
             onSend={(text, images) => void send(text, images)}

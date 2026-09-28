@@ -42,12 +42,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         type="button"
         aria-label="Einstellungen schließen"
         onClick={onClose}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/72 backdrop-blur-xl"
       />
-      <div className="glass-panel rise relative w-full max-w-lg rounded-[1.6rem] p-6 shadow-2xl">
-        <div className="mb-5 flex items-start justify-between">
+      <div className="premium-surface rise relative w-full max-w-xl overflow-hidden rounded-[1.8rem] p-6 sm:p-7">
+        <div className="relative z-10 mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Einstellungen</h2>
+            <div className="mb-1 text-[9px] font-semibold tracking-[0.2em] text-primary/80 uppercase">NORVI Control</div><h2 className="text-xl font-semibold tracking-[-0.03em]">Einstellungen</h2>
             <p className="text-[12px] text-muted-foreground">
               Gilt nur für dein NORVI AI Konto.
             </p>
@@ -56,7 +56,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             type="button"
             onClick={onClose}
             aria-label="Schließen"
-            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            className="icon-action flex size-8 items-center justify-center rounded-xl text-muted-foreground transition hover:text-foreground"
           >
             <X className="size-4" />
           </button>
@@ -78,7 +78,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 value={modelId}
                 onChange={(e) => setModelId(e.target.value)}
                 aria-label="Modell"
-                className="w-full rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm outline-none transition focus:border-primary/60"
+                className="capability-pill w-full rounded-xl px-3 py-2.5 text-sm outline-none transition focus:border-primary/40"
               >
                 {(settings.data?.models ?? []).map((id) => (
                   <option key={id} value={id}>
@@ -107,8 +107,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       onClick={() => !locked && setPerformanceMode(value)}
                       className={`rounded-2xl border px-3 py-3 text-left transition ${
                         performanceMode === value
-                          ? "border-primary/45 bg-primary/[0.09] text-foreground shadow-[0_10px_28px_-20px_rgba(255,122,89,0.8)]"
-                          : "border-white/[0.07] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                          ? "border-primary/35 bg-[linear-gradient(145deg,rgba(255,125,87,0.13),rgba(255,125,87,0.04))] text-foreground shadow-[0_16px_42px_-28px_rgba(255,125,87,0.8),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                          : "border-white/[0.065] bg-white/[0.018] text-muted-foreground hover:border-white/[0.10] hover:bg-white/[0.035] hover:text-foreground"
                       } ${locked ? "cursor-not-allowed opacity-45 hover:bg-white/[0.02] hover:text-muted-foreground" : ""}`}
                     >
                       <Icon className={`mb-2 size-4 ${performanceMode === value ? "text-primary" : ""}`} />
@@ -164,7 +164,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 type="button"
                 onClick={save}
                 disabled={update.isPending}
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+                className="send-glow flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:-translate-y-px disabled:opacity-60"
               >
                 {update.isPending && <Loader2 className="size-4 animate-spin" />}
                 Speichern
