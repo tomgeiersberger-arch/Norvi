@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrainCircuit, Gauge, Loader2, X, Zap } from "lucide-react";
+import { BrainCircuit, Gauge, Loader2, Rocket, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 
 interface SettingsDialogProps {
@@ -13,14 +13,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const settings = useSettings(open);
   const update = useUpdateSettings();
 
-  const [modelId, setModelId] = useState("");
   const [temperature, setTemperature] = useState(70);
-  const [performanceMode, setPerformanceMode] = useState<"fast" | "balanced" | "deep">("balanced");
+  const [performanceMode, setPerformanceMode] = useState<"fast" | "balanced" | "power" | "deep">("balanced");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!settings.data) return;
-    setModelId(settings.data.modelId);
     setTemperature(settings.data.temperature);
     setPerformanceMode(settings.data.performanceMode);
   }, [settings.data]);
@@ -41,7 +39,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const save = () => {
     setSaved(false);
     update.mutate(
-      { modelId, temperature, performanceMode },
+      { temperature, performanceMode },
       { onSuccess: () => setSaved(true) },
     );
   };
@@ -90,34 +88,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </p>
         ) : (
           <div className="space-y-5">
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] text-muted-foreground">Technisches Modell</span>
-              <select
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value)}
-                aria-label="Modell"
-                className="capability-pill w-full rounded-xl px-3 py-2.5 text-sm outline-none transition focus:border-primary/40"
-              >
-                {(settings.data?.models ?? []).map((id) => (
-                  <option key={id} value={id}>
-                    {id}
-                  </option>
-                ))}
-              </select>
-            </label>
-
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[12px] text-muted-foreground">NORVI-Version</span>
                 <span className="rounded-full border border-white/[0.06] bg-white/[0.025] px-2 py-0.5 text-[9px] text-muted-foreground/70">
-                  3 Versionen
+                  4 Versionen
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {([
-                  ["fast", "NORVI Fast", Zap, "2B · maximal schnell"],
-                  ["balanced", "NORVI Standard", Gauge, "2B · beste Balance"],
-                  ["deep", "NORVI Deep", BrainCircuit, "4B · starkes Thinking"],
+                  ["fast", "NORVI Fast", Zap, "2B · am schnellsten"],
+                  ["balanced", "NORVI Standard", Gauge, "2B · Alltag"],
+                  ["power", "NORVI Power", Rocket, "4B · stärker"],
+                  ["deep", "NORVI Deep", BrainCircuit, "4B · stärkste Analyse"],
                 ] as const).map(([value, label, Icon, hint]) => {
                   const locked = value === "deep" && !premiumAccess;
                   return (
@@ -142,7 +125,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 })}
               </div>
               <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                Fast reagiert am schnellsten, Standard ist für normale Chats gedacht und Deep nutzt das stärkere 4B-Modell mit Thinking.
+                Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit und ist dafür deutlich langsamer.
               </p>
             </div>
 

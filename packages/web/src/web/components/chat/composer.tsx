@@ -298,9 +298,10 @@ export function Composer({
             disabled={busy}
             aria-label="Bild anhängen"
             title="Bild anhängen (JPG, PNG, WebP)"
-            className="icon-action mb-0.5 flex size-10 items-center justify-center rounded-[1rem] text-muted-foreground transition duration-200 disabled:opacity-40"
+            className="icon-action mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] px-0 text-muted-foreground transition duration-200 disabled:opacity-40 sm:px-3"
           >
-            <ImagePlus className="size-4.5" />
+            <ImagePlus className="size-4.5 shrink-0" />
+            <span className="hidden text-[11px] font-medium sm:inline">Bild</span>
           </button>
         )}
 
@@ -311,7 +312,7 @@ export function Composer({
             disabled={micDisabled}
             aria-label={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
             title={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
-            className={`mb-0.5 flex size-10 items-center justify-center rounded-[1rem] border transition duration-200 disabled:opacity-40 ${
+            className={`mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] border px-0 transition duration-200 disabled:opacity-40 sm:px-3 ${
               recording
                 ? "border-primary/35 bg-primary/15 text-primary"
                 : "icon-action text-muted-foreground "
@@ -320,8 +321,11 @@ export function Composer({
             {transcribing ? (
               <Loader2 className="size-4.5 animate-spin" />
             ) : (
-              <Mic className="size-4.5" />
+              <Mic className="size-4.5 shrink-0" />
             )}
+            <span className="hidden text-[11px] font-medium sm:inline">
+              {recording ? "Stopp" : transcribing ? "Text…" : "Sprache"}
+            </span>
           </button>
         )}
 
@@ -377,12 +381,8 @@ export function Composer({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-2 px-2.5 pb-0.5 pt-1.5 text-[9.5px] text-muted-foreground/34">
-        <span>
-          <kbd className="font-sans">Enter</kbd> senden ·{" "}
-          <kbd className="font-sans">Shift + Enter</kbd> Zeile
-        </span>
-        <span className="hidden sm:inline">· Ctrl/⌘ K Fokus</span>
-        {vision && <span className="hidden sm:inline">· Bilder auch per Drag & Drop</span>}
+        <span>Enter = senden · Umschalt + Enter = neue Zeile</span>
+        {vision && <span className="hidden sm:inline">· Bilder kannst du auch hineinziehen</span>}
       </div>
     </div>
   );

@@ -216,7 +216,7 @@ export function Sidebar({
         </div>
 
         <div className="mx-4 mb-3 border-t border-white/[0.045] pt-3 text-[9.5px] text-muted-foreground/35">
-          Ctrl/⌘ K · Eingabe
+          Verlauf durchsuchen oder direkt einen neuen Chat starten
         </div>
       </div>
     </div>

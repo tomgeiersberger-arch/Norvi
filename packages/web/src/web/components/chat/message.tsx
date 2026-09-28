@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import type { UIMessage } from "ai";
 import { Check, Copy, X } from "lucide-react";
+import { copyToClipboard } from "../../lib/utils";
 import { NorviMark } from "./norvi-mark";
 
 let markdownModule: Promise<typeof import("./markdown")> | null = null;
@@ -77,7 +78,8 @@ export function Message({ message, agentName, streaming = false }: MessageProps)
 
   const copyText = async () => {
     if (!text) return;
-    await navigator.clipboard.writeText(text);
+    const ok = await copyToClipboard(text);
+    if (!ok) return;
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   };

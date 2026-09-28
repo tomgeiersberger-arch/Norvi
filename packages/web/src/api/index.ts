@@ -202,8 +202,15 @@ function performanceProfile(
 ): { modelId: string; maxOutputTokens: number; reasoningEffort: ReasoningEffort } {
   if (mode === "fast") {
     return {
-      modelId: process.env.AI_FAST_MODEL?.trim() || selectedModel,
+      modelId: process.env.AI_FAST_MODEL?.trim() || process.env.AI_MODEL?.trim() || selectedModel,
       maxOutputTokens: positiveInt(process.env.AI_FAST_MAX_TOKENS, 256),
+      reasoningEffort: "none",
+    };
+  }
+  if (mode === "power") {
+    return {
+      modelId: process.env.AI_POWER_MODEL?.trim() || process.env.AI_DEEP_MODEL?.trim() || selectedModel,
+      maxOutputTokens: positiveInt(process.env.AI_POWER_MAX_TOKENS, 768),
       reasoningEffort: "none",
     };
   }
@@ -213,12 +220,12 @@ function performanceProfile(
       maxOutputTokens: positiveInt(process.env.AI_DEEP_MAX_TOKENS, 1024),
       // Deep mode deliberately spends more time on separate model reasoning.
       // Ollama returns this as reasoning content and the user sees only the
-      // final answer. Fast and balanced stay non-thinking for low latency.
+      // final answer. Fast, balanced and power stay non-thinking for lower latency.
       reasoningEffort: "high",
     };
   }
   return {
-    modelId: selectedModel,
+    modelId: process.env.AI_MODEL?.trim() || selectedModel,
     maxOutputTokens: positiveInt(process.env.AI_BALANCED_MAX_TOKENS, 512),
     // The CPU-only homeserver is much faster with Qwen thinking disabled.
     // Deep mode remains available when the user explicitly wants reasoning.

@@ -57,6 +57,10 @@ Restrained: staggered `rise` entrance on the empty state and drawer, blinking ac
 - **Data**: Drizzle tables `chats` + `chat_messages`, scoped by `device_id`; oRPC procedures in `routes/chats.ts` (`list`, `create`, `rename`, `remove`, `messages`).
 - **Clients**: `useChat` from `@ai-sdk/react` with `DefaultChatTransport`, `chatId`/`deviceId` sent per request. Device id: `localStorage` (web) / AsyncStorage (mobile), key `norvi.device-id`.
 
+## NORVI versions
+
+The settings screen offers four modes: NORVI Fast (2B), NORVI Standard (2B), NORVI Power (4B Instruct) and NORVI Deep (4B with thinking). Deep is the premium/admin mode.
+
 ## Images & voice input
 
 - **Upload**: `POST /api/upload` (multipart, session or device scoped, 12 MB, JPEG/PNG/WebP) stores the file under `UPLOAD_DIR` and returns `/api/files/<id>`. `GET /api/files/:id` serves it back — deliberately without a session check so `<img>` and React Native `<Image>` can load it; the 128-bit id is the protection.

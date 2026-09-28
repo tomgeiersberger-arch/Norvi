@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import type { HighlighterCore } from "shiki/core";
+import { copyToClipboard } from "../../lib/utils";
 
 const LANGS = [
   "typescript",
@@ -97,8 +98,9 @@ export function CodeBlock({ code, lang }: CodeBlockProps) {
     };
   }, [code, supported]);
 
-  const copy = () => {
-    void navigator.clipboard.writeText(code);
+  const copy = async () => {
+    const ok = await copyToClipboard(code);
+    if (!ok) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };

@@ -101,6 +101,7 @@ export const admin = {
       provider: providerKind(),
       model: defaultModelId(),
       fastModel: process.env.AI_FAST_MODEL?.trim() || defaultModelId(),
+      powerModel: process.env.AI_POWER_MODEL?.trim() || null,
       deepModel: process.env.AI_DEEP_MODEL?.trim() || null,
       visionModel: process.env.AI_VISION_MODEL?.trim() || null,
       vision: visionAvailable(),

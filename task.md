@@ -202,3 +202,17 @@ Verifiziert:
 - Upload nach dem Pfad-Fix: /api/upload -> 201, Datei in <root>/data/uploads, /api/files/:id -> 200,
   Traversal -> 404
 - lint, typecheck, build gruen; .env ist nicht getrackt, keine Secrets in getrackten Dateien
+
+## Runde UI-Finish + vier NORVI-Versionen (2026-09-29)
+
+- Web-Einstellungen zeigen keine rohen Modellnamen mehr, sondern vier klare Profile: Fast, Standard, Power und Deep.
+- Fast/Standard nutzen das 2B-Hauptmodell ohne Thinking; Power nutzt ein echtes 4B-Instruct-Modell; Deep nutzt 4B mit Thinking.
+- Neues lokales Modell `norvi-power:latest` aus `qwen3:4b-instruct-2507-q4_K_M` installiert und getestet.
+- Deep-Modell reproduzierbar auf `qwen3:4b-thinking-2507-q4_K_M` umgestellt; Installer und Modelfile ergänzt.
+- Composer: Bild- und Sprache-Buttons bekommen verständliche Textlabels; kryptische Shortcut-Zeichen entfernt.
+- Startansicht zeigt klar, wenn Bilderkennung und Spracheingabe verfügbar sind.
+- Clipboard-Fallback ergänzt, damit Antwort-/Code-Kopieren auch auf LAN-HTTP funktioniert.
+- Selbsttest prüft jetzt Power-Modell und lokalen Speech-to-Text-Dienst.
+- Reale Modelltests: Fast direkte Antwort ohne Thinking; Power direkte 4B-Antwort; Deep Thinking + korrekte Antwort; Vision erkannte ein rotes Testbild korrekt.
+- STT-Sidecar, SQLite, Ollama, Backup-Timer, lokaler Healthcheck und öffentlicher HTTPS-Healthcheck erfolgreich geprüft.
+- In .env eine verwaiste ungültige Zeile entfernt; Konfiguration lässt sich wieder sauber einlesen.

@@ -80,14 +80,29 @@ if curl -fsS --max-time 5 http://127.0.0.1:11434/api/tags >/dev/null; then
       if ollama list 2>/dev/null | awk 'NR>1 {print $1}' | grep -Fxq "$model"; then
         ok "$key=$model vorhanden"
       elif [[ "$key" == "AI_DEEP_MODEL" ]]; then
-        warn "$key=$model fehlt in Ollama (nur Gründlich-Modus betroffen)"
+        warn "$key=$model fehlt in Ollama (nur Deep-Modus betroffen)"
       else
         bad "$key=$model fehlt in Ollama"
       fi
-    done < <(grep -E '^(AI_MODEL|AI_FAST_MODEL|AI_DEEP_MODEL|AI_VISION_MODEL)=' "$ROOT/.env" || true)
+    done < <(grep -E '^(AI_MODEL|AI_FAST_MODEL|AI_POWER_MODEL|AI_DEEP_MODEL|AI_VISION_MODEL)=' "$ROOT/.env" || true)
   fi
 else
   bad "Ollama nicht erreichbar"
+fi
+
+if [[ -f "$ROOT/.env" ]]; then
+  STT_URL="$(grep -m1 '^STT_BASE_URL=' "$ROOT/.env" | cut -d= -f2- || true)"
+  STT_KEY="$(grep -m1 '^STT_API_KEY=' "$ROOT/.env" | cut -d= -f2- || true)"
+  if [[ -n "$STT_URL" ]]; then
+    STT_URL="${STT_URL%/}"
+    STT_HEADERS=()
+    [[ -n "$STT_KEY" ]] && STT_HEADERS=(-H "Authorization: Bearer $STT_KEY")
+    if curl -fsS --max-time 6 "${STT_HEADERS[@]}" "$STT_URL/models" >/dev/null; then
+      ok "Speech-to-Text erreichbar"
+    else
+      bad "Speech-to-Text nicht erreichbar"
+    fi
+  fi
 fi
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"

@@ -340,12 +340,14 @@ AI_BASE_URL=http://127.0.0.1:11434/v1         # gleicher Rechner: localhost bevo
 AI_MODEL=norvi:latest
 AI_MODELS=norvi:latest
 AI_FAST_MODEL=norvi:latest
-AI_DEEP_MODEL=norvi-deep:latest                # via ./deploy/install-deep-model.sh
+AI_POWER_MODEL=norvi-power:latest             # direktes 4B-Instruct-Modell
+AI_DEEP_MODEL=norvi-deep:latest                # 4B + Thinking via ./deploy/install-deep-model.sh
 AI_LOCAL_WARMUP=true                            # Hauptmodell nach Serverstart vorladen
 AI_LOCAL_WARM_VISION=false                      # auf 16-GB-Servern optional true
 AI_LOCAL_KEEP_ALIVE=30m
 AI_FAST_MAX_TOKENS=256
 AI_BALANCED_MAX_TOKENS=512
+AI_POWER_MAX_TOKENS=768
 AI_DEEP_MAX_TOKENS=1024
 AI_API_KEY=
 REQUIRE_AUTH=true                              # bei externem Zugriff immer aktivieren
@@ -515,22 +517,25 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 
 | Modus | Zweck | Standard |
 | --- | --- | --- |
-| Schnell | kurze Alltagsfragen, geringste CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
-| Normal | Standard-Chat | gewähltes Modell, 512 Output-Tokens |
-| Gründlich | 4B-Instruct-Modell mit starkem Thinking | `AI_DEEP_MODEL`, 1024 Output-Tokens |
+| Fast | kurze Alltagsfragen, geringste CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
+| Standard | normaler Chat | Hauptmodell, 512 Output-Tokens |
+| Power | stärkere Antworten ohne extra Thinking | `AI_POWER_MODEL`, 768 Output-Tokens |
+| Deep | stärkste Analyse mit zusätzlicher Denkzeit | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
-Der Modus lässt sich in den Web-Einstellungen auswählen. Für den CPU-only Homeserver ist
-`qwen3:4b-instruct-2507-q4_K_M` die empfohlene 4B-Basis für „Gründlich“. NORVI aktiviert
-in diesem Profil bewusst starkes, separat übertragenes Thinking; die sichtbare Antwort bleibt
-davon getrennt. Auf CPU ist „Gründlich“ deshalb deutlich langsamer als Schnell/Normal. Installieren:
+Der Modus lässt sich in den Web-Einstellungen auswählen. Fast und Standard bleiben auf dem
+leichten 2B-Modell. Power schaltet auf das direkte 4B-Modell um, Deep nutzt ebenfalls 4B und
+aktiviert zusätzlich starkes Thinking. Auf CPU ist Deep deshalb am langsamsten, aber für
+schwierige Aufgaben am gründlichsten. Installieren:
 
 ```bash
+./deploy/install-power-model.sh
 ./deploy/install-deep-model.sh
 # .env:
+AI_POWER_MODEL=norvi-power:latest
 AI_DEEP_MODEL=norvi-deep:latest
 ```
 
-„Gründlich“ ist für Premium-Konten sowie Administratoren freigeschaltet. Premium verdoppelt
+„Deep“ ist für Premium-Konten sowie Administratoren freigeschaltet. Premium verdoppelt
 außerdem das Chat-Burst-Limit von 30 auf 60 Nachrichten pro 10 Minuten. Ein gesetztes
 `premiumUntil` wird bei jedem Request geprüft; abgelaufene Premium-Zugänge fallen automatisch
 auf den normalen Leistungsumfang zurück.

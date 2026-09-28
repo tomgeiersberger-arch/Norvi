@@ -1,4 +1,4 @@
-import { Code2, ImagePlus, Lightbulb, ServerCog } from "lucide-react";
+import { Code2, Eye, ImagePlus, Lightbulb, Mic2, ServerCog } from "lucide-react";
 import { NorviMark } from "./norvi-mark";
 
 const SUGGESTIONS = [
@@ -15,7 +15,7 @@ interface EmptyStateProps {
   stt?: boolean;
 }
 
-export function EmptyState({ agentName, onPick, vision = false }: EmptyStateProps) {
+export function EmptyState({ agentName, onPick, vision = false, stt = false }: EmptyStateProps) {
   const suggestions = vision ? SUGGESTIONS : SUGGESTIONS.filter((item) => item.label !== "Bild ansehen");
 
   return (
@@ -43,6 +43,26 @@ export function EmptyState({ agentName, onPick, vision = false }: EmptyStateProp
       >
         Schreib {agentName} einfach, was du brauchst. Kurz, direkt oder komplett chaotisch.
       </p>
+
+      {(vision || stt) && (
+        <div
+          className="rise mt-4 flex flex-wrap items-center justify-center gap-2"
+          style={{ animationDelay: "165ms" }}
+        >
+          {vision && (
+            <span className="capability-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-muted-foreground">
+              <Eye className="size-3.5 text-primary" />
+              Bilder verstehen
+            </span>
+          )}
+          {stt && (
+            <span className="capability-pill inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] text-muted-foreground">
+              <Mic2 className="size-3.5 text-primary" />
+              Sprache eingeben
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mt-9 grid w-full max-w-[44rem] gap-2.5 sm:grid-cols-2">
         {suggestions.map((suggestion, i) => {
@@ -72,9 +92,12 @@ export function EmptyState({ agentName, onPick, vision = false }: EmptyStateProp
         })}
       </div>
 
-      <div className="rise mt-6 flex items-center gap-2 text-[10px] text-muted-foreground/42" style={{ animationDelay: "420ms" }}>
+      <div
+        className="rise mt-6 flex items-center gap-2 text-[10px] text-muted-foreground/42"
+        style={{ animationDelay: "420ms" }}
+      >
         <span className="h-px w-6 bg-gradient-to-r from-transparent to-white/10" />
-        Ctrl/⌘ K · Eingabe fokussieren
+        Einfach unten schreiben oder die Buttons neben dem Eingabefeld nutzen
         <span className="h-px w-6 bg-gradient-to-l from-transparent to-white/10" />
       </div>
     </div>
