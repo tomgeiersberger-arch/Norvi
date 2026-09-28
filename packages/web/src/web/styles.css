@@ -435,17 +435,22 @@
   }
 
   .send-glow {
-    background: linear-gradient(145deg, #ffaf8f, #ff845c 56%, #f56f47);
+    background: linear-gradient(145deg, #ffc0a6 0%, #ff946d 42%, #ff754b 100%);
+    border: 1px solid rgba(255, 214, 195, 0.42);
     box-shadow:
-      0 14px 36px -16px rgba(255, 126, 81, 0.95),
-      inset 0 1px 0 rgba(255,255,255,0.32);
+      0 0 0 1px rgba(255, 126, 81, 0.08),
+      0 0 26px -7px rgba(255, 126, 81, 0.42),
+      0 16px 38px -17px rgba(255, 126, 81, 1),
+      inset 0 1px 0 rgba(255,255,255,0.4);
   }
 
   .send-glow:hover {
-    filter: brightness(1.04);
+    filter: brightness(1.06);
     box-shadow:
-      0 18px 42px -16px rgba(255, 126, 81, 1),
-      inset 0 1px 0 rgba(255,255,255,0.36);
+      0 0 0 1px rgba(255, 126, 81, 0.12),
+      0 0 34px -5px rgba(255, 126, 81, 0.52),
+      0 20px 46px -16px rgba(255, 126, 81, 1),
+      inset 0 1px 0 rgba(255,255,255,0.46);
   }
 
   .capability-pill {
