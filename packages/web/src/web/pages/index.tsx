@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cpu, Eye, Menu, Mic2, X } from "lucide-react";
+import { Cpu, Eye, Menu, Mic2, Share2, Sparkles, X } from "lucide-react";
 import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
@@ -80,28 +80,35 @@ function Index() {
     />
   );
 
+  const healthText =
+    healthState === "online"
+      ? "Online"
+      : healthState === "ai-offline"
+        ? "KI offline"
+        : healthState === "offline"
+          ? "Offline"
+          : "Verbinde";
+
   return (
-    <div className="relative flex h-dvh overflow-hidden bg-background">
-      {/* Desktop sidebar */}
-      <aside className="relative hidden w-[18.75rem] shrink-0 border-r border-white/[0.06] bg-black/15 md:block">
+    <div className="norvi-app relative flex h-dvh overflow-hidden bg-background">
+      <aside className="sidebar-shell relative hidden w-[19.5rem] shrink-0 border-r border-white/[0.055] md:block">
         {sidebar}
       </aside>
 
-      {/* Mobile drawer */}
       {drawer && (
         <div className="fixed inset-0 z-40 md:hidden">
           <button
             type="button"
             aria-label="Menü schließen"
             onClick={() => setDrawer(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/68 backdrop-blur-md"
           />
-          <div className="rise absolute inset-y-0 left-0 w-[80%] max-w-[19rem] border-r border-border bg-background shadow-2xl">
+          <div className="sidebar-shell rise absolute inset-y-0 left-0 w-[84%] max-w-[20rem] border-r border-white/[0.07] shadow-[24px_0_80px_-34px_rgba(0,0,0,1)]">
             <button
               type="button"
               aria-label="Menü schließen"
               onClick={() => setDrawer(false)}
-              className="absolute top-4 right-3 z-10 rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              className="absolute right-3 top-4 z-20 flex size-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.025] text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
             >
               <X className="size-4" />
             </button>
@@ -110,93 +117,96 @@ function Index() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass-header z-10">
-          <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3.5 sm:px-6">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <header className="glass-header relative z-30">
+          <div className="mx-auto flex h-[4.35rem] w-full max-w-[92rem] items-center gap-3 px-3.5 sm:px-6">
             <button
               type="button"
               aria-label="Chat-Verlauf öffnen"
               onClick={() => setDrawer(true)}
-              className="-ml-1 rounded-lg p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground md:hidden"
+              className="icon-action -ml-0.5 flex size-9 items-center justify-center rounded-xl text-muted-foreground transition md:hidden"
             >
-              <Menu className="size-5" />
+              <Menu className="size-4.5" />
             </button>
-            <NorviMark className="size-8" />
-            <div className="min-w-0 leading-tight">
-              <div className="flex items-center gap-2">
-                <div className="truncate text-[0.95rem] font-semibold tracking-tight">{agentName}</div>
-                <span
-                  className={
-                    healthState === "online"
-                      ? "flex items-center gap-1.5 rounded-full border border-green-400/15 bg-green-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-green-300/90"
-                      : healthState === "offline" || healthState === "ai-offline"
-                        ? "flex items-center gap-1.5 rounded-full border border-red-400/15 bg-red-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-red-300/90"
-                        : "flex items-center gap-1.5 rounded-full border border-amber-400/15 bg-amber-400/[0.055] px-2 py-0.5 text-[9.5px] font-medium text-amber-300/90"
-                  }
-                  title={
-                    healthState === "online"
-                      ? "NORVI und lokaler KI-Dienst sind erreichbar"
-                      : healthState === "ai-offline"
-                        ? "NORVI läuft, aber der KI-Dienst ist nicht erreichbar"
-                        : healthState === "offline"
-                          ? "NORVI-Server nicht erreichbar"
-                          : "Verbindung wird geprüft"
-                  }
-                >
+
+            <div className="flex min-w-0 items-center gap-3">
+              <NorviMark className="size-9" />
+              <div className="min-w-0 leading-tight">
+                <div className="flex items-center gap-2">
+                  <div className="truncate text-[0.97rem] font-semibold tracking-[-0.025em]">
+                    {agentName}
+                  </div>
                   <span
                     className={
                       healthState === "online"
-                        ? "status-dot size-1.5 rounded-full bg-green-400"
+                        ? "system-pill flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold text-green-300/90"
                         : healthState === "offline" || healthState === "ai-offline"
-                          ? "size-1.5 rounded-full bg-red-400"
-                          : "size-1.5 animate-pulse rounded-full bg-amber-400"
+                          ? "flex items-center gap-1.5 rounded-full border border-red-400/15 bg-red-400/[0.055] px-2 py-0.5 text-[9px] font-semibold text-red-300/90"
+                          : "flex items-center gap-1.5 rounded-full border border-amber-400/15 bg-amber-400/[0.055] px-2 py-0.5 text-[9px] font-semibold text-amber-300/90"
                     }
-                  />
-                  {healthState === "online"
-                    ? "Online"
-                    : healthState === "ai-offline"
-                      ? "KI offline"
-                      : healthState === "offline"
-                        ? "Offline"
-                        : "Verbinde"}
-                </span>
+                    title={
+                      healthState === "online"
+                        ? "NORVI und lokaler KI-Dienst sind erreichbar"
+                        : healthState === "ai-offline"
+                          ? "NORVI läuft, aber der KI-Dienst ist nicht erreichbar"
+                          : healthState === "offline"
+                            ? "NORVI-Server nicht erreichbar"
+                            : "Verbindung wird geprüft"
+                    }
+                  >
+                    <span
+                      className={
+                        healthState === "online"
+                          ? "status-dot size-1.5 rounded-full bg-green-400"
+                          : healthState === "offline" || healthState === "ai-offline"
+                            ? "size-1.5 rounded-full bg-red-400"
+                            : "size-1.5 animate-pulse rounded-full bg-amber-400"
+                      }
+                    />
+                    {healthText}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] tracking-[0.04em] text-muted-foreground/70">
+                  <Sparkles className="size-2.5 text-primary/75" />
+                  {modelLabel}
+                </div>
               </div>
-              <div className="truncate text-[11px] text-muted-foreground/85">{modelLabel}</div>
             </div>
 
             <div className="ml-auto hidden items-center gap-1.5 sm:flex">
               {capabilities.data?.localAi && (
-                <span className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[10.5px] text-muted-foreground">
-                  <Cpu className="size-3" />
-                  Lokal
+                <span className="capability-pill flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground">
+                  <Cpu className="size-3 text-primary" />
+                  Local
                 </span>
               )}
               {capabilities.data?.vision && (
-                <span className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[10.5px] text-muted-foreground">
-                  <Eye className="size-3" />
+                <span className="capability-pill flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground">
+                  <Eye className="size-3 text-sky-300" />
                   Vision
                 </span>
               )}
               {capabilities.data?.stt && (
-                <span className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[10.5px] text-muted-foreground">
-                  <Mic2 className="size-3" />
+                <span className="capability-pill flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground">
+                  <Mic2 className="size-3 text-violet-300" />
                   Voice
                 </span>
               )}
             </div>
+
             {capabilities.data?.publicUrl && (
               <button
                 type="button"
                 onClick={() => void copyPublicLink()}
                 title="Öffentlichen NORVI-Link kopieren"
                 aria-label="Öffentlichen NORVI-Link kopieren"
-                className="flex h-8 items-center justify-center rounded-lg px-2 text-[10px] font-medium text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground"
+                className="icon-action flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-[10px] font-medium text-muted-foreground transition hover:text-foreground"
               >
-                <span className={linkCopied ? "text-green-400" : ""}>
-                  {linkCopied ? "Kopiert" : "Teilen"}
-                </span>
+                <Share2 className="size-3.5" />
+                <span className="hidden lg:inline">{linkCopied ? "Kopiert" : "Teilen"}</span>
               </button>
             )}
+
             <AccountMenu />
           </div>
         </header>
