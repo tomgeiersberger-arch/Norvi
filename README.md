@@ -413,7 +413,37 @@ bun run build && bun run start
 bunx pm2 save && bunx pm2 startup      # ausgegebenen sudo-Befehl ausfuehren
 ```
 
-### 10.5 Updates einspielen
+### 10.5 Optional: Remote-Zugriff nach SSH-Abbruch behalten
+
+Wenn Desktop Commander einmal interaktiv als Benutzer `norviadmin` autorisiert wurde, kann
+die Verbindung als eigener systemd-Dienst weiterlaufen. Dadurch darf die SSH-Sitzung bzw.
+der PC, von dem aus SSH geöffnet wurde, danach beendet werden.
+
+> **Sicherheit:** Dieser Dienst gibt dem verbundenen Desktop-Commander-Konto Terminal- und
+> Dateizugriff als `norviadmin`. Nur auf einem eigenen Server aktivieren und das verbundene
+> Konto mit starker Anmeldung schützen. Die Unit enthält selbst keine Tokens oder Secrets.
+
+Zuerst einmal interaktiv autorisieren:
+
+```bash
+npx --yes @wonderwhy-er/desktop-commander@0.2.51 remote
+```
+
+Nach erfolgreicher Gerätefreigabe die dauerhafte Unit installieren:
+
+```bash
+cd ~/norvi
+bash deploy/install-desktop-commander-remote.sh
+systemctl status desktop-commander-remote --no-pager
+```
+
+Logs:
+
+```bash
+journalctl -u desktop-commander-remote -f
+```
+
+### 10.6 Updates einspielen
 
 Auf dem NORVI-Homeserver kann das Update ohne Root-Zugriff auf den App-Prozess
 weitgehend automatisiert werden:
@@ -437,7 +467,7 @@ bash deploy/norvi-self-test.sh
 bash deploy/norvi-self-test.sh --runtime-only
 ```
 
-### 10.6 Optional: HTTPS über nginx
+### 10.7 Optional: HTTPS über nginx
 
 ```nginx
 server {
