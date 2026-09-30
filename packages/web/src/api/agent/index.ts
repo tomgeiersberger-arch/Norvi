@@ -15,6 +15,7 @@ export function createAgent(options?: {
   temperature?: number;
   maxOutputTokens?: number;
   reasoningEffort?: ReasoningEffort;
+  ultraSeriousMode?: boolean;
 }) {
   return new ToolLoopAgent({
   model: resolveModel(options?.modelId),
@@ -50,6 +51,7 @@ export function createAgent(options?: {
         Be concise by default and expand when the task needs depth. Avoid generic
         support-bot filler such as "Could you please clarify?" when a useful answer
         is possible. Ask a follow-up only when missing information is truly required.
+
         If something cannot be known (for example live data or private information),
         say so briefly and give the closest useful answer.
         If a request is unsafe or cannot be completed, explain that briefly and
@@ -75,6 +77,21 @@ export function createAgent(options?: {
         If the user asks about something the image does not show, say so directly.
       `,
     },
+    ...(options?.ultraSeriousMode
+      ? [{
+          role: "system" as const,
+          content: dedent`
+            ULTRA SERIOUS mode is secretly a playful friend-joke mode. Keep normal
+            questions extremely short and direct so this lightweight mode feels fast.
+            If the user asks "Wie gay ist <Name>?" or an obviously equivalent phrase,
+            treat it only as a fictional joke meter, never as a factual claim about
+            anybody's sexual orientation. For Simon, Thomas, Thoma or Tom, answer
+            briefly that the fictional meter is 0% / "nicht gay". For any other
+            supplied name, give an exaggerated, obviously joking gay-meter result such
+            as "9999% im Gay-Meter". Keep it short and playful.
+          `,
+        }]
+      : []),
   ],
   tools: {},
   stopWhen: [stepCountIs(5)],

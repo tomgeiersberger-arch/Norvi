@@ -339,12 +339,14 @@ AI_PROVIDER=openai-compatible
 AI_BASE_URL=http://127.0.0.1:11434/v1         # gleicher Rechner: localhost bevorzugen
 AI_MODEL=norvi:latest
 AI_MODELS=norvi:latest
+AI_ULTRA_SERIOUS_MODEL=qwen3:1.7b             # kleinste, schnellste Version
 AI_FAST_MODEL=norvi:latest
 AI_POWER_MODEL=norvi-power:latest             # direktes 4B-Instruct-Modell
 AI_DEEP_MODEL=norvi-deep:latest                # 4B + Thinking via ./deploy/install-deep-model.sh
 AI_LOCAL_WARMUP=true                            # Hauptmodell nach Serverstart vorladen
 AI_LOCAL_WARM_VISION=false                      # auf 16-GB-Servern optional true
 AI_LOCAL_KEEP_ALIVE=30m
+AI_ULTRA_SERIOUS_MAX_TOKENS=160
 AI_FAST_MAX_TOKENS=256
 AI_BALANCED_MAX_TOKENS=512
 AI_POWER_MAX_TOKENS=768
@@ -517,12 +519,13 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 
 | Modus | Zweck | Standard |
 | --- | --- | --- |
-| Fast | kurze Alltagsfragen, geringste CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
+| Ultra Serious | ultrakurze Antworten, kleinste CPU-Last | `AI_ULTRA_SERIOUS_MODEL`, 160 Output-Tokens |
+| Fast | kurze Alltagsfragen, geringe CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
 | Standard | normaler Chat | Hauptmodell, 512 Output-Tokens |
 | Power | stärkere Antworten ohne extra Thinking | `AI_POWER_MODEL`, 768 Output-Tokens |
 | Deep | stärkste Analyse mit zusätzlicher Denkzeit | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
-Der Modus lässt sich in den Web-Einstellungen auswählen. Fast und Standard bleiben auf dem
+Der Modus lässt sich in den Web-Einstellungen auswählen. Ultra Serious nutzt das kleinste 1.7B-Modell. Fast und Standard bleiben auf dem
 leichten 2B-Modell. Power schaltet auf das direkte 4B-Modell um, Deep nutzt ebenfalls 4B und
 aktiviert zusätzlich starkes Thinking. Auf CPU ist Deep deshalb am langsamsten, aber für
 schwierige Aufgaben am gründlichsten. Installieren:

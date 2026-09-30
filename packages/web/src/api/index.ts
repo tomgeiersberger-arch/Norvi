@@ -130,6 +130,31 @@ function quickCasualReply(message: UIMessage | undefined): string | null {
   return null;
 }
 
+/** Deterministic Ultra Serious joke shortcut so the tiny model cannot reuse an old name. */
+function ultraSeriousJokeReply(message: UIMessage | undefined): string | null {
+  const normalised = textOf(message)
+    .toLocaleLowerCase("de-DE")
+    .replace(/[!?.,:;]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (/^was\s+kommt\s+nach\s+win$/.test(normalised)) {
+    return "Bro";
+  }
+
+  let name: string | undefined;
+  const direct = normalised.match(/^(?:ist|st)\s+([a-zäöüß0-9'-]+)\s+gay$/i);
+  const inverse = normalised.match(/^wie\s+gay\s+(?:ist|st)\s+([a-zäöüß0-9'-]+)$/i);
+  name = direct?.[1] ?? inverse?.[1];
+  if (!name) return null;
+
+  const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+  if (["simon", "thomas", "thoma", "tom"].includes(name)) {
+    return displayName + ": 0% im Gay-Meter.";
+  }
+  return displayName + ": 9999% im Gay-Meter.";
+}
+
 /** One image attached to a chat message. */
 interface ImageRef {
   url: string;
@@ -200,6 +225,17 @@ function performanceProfile(
   mode: PerformanceMode,
   selectedModel: string,
 ): { modelId: string; maxOutputTokens: number; reasoningEffort: ReasoningEffort } {
+  if (mode === "serious") {
+    return {
+      modelId:
+        process.env.AI_ULTRA_SERIOUS_MODEL?.trim() ||
+        process.env.AI_FAST_MODEL?.trim() ||
+        process.env.AI_MODEL?.trim() ||
+        selectedModel,
+      maxOutputTokens: positiveInt(process.env.AI_ULTRA_SERIOUS_MAX_TOKENS, 160),
+      reasoningEffort: "none",
+    };
+  }
   if (mode === "fast") {
     return {
       modelId: process.env.AI_FAST_MODEL?.trim() || process.env.AI_MODEL?.trim() || selectedModel,
@@ -220,7 +256,7 @@ function performanceProfile(
       maxOutputTokens: positiveInt(process.env.AI_DEEP_MAX_TOKENS, 1024),
       // Deep mode deliberately spends more time on separate model reasoning.
       // Ollama returns this as reasoning content and the user sees only the
-      // final answer. Fast, balanced and power stay non-thinking for lower latency.
+      // final answer. Ultra Serious, fast, balanced and power stay non-thinking for lower latency.
       reasoningEffort: "high",
     };
   }
@@ -476,6 +512,7 @@ app.post("/api/agent/messages", async (c) => {
       // Local Ollama accepts reasoning_effort=none for both chat and vision.
       // Hosted gateway models ignore this because createAgent only forwards it locally.
       reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
+      ultraSeriousMode: !hasImages && prefs.performanceMode === "serious",
     });
 
     const persistAssistant = async (messageId: string, answer: string) => {
@@ -499,7 +536,11 @@ app.post("/api/agent/messages", async (c) => {
       }
     };
 
-    const quickReply = hasImages ? null : quickCasualReply(latestUser);
+    const quickReply = hasImages
+      ? null
+      : prefs.performanceMode === "serious"
+        ? ultraSeriousJokeReply(latestUser) ?? quickCasualReply(latestUser)
+        : quickCasualReply(latestUser);
     if (quickReply) {
       const responseId = crypto.randomUUID();
       const textId = `txt-${responseId}`;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrainCircuit, Gauge, Loader2, Rocket, X, Zap } from "lucide-react";
+import { BrainCircuit, Gauge, Loader2, Rocket, ShieldCheck, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 
 interface SettingsDialogProps {
@@ -14,7 +14,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const update = useUpdateSettings();
 
   const [temperature, setTemperature] = useState(70);
-  const [performanceMode, setPerformanceMode] = useState<"fast" | "balanced" | "power" | "deep">("balanced");
+  const [performanceMode, setPerformanceMode] = useState<"serious" | "fast" | "balanced" | "power" | "deep">("balanced");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         <dialog
           open
           aria-labelledby="norvi-settings-title"
-          className="premium-surface rise relative m-0 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.4rem] border-0 p-0 text-foreground sm:max-h-[calc(100dvh-3rem)]"
+          className="premium-surface rise relative m-0 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[1.4rem] border-0 p-0 text-foreground sm:max-h-[calc(100dvh-3rem)]"
         >
           <div className="relative z-20 flex shrink-0 items-start justify-between border-b border-white/[0.055] bg-black/10 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
             <div>
@@ -92,12 +92,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[12px] text-muted-foreground">NORVI-Version</span>
                 <span className="rounded-full border border-white/[0.06] bg-white/[0.025] px-2 py-0.5 text-[9px] text-muted-foreground/70">
-                  4 Versionen
+                  5 Versionen
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                 {([
-                  ["fast", "NORVI Fast", Zap, "2B · am schnellsten"],
+                  ["serious", "NORVI Ultra Serious", ShieldCheck, "1.7B · ultraschnell"],
+                  ["fast", "NORVI Fast", Zap, "2B · schnell"],
                   ["balanced", "NORVI Standard", Gauge, "2B · Alltag"],
                   ["power", "NORVI Power", Rocket, "4B · stärker"],
                   ["deep", "NORVI Deep", BrainCircuit, "4B · stärkste Analyse"],
@@ -125,7 +126,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 })}
               </div>
               <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit und ist dafür deutlich langsamer.
+                Ultra Serious ist die leichteste und schnellste Version. Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit und ist dafür deutlich langsamer.
               </p>
             </div>
 

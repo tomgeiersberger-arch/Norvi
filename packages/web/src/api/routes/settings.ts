@@ -8,7 +8,7 @@ import * as schema from "../database/schema";
 
 /** Temperature is stored as an integer percentage (0–100) to stay SQLite-simple. */
 const temperature = z.number().int().min(0).max(100);
-const performanceMode = z.enum(["fast", "balanced", "power", "deep"]);
+const performanceMode = z.enum(["serious", "fast", "balanced", "power", "deep"]);
 export type PerformanceMode = z.infer<typeof performanceMode>;
 
 export type UserSettings = {
