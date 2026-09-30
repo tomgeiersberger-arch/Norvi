@@ -25,6 +25,7 @@ export const admin = {
         isActive: schema.user.isActive,
         isPremium: schema.user.isPremium,
         premiumUntil: schema.user.premiumUntil,
+        chokeModeEnabled: schema.user.chokeModeEnabled,
         createdAt: schema.user.createdAt,
       })
       .from(schema.user)
@@ -86,6 +87,29 @@ export const admin = {
       return updated;
     }),
 
+  /** Grant or revoke Choke Mode for a normal user. Admins always have access. */
+  setChokeMode: adminOnly
+    .input(z.object({ id: userId, enabled: z.boolean() }))
+    .handler(async ({ input }) => {
+      const [target] = await db
+        .select({ id: schema.user.id, role: schema.user.role })
+        .from(schema.user)
+        .where(eq(schema.user.id, input.id))
+        .limit(1);
+      if (!target) throw new ORPCError("NOT_FOUND", { message: "Konto nicht gefunden." });
+
+      const enabled = target.role === "admin" ? true : input.enabled;
+      const [updated] = await db
+        .update(schema.user)
+        .set({ chokeModeEnabled: enabled })
+        .where(eq(schema.user.id, input.id))
+        .returning({
+          id: schema.user.id,
+          chokeModeEnabled: schema.user.chokeModeEnabled,
+        });
+      return updated;
+    }),
+
   /** Temporarily open/close account registration until the next server restart. */
   setRegistration: adminOnly
     .input(z.object({ enabled: z.boolean() }))
@@ -101,7 +125,7 @@ export const admin = {
       provider: providerKind(),
       model: defaultModelId(),
       fastModel: process.env.AI_FAST_MODEL?.trim() || defaultModelId(),
-      ultraSeriousModel: process.env.AI_ULTRA_SERIOUS_MODEL?.trim() || null,
+      chokeModel: process.env.AI_ULTRA_SERIOUS_MODEL?.trim() || null,
       powerModel: process.env.AI_POWER_MODEL?.trim() || null,
       deepModel: process.env.AI_DEEP_MODEL?.trim() || null,
       visionFastModel: process.env.AI_VISION_FAST_MODEL?.trim() || null,

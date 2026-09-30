@@ -17,6 +17,7 @@ import {
   useAdminSystem,
   useAdminUsers,
   useSetActive,
+  useSetChokeMode,
   useSetPremium,
   useSetRegistration,
 } from "../queries/admin";
@@ -53,6 +54,7 @@ function Admin() {
   const stats = useAdminStats(true);
   const system = useAdminSystem(true);
   const setActive = useSetActive();
+  const setChokeMode = useSetChokeMode();
   const setPremium = useSetPremium();
   const setRegistration = useSetRegistration();
   const [dateDraft, setDateDraft] = useState<Record<string, string>>({});
@@ -182,7 +184,7 @@ function Admin() {
         </h2>
 
         <div className="glass-panel scroll-slim overflow-x-auto rounded-2xl">
-          <table className="w-full min-w-[46rem] text-left text-[13px]">
+          <table className="w-full min-w-[54rem] text-left text-[13px]">
             <thead className="bg-secondary/40 text-[11px] tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-2.5 font-medium">Konto</th>
@@ -190,13 +192,14 @@ function Admin() {
                 <th className="px-4 py-2.5 font-medium">Chats</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5 font-medium">Premium</th>
+                <th className="px-4 py-2.5 font-medium">Choke Mode</th>
                 <th className="px-4 py-2.5 font-medium">Läuft ab</th>
               </tr>
             </thead>
             <tbody>
               {users.isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     <Loader2 className="mx-auto size-5 animate-spin" />
                   </td>
                 </tr>
@@ -252,6 +255,31 @@ function Admin() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
+                    {row.role === "admin" ? (
+                      <span className="rounded-lg bg-primary/15 px-2.5 py-1 text-[12px] text-primary">
+                        Immer an
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={setChokeMode.isPending}
+                        onClick={() =>
+                          setChokeMode.mutate({
+                            id: row.id,
+                            enabled: !row.chokeModeEnabled,
+                          })
+                        }
+                        className={`rounded-lg px-2.5 py-1 text-[12px] transition disabled:opacity-50 ${
+                          row.chokeModeEnabled
+                            ? "bg-primary/15 text-primary hover:bg-primary/25"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {row.chokeModeEnabled ? "Freigegeben" : "Gesperrt"}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">
                         {formatDate(row.premiumUntil)}
@@ -283,7 +311,10 @@ function Admin() {
           </table>
         </div>
 
-        {(setActive.error || setPremium.error || setRegistration.error) && (
+        {(setActive.error ||
+          setChokeMode.error ||
+          setPremium.error ||
+          setRegistration.error) && (
           <p className="mt-4 text-[13px] text-destructive">
             Änderung fehlgeschlagen. Bitte erneut versuchen.
           </p>

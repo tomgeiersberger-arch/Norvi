@@ -157,7 +157,7 @@ STT_MODEL=whisper-1
 
 | Konfiguration | Verhalten |
 | --- | --- |
-| `AI_VISION_FAST_MODEL` + `AI_VISION_MODEL` gesetzt | Normale Fotos/Szenen nutzen in Ultra Serious, Fast und Standard das schnelle Modell. OCR, Text, Zahlen, Zaehlen und Detailfragen gehen automatisch an das praezisere Modell. Power und Deep verwenden fuer Bilder immer das praezisere Modell. |
+| `AI_VISION_FAST_MODEL` + `AI_VISION_MODEL` gesetzt | Normale Fotos/Szenen nutzen in Choke Mode, Fast und Standard das schnelle Modell. OCR, Text, Zahlen, Zaehlen und Detailfragen gehen automatisch an das praezisere Modell. Power und Deep verwenden fuer Bilder immer das praezisere Modell. |
 | Nur `AI_VISION_MODEL` gesetzt | Alle Bildanfragen verwenden dieses Modell. |
 | Gateway, Variablen leer | Das aktuell gewählte Modell, falls es Bilder kann, sonst automatisch `anthropic/claude-sonnet-4.6`. |
 | `AI_PROVIDER=openai-compatible`, `AI_VISION_MODEL` leer | Klare Fehlermeldung statt Bildinhalte mit einem reinen Textmodell zu erraten. |
@@ -532,16 +532,18 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 
 | Modus | Zweck | Standard |
 | --- | --- | --- |
-| Ultra Serious | ultrakurze Antworten, kleinste CPU-Last | `AI_ULTRA_SERIOUS_MODEL`, 160 Output-Tokens |
+| Choke Mode | ultrakurze Antworten, kleinste CPU-Last | `AI_ULTRA_SERIOUS_MODEL`, 160 Output-Tokens |
 | Fast | kurze Alltagsfragen, geringe CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
 | Standard | normaler Chat | Hauptmodell, 512 Output-Tokens |
 | Power | stärkere Antworten ohne extra Thinking | `AI_POWER_MODEL`, 768 Output-Tokens |
 | Deep | stärkste Analyse mit zusätzlicher Denkzeit | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
-Der Modus lässt sich in den Web-Einstellungen auswählen. Ultra Serious, Fast und Standard
-nutzen `norvi-direct:latest`: ein leichtes Qwen-2B-Modell, dessen Template verstecktes
+Choke Mode ist ein admin-gesteuerter Spezialmodus: Admin-Konten haben ihn automatisch,
+normale Benutzer sehen ihn erst, nachdem ein Admin ihn in der Benutzerverwaltung freigeschaltet
+hat. Die Berechtigung wird serverseitig geprüft, nicht nur in der UI. Choke Mode, Fast und
+Standard nutzen `norvi-direct:latest`: ein leichtes Qwen-2B-Modell, dessen Template verstecktes
 Thinking fest deaktiviert. Dadurch beginnt es auf CPU wesentlich schneller mit der Antwort.
-Ultra Serious und Fast nutzen zusätzlich automatisch Temperatur 0.20, damit der kleine Direct-Build
+Choke Mode und Fast nutzen zusätzlich automatisch Temperatur 0.20, damit der kleine Direct-Build
 bei kurzen Antworten stabil bleibt. Power schaltet auf das direkte 4B-Modell um; Deep nutzt 4B mit zusätzlichem Thinking und ist
 für schwierigere Aufgaben gedacht. Installieren:
 

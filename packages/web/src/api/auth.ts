@@ -43,6 +43,8 @@ export const auth = betterAuth({
       isActive: { type: "boolean", defaultValue: true, input: false },
       isPremium: { type: "boolean", defaultValue: false, input: false },
       premiumUntil: { type: "date", required: false, input: false },
+      // Admin-controlled feature gate. Admin accounts always get access server-side.
+      chokeModeEnabled: { type: "boolean", defaultValue: false, input: false },
     },
   },
   databaseHooks: {

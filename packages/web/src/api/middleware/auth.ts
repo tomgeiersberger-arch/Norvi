@@ -13,6 +13,7 @@ export type SessionUser = {
   isActive: boolean;
   isPremium: boolean;
   premiumUntil?: Date | null;
+  chokeModeEnabled: boolean;
   premiumAccess: boolean;
 };
 
@@ -23,6 +24,7 @@ function asUser(user: unknown): SessionUser {
     role: u.role ?? "user",
     isActive: u.isActive ?? true,
     isPremium: u.isPremium ?? false,
+    chokeModeEnabled: u.chokeModeEnabled ?? false,
     premiumAccess: hasPremiumAccess(u),
   };
 }

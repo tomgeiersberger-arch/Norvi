@@ -130,7 +130,7 @@ function quickCasualReply(message: UIMessage | undefined): string | null {
   return null;
 }
 
-/** Deterministic Ultra Serious joke shortcut so the tiny model cannot reuse an old name. */
+/** Deterministic Choke Mode joke shortcut so the tiny model cannot reuse an old name. */
 function ultraSeriousJokeReply(message: UIMessage | undefined): string | null {
   const normalised = textOf(message)
     .toLocaleLowerCase("de-DE")
@@ -290,7 +290,7 @@ function performanceProfile(
       maxOutputTokens: positiveInt(process.env.AI_DEEP_MAX_TOKENS, 1024),
       // Deep mode deliberately spends more time on separate model reasoning.
       // Ollama returns this as reasoning content and the user sees only the
-      // final answer. Ultra Serious, fast, balanced and power stay non-thinking for lower latency.
+      // final answer. Choke Mode, fast, balanced and power stay non-thinking for lower latency.
       reasoningEffort: "high",
     };
   }
@@ -443,6 +443,7 @@ app.post("/api/agent/messages", async (c) => {
           isActive?: boolean;
           isPremium?: boolean;
           premiumUntil?: Date | string | number | null;
+          chokeModeEnabled?: boolean;
         }
       | undefined;
     if (user && user.isActive === false) {
@@ -515,7 +516,11 @@ app.post("/api/agent/messages", async (c) => {
     }
 
     // Per-account model / answer style, falling back to the server default.
-    const prefs = await settingsFor(user?.id, premiumAccess);
+    const prefs = await settingsFor(
+      user?.id,
+      premiumAccess,
+      user?.role === "admin" || user?.chokeModeEnabled === true,
+    );
 
     // Route by the latest user turn, not the whole chat history. Otherwise one
     // old photo would force every later text message through the slow vision model.

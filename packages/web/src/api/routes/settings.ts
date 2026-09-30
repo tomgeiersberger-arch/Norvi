@@ -18,6 +18,7 @@ export type UserSettings = {
   supportsTemperature: boolean;
   performanceMode: PerformanceMode;
   premiumAccess: boolean;
+  chokeModeAccess: boolean;
 };
 
 function present(
@@ -29,6 +30,7 @@ function present(
       }
     | undefined,
   premiumAccess: boolean,
+  chokeModeAccess: boolean,
 ) {
   const models = availableModels();
   const stored = row?.modelId && models.includes(row.modelId) ? row.modelId : defaultModelId();
@@ -41,10 +43,12 @@ function present(
     supportsTemperature: providerKind() === "openai-compatible",
     performanceMode:
       performanceMode.safeParse(row?.performanceMode).success &&
-      (row!.performanceMode !== "deep" || premiumAccess)
+      (row!.performanceMode !== "deep" || premiumAccess) &&
+      (row!.performanceMode !== "serious" || chokeModeAccess)
         ? (row!.performanceMode as PerformanceMode)
         : "balanced",
     premiumAccess,
+    chokeModeAccess,
   } satisfies UserSettings;
 }
 
@@ -55,7 +59,11 @@ export const settings = {
       .from(schema.userSettings)
       .where(eq(schema.userSettings.userId, context.user.id))
       .limit(1);
-    return present(row, context.user.premiumAccess);
+    return present(
+      row,
+      context.user.premiumAccess,
+      context.user.role === "admin" || context.user.chokeModeEnabled,
+    );
   }),
 
   update: authed
@@ -70,6 +78,15 @@ export const settings = {
       if (input.performanceMode === "deep" && !context.user.premiumAccess) {
         throw new ORPCError("FORBIDDEN", {
           message: "NORVI Deep ist für Premium-Konten verfügbar.",
+        });
+      }
+      if (
+        input.performanceMode === "serious" &&
+        context.user.role !== "admin" &&
+        !context.user.chokeModeEnabled
+      ) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "Choke Mode ist für dieses Konto nicht freigeschaltet.",
         });
       }
 
@@ -112,17 +129,25 @@ export const settings = {
         .from(schema.userSettings)
         .where(eq(schema.userSettings.userId, context.user.id))
         .limit(1);
-      return present(row, context.user.premiumAccess);
+      return present(
+        row,
+        context.user.premiumAccess,
+        context.user.role === "admin" || context.user.chokeModeEnabled,
+      );
     }),
 };
 
 /** Server-side lookup used by the streaming endpoint. */
-export async function settingsFor(userId: string | undefined, premiumAccess = false) {
-  if (!userId) return present(undefined, false);
+export async function settingsFor(
+  userId: string | undefined,
+  premiumAccess = false,
+  chokeModeAccess = false,
+) {
+  if (!userId) return present(undefined, false, false);
   const [row] = await db
     .select()
     .from(schema.userSettings)
     .where(eq(schema.userSettings.userId, userId))
     .limit(1);
-  return present(row, premiumAccess);
+  return present(row, premiumAccess, chokeModeAccess);
 }

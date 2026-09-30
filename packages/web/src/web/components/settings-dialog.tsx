@@ -35,7 +35,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   if (!open) return null;
 
   const premiumAccess = settings.data?.premiumAccess ?? false;
+  const chokeModeAccess = settings.data?.chokeModeAccess ?? false;
   const speedOptimizedMode = performanceMode === "serious" || performanceMode === "fast";
+  const versions = [
+    ...(chokeModeAccess
+      ? ([["serious", "Choke Mode", ShieldCheck, "ultraschnell · Spezialmodus"]] as const)
+      : []),
+    ["fast", "NORVI Fast", Zap, "2B · schnell"],
+    ["balanced", "NORVI Standard", Gauge, "2B · Alltag"],
+    ["power", "NORVI Power", Rocket, "4B · stärker"],
+    ["deep", "NORVI Deep", BrainCircuit, "4B · stärkste Analyse"],
+  ] as const;
 
   const save = () => {
     setSaved(false);
@@ -93,17 +103,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[12px] text-muted-foreground">NORVI-Version</span>
                 <span className="rounded-full border border-white/[0.06] bg-white/[0.025] px-2 py-0.5 text-[9px] text-muted-foreground/70">
-                  5 Versionen
+                  {versions.length} Versionen
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {([
-                  ["serious", "NORVI Ultra Serious", ShieldCheck, "1.7B · ultraschnell"],
-                  ["fast", "NORVI Fast", Zap, "2B · schnell"],
-                  ["balanced", "NORVI Standard", Gauge, "2B · Alltag"],
-                  ["power", "NORVI Power", Rocket, "4B · stärker"],
-                  ["deep", "NORVI Deep", BrainCircuit, "4B · stärkste Analyse"],
-                ] as const).map(([value, label, Icon, hint]) => {
+              <div
+                className={`grid grid-cols-2 gap-2 ${
+                  chokeModeAccess ? "sm:grid-cols-5" : "sm:grid-cols-4"
+                }`}
+              >
+                {versions.map(([value, label, Icon, hint]) => {
                   const locked = value === "deep" && !premiumAccess;
                   return (
                     <button
@@ -127,7 +135,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 })}
               </div>
               <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-                Ultra Serious ist die leichteste und schnellste Version. Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit und ist dafür deutlich langsamer.
+                {chokeModeAccess
+                  ? "Choke Mode ist ein speziell freigeschalteter Schnellmodus. Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit."
+                  : "Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit."}
               </p>
             </div>
 
@@ -156,7 +166,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 />
                 {speedOptimizedMode ? (
                   <span className="mt-1 block text-[10px] text-muted-foreground">
-                    Ultra Serious und Fast nutzen automatisch 0.20 für schnelle, stabilere Antworten.
+                    {performanceMode === "serious" ? "Choke Mode" : "Fast"} nutzt automatisch 0.20 für schnelle, stabilere Antworten.
                   </span>
                 ) : null}
               </label>

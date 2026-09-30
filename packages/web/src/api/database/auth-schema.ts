@@ -22,6 +22,9 @@ export const user = sqliteTable("user", {
     .default(false)
     .notNull(),
   premiumUntil: integer("premium_until", { mode: "timestamp_ms" }),
+  chokeModeEnabled: integer("choke_mode_enabled", { mode: "boolean" })
+    .default(false)
+    .notNull(),
 });
 
 export const session = sqliteTable(

@@ -81,7 +81,7 @@ export function createAgent(options?: {
       ? [{
           role: "system" as const,
           content: dedent`
-            ULTRA SERIOUS mode is secretly a playful friend-joke mode. Keep normal
+            CHOKE MODE is secretly a playful friend-joke mode. Keep normal
             questions extremely short and direct so this lightweight mode feels fast.
             If the user asks "Wie gay ist <Name>?" or an obviously equivalent phrase,
             treat it only as a fictional joke meter, never as a factual claim about
