@@ -70,10 +70,24 @@ curl -fsS --max-time 5 http://127.0.0.1:4200/api/health >/dev/null
 
 auth="$(grep -m1 '^REQUIRE_AUTH=' .env | cut -d= -f2- | tr '[:upper:]' '[:lower:]' | xargs || true)"
 secret="$(grep -m1 '^BETTER_AUTH_SECRET=' .env | cut -d= -f2- || true)"
-if [[ "$auth" =~ ^(true|1|yes|on)$ ]] && [[ -n "${secret//[[:space:]]/}" ]] && command -v cloudflared >/dev/null 2>&1; then
+website_url="$(grep -m1 '^WEBSITE_URL=' .env | cut -d= -f2- || true)"
+
+if [[ "$website_url" =~ ^https:// ]] && [[ ! "$website_url" =~ \.trycloudflare\.com/?$ ]]; then
+  echo "==> Feste öffentliche URL verwenden: $website_url"
+  mkdir -p data
+  printf '%s\n' "$website_url" > data/public-url.txt
+  chmod 600 data/public-url.txt
+  systemctl --user disable --now norvi-quick-tunnel.service 2>/dev/null || true
+
+  while read -r oldpid; do
+    [[ -n "$oldpid" ]] && kill "$oldpid" 2>/dev/null || true
+  done < <(
+    ps -u "$(id -u)" -o pid=,args= |
+      awk '/cloudflared tunnel/ && /--url http:\/\/127\.0\.0\.1:4200/ {print $1}'
+  )
+elif [[ "$auth" =~ ^(true|1|yes|on)$ ]] && [[ -n "${secret//[[:space:]]/}" ]] && command -v cloudflared >/dev/null 2>&1; then
   echo "==> Öffentlichen HTTPS-Tunnel prüfen"
   public_url="$(head -n1 data/public-url.txt 2>/dev/null || true)"
-  website_url="$(grep -m1 '^WEBSITE_URL=' .env | cut -d= -f2- || true)"
 
   if systemctl --user is-active --quiet norvi-quick-tunnel.service &&
      [[ -n "$public_url" ]] &&

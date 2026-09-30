@@ -554,9 +554,13 @@ bei jedem Tunnel-Neustart ändern; die Weboberfläche zeigt deshalb einen „Tei
 der die jeweils aktuelle öffentliche URL kopiert.
 
 Für echten Dauerbetrieb mit unveränderlicher Adresse weiterhin keinen zufälligen Quick
-Tunnel verwenden. Stattdessen einen benannten Cloudflare Tunnel mit eigener Domain
-anlegen. Der Tunnel soll ausschließlich NORVI auf `http://127.0.0.1:4200` veröffentlichen;
-Ollama auf Port 11434 bleibt lokal.
+Tunnel verwenden. Geeignet sind ein benannter Cloudflare Tunnel mit eigener Domain oder
+Tailscale Funnel. Bei Tailscale Funnel kann zum Beispiel
+`https://norvi.<tailnet>.ts.net` als `WEBSITE_URL` gesetzt werden. Sobald `WEBSITE_URL`
+auf eine feste HTTPS-Adresse zeigt, deaktiviert `deploy/update-production.sh` den
+Cloudflare Quick Tunnel und behält die feste Adresse auch nach Updates bei. Der Tunnel
+soll ausschließlich NORVI auf `http://127.0.0.1:4200` veröffentlichen; Ollama auf Port
+11434 bleibt lokal.
 
 Vor dem Freigeben ins Internet:
 
