@@ -21,7 +21,7 @@ import { auth, trustedOrigins } from "./auth";
 import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasPremiumAccess } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { recordAiRequest } from "./lib/ai-metrics";
-import { warmLocalAi } from "./lib/local-ai";
+import { refreshLocalModelKeepAlive, warmLocalAi } from "./lib/local-ai";
 import { startLocalStt } from "./lib/local-stt";
 import { SttError, transcribe } from "./lib/stt";
 import {
@@ -501,16 +501,27 @@ app.post("/api/agent/messages", async (c) => {
       if (metricRecorded) return;
       metricRecorded = true;
       recordAiRequest(hasImages ? "vision" : "text", Date.now() - requestStartedAt, ok);
+      if (ok) refreshLocalModelKeepAlive(modelId);
     };
+
+    const speedOptimizedMode =
+      prefs.performanceMode === "serious" || prefs.performanceMode === "fast";
+    const generationTemperature = prefs.supportsTemperature
+      ? hasImages
+        ? 0
+        : speedOptimizedMode
+          ? 0.2
+          : prefs.temperature / 100
+      : undefined;
 
     const activeAgent = createAgent({
       modelId,
-      temperature: prefs.supportsTemperature ? prefs.temperature / 100 : undefined,
+      temperature: generationTemperature,
       maxOutputTokens: hasImages
         ? Math.min(profile.maxOutputTokens, visionMaxTokens)
         : profile.maxOutputTokens,
-      // Local Ollama accepts reasoning_effort=none for both chat and vision.
-      // Hosted gateway models ignore this because createAgent only forwards it locally.
+      // The direct 2B model disables hidden Qwen thinking in its template.
+      // Keep the provider hint too for models/endpoints that support it natively.
       reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
       ultraSeriousMode: !hasImages && prefs.performanceMode === "serious",
     });

@@ -13,7 +13,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const settings = useSettings(open);
   const update = useUpdateSettings();
 
-  const [temperature, setTemperature] = useState(70);
+  const [temperature, setTemperature] = useState(30);
   const [performanceMode, setPerformanceMode] = useState<"serious" | "fast" | "balanced" | "power" | "deep">("balanced");
   const [saved, setSaved] = useState(false);
 
@@ -35,6 +35,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   if (!open) return null;
 
   const premiumAccess = settings.data?.premiumAccess ?? false;
+  const speedOptimizedMode = performanceMode === "serious" || performanceMode === "fast";
 
   const save = () => {
     setSaved(false);
@@ -135,12 +136,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <span className="mb-1.5 flex items-center justify-between text-[12px] text-muted-foreground">
                   <span>Antwortstil</span>
                   <span>
-                    {temperature < 35
-                      ? "präzise"
-                      : temperature > 75
-                        ? "kreativ"
-                        : "ausgewogen"}{" "}
-                    ({(temperature / 100).toFixed(2)})
+                    {speedOptimizedMode
+                      ? "präzise · automatisch (0.20)"
+                      : `${temperature < 35 ? "präzise" : temperature > 75 ? "kreativ" : "ausgewogen"} (${(
+                          temperature / 100
+                        ).toFixed(2)})`}
                   </span>
                 </span>
                 <input
@@ -150,9 +150,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   step={5}
                   value={temperature}
                   aria-label="Antwortstil"
+                  disabled={speedOptimizedMode}
                   onChange={(e) => setTemperature(Number(e.target.value))}
-                  className="w-full accent-[var(--primary)]"
+                  className="w-full accent-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-45"
                 />
+                {speedOptimizedMode ? (
+                  <span className="mt-1 block text-[10px] text-muted-foreground">
+                    Ultra Serious und Fast nutzen automatisch 0.20 für schnelle, stabilere Antworten.
+                  </span>
+                ) : null}
               </label>
             ) : (
               <p className="rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[12px] text-muted-foreground">

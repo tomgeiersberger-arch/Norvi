@@ -7,6 +7,9 @@
 let warming = false;
 
 function localOllamaOrigin(): string | null {
+  const provider = (process.env.AI_PROVIDER ?? "gateway").trim().toLowerCase();
+  if (provider !== "openai-compatible" && provider !== "ollama") return null;
+
   const raw = (process.env.AI_BASE_URL ?? "http://localhost:11434/v1").trim();
   try {
     const url = new URL(raw);
@@ -32,6 +35,26 @@ function warmModelIds(): string[] {
   return [...new Set([primary, vision].filter((model): model is string => Boolean(model)))];
 }
 
+/** Refreshes an already-used local model's Ollama residency without generating tokens. */
+export function refreshLocalModelKeepAlive(model: string | undefined): void {
+  if (!model || !enabled(process.env.AI_LOCAL_WARMUP, true)) return;
+  // Keep only the lightweight everyday model and optional vision model resident.
+  // Power/Deep are larger and should fall back to Ollama's normal eviction window.
+  if (!warmModelIds().includes(model)) return;
+
+  const origin = localOllamaOrigin();
+  if (!origin) return;
+
+  const keepAlive = (process.env.AI_LOCAL_KEEP_ALIVE ?? "30m").trim() || "30m";
+  void fetch(`${origin}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model, keep_alive: keepAlive }),
+  }).catch(() => {
+    // Best effort only: a chat response must never fail because residency refresh failed.
+  });
+}
+
 async function warmOne(origin: string, model: string, keepAlive: string): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 120_000);
@@ -41,10 +64,7 @@ async function warmOne(origin: string, model: string, keepAlive: string): Promis
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        prompt: " ",
-        stream: false,
         keep_alive: keepAlive,
-        options: { num_predict: 1 },
       }),
       signal: controller.signal,
     });

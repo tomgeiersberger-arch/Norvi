@@ -230,8 +230,8 @@ nie direkt an, damit gibt es auch kein CORS-Problem.
 ```bash
 AI_PROVIDER=openai-compatible
 AI_BASE_URL=http://100.114.15.10:11434/v1  # Tailscale-Adresse, /v1 ist Pflicht
-AI_MODEL=norvi:latest                      # Modellname exakt wie in `ollama list`
-AI_MODELS=norvi:latest                     # Auswahl in den Einstellungen
+AI_MODEL=norvi-direct:latest               # 2B-Direct ohne verstecktes Thinking
+AI_MODELS=norvi-direct:latest              # Auswahl in den Einstellungen
 AI_API_KEY=                                # Ollama braucht keinen Schluessel
 ```
 
@@ -313,7 +313,8 @@ exec $SHELL                                  # PATH neu laden, danach: bun --ver
 Ollama läuft bereits auf dem Server. Modell prüfen:
 
 ```bash
-ollama list                                  # muss norvi:latest enthalten
+./deploy/install-direct-model.sh            # erzeugt norvi-direct:latest
+ollama list                                  # muss norvi-direct:latest enthalten
 curl http://localhost:11434/api/tags         # API-Check
 ```
 
@@ -337,20 +338,21 @@ DATABASE_AUTH_TOKEN=
 BETTER_AUTH_SECRET=                          # openssl rand -base64 32
 AI_PROVIDER=openai-compatible
 AI_BASE_URL=http://127.0.0.1:11434/v1         # gleicher Rechner: localhost bevorzugen
-AI_MODEL=norvi:latest
-AI_MODELS=norvi:latest
-AI_ULTRA_SERIOUS_MODEL=qwen3:1.7b             # kleinste, schnellste Version
-AI_FAST_MODEL=norvi:latest
-AI_POWER_MODEL=norvi-power:latest             # direktes 4B-Instruct-Modell
-AI_DEEP_MODEL=norvi-deep:latest                # 4B + Thinking via ./deploy/install-deep-model.sh
+AI_MODEL=norvi-direct:latest
+AI_MODELS=norvi-direct:latest
+AI_ULTRA_SERIOUS_MODEL=norvi-direct:latest      # 2B ohne verstecktes Thinking
+AI_FAST_MODEL=norvi-direct:latest
+AI_POWER_MODEL=norvi-power:latest               # direktes 4B-Instruct-Modell
+AI_DEEP_MODEL=norvi-deep:latest                 # 4B + Thinking via ./deploy/install-deep-model.sh
 AI_LOCAL_WARMUP=true                            # Hauptmodell nach Serverstart vorladen
-AI_LOCAL_WARM_VISION=false                      # auf 16-GB-Servern optional true
-AI_LOCAL_KEEP_ALIVE=30m
+AI_LOCAL_WARM_VISION=true                       # Vision auf dem 16-GB-Server ebenfalls vorladen
+AI_LOCAL_KEEP_ALIVE=24h                         # Cold-Starts im Tagesbetrieb vermeiden
 AI_ULTRA_SERIOUS_MAX_TOKENS=160
 AI_FAST_MAX_TOKENS=256
 AI_BALANCED_MAX_TOKENS=512
 AI_POWER_MAX_TOKENS=768
 AI_DEEP_MAX_TOKENS=1024
+AI_VISION_MAX_TOKENS=128
 AI_API_KEY=
 REQUIRE_AUTH=true                              # bei externem Zugriff immer aktivieren
 UPLOAD_DIR=data/uploads
@@ -525,15 +527,21 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 | Power | stärkere Antworten ohne extra Thinking | `AI_POWER_MODEL`, 768 Output-Tokens |
 | Deep | stärkste Analyse mit zusätzlicher Denkzeit | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
-Der Modus lässt sich in den Web-Einstellungen auswählen. Ultra Serious nutzt das kleinste 1.7B-Modell. Fast und Standard bleiben auf dem
-leichten 2B-Modell. Power schaltet auf das direkte 4B-Modell um, Deep nutzt ebenfalls 4B und
-aktiviert zusätzlich starkes Thinking. Auf CPU ist Deep deshalb am langsamsten, aber für
-schwierige Aufgaben am gründlichsten. Installieren:
+Der Modus lässt sich in den Web-Einstellungen auswählen. Ultra Serious, Fast und Standard
+nutzen `norvi-direct:latest`: ein leichtes Qwen-2B-Modell, dessen Template verstecktes
+Thinking fest deaktiviert. Dadurch beginnt es auf CPU wesentlich schneller mit der Antwort.
+Ultra Serious und Fast nutzen zusätzlich automatisch Temperatur 0.20, damit der kleine Direct-Build
+bei kurzen Antworten stabil bleibt. Power schaltet auf das direkte 4B-Modell um; Deep nutzt 4B mit zusätzlichem Thinking und ist
+für schwierigere Aufgaben gedacht. Installieren:
 
 ```bash
+./deploy/install-direct-model.sh
 ./deploy/install-power-model.sh
 ./deploy/install-deep-model.sh
 # .env:
+AI_MODEL=norvi-direct:latest
+AI_FAST_MODEL=norvi-direct:latest
+AI_ULTRA_SERIOUS_MODEL=norvi-direct:latest
 AI_POWER_MODEL=norvi-power:latest
 AI_DEEP_MODEL=norvi-deep:latest
 ```
@@ -600,13 +608,16 @@ STT_API_KEY=norvi-loopback-only
 STT_MODEL=whisper-1
 ```
 
-Vision wird standardmäßig erst geladen, wenn tatsächlich ein Bild gesendet wird. Auf dem
-CPU-only 16-GB-Homeserver sollte `AI_LOCAL_WARM_VISION=false` bleiben, damit beim Start
-keine unnötige Vision-Last entsteht. NORVI startet nach einer Bildantwort absichtlich keinen
-konkurrierenden Warm-up-Request mehr: das vermeidet CPU-Konkurrenz, wenn direkt danach eine
-Textnachricht gesendet wird. Ollama kann die kleinen Modelle im RAM behalten; falls eines
-doch ausgelagert wurde, lädt die nächste echte Anfrage es regulär wieder. Große Fotos werden
-vor dem Upload verkleinert, damit die lokale Bildanalyse deutlich weniger CPU-Zeit benötigt.
+Auf dem dedizierten CPU-only 16-GB-Homeserver werden Text- und Vision-Modell parallel
+vorgewärmt. Mit `AI_LOCAL_WARM_VISION=true` und `AI_LOCAL_KEEP_ALIVE=24h` bleiben beide
+kleinen Modelle im RAM und der reine Model-Cold-Start entfällt im Tagesbetrieb. Nach jeder
+erfolgreichen lokalen Modellantwort erneuert NORVI den Ollama-Keep-Alive außerdem über einen
+nahezu kostenlosen Load-Ping, weil der OpenAI-kompatible Ollama-Endpunkt die Residency sonst
+wieder auf seinen kurzen Standardwert setzen kann. Das spart bei Vision nur die Ladezeit:
+die eigentliche Bildkodierung bleibt auf dem i5-6500T der
+größte Engpass. Große Fotos werden deshalb vor dem Upload verkleinert. Für kurze lokale
+Textantworten nutzt NORVI `norvi-direct:latest`; dessen Template schaltet verstecktes
+Qwen-Thinking fest aus, während `NORVI Deep` weiterhin ein separates Thinking-Modell nutzt.
 
 ```bash
 ollama pull qwen3-vl:2b-instruct

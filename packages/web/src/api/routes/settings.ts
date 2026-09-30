@@ -34,7 +34,7 @@ function present(
   const stored = row?.modelId && models.includes(row.modelId) ? row.modelId : defaultModelId();
   return {
     modelId: stored,
-    temperature: row?.temperature ?? 70,
+    temperature: row?.temperature ?? 30,
     models,
     // The hosted gateway ignores temperature for reasoning models, so the UI
     // only offers it on the OpenAI-compatible (self-hosted) provider.
@@ -76,21 +76,30 @@ export const settings = {
       const models = availableModels();
       const modelId =
         input.modelId && models.includes(input.modelId) ? input.modelId : undefined;
+      const selectedMode = input.performanceMode ?? "balanced";
+      const selectedTemperature =
+        selectedMode === "serious" || selectedMode === "fast"
+          ? 20
+          : input.temperature ?? 30;
+      const updateTemperature =
+        input.performanceMode === "serious" || input.performanceMode === "fast"
+          ? 20
+          : input.temperature;
 
       await db
         .insert(schema.userSettings)
         .values({
           userId: context.user.id,
           modelId: modelId ?? defaultModelId(),
-          temperature: input.temperature ?? 70,
-          performanceMode: input.performanceMode ?? "balanced",
+          temperature: selectedTemperature,
+          performanceMode: selectedMode,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: schema.userSettings.userId,
           set: {
             ...(modelId ? { modelId } : {}),
-            ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+            ...(updateTemperature !== undefined ? { temperature: updateTemperature } : {}),
             ...(input.performanceMode !== undefined
               ? { performanceMode: input.performanceMode }
               : {}),

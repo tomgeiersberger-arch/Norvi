@@ -100,6 +100,32 @@ const gatewayProvider = () =>
     fetch: gatewayFetch as unknown as typeof fetch,
   });
 
+/**
+ * Ollama's OpenAI-compatible endpoint keeps Qwen thinking enabled unless the
+ * non-standard `think: false` flag is present. The SDK's reasoning hint alone
+ * is not enough, so inject that flag for every local profile except Deep.
+ */
+const localProviderFetch = (
+  input: string | URL | Request,
+  init?: RequestInit,
+): Promise<Response> => {
+  if (init && typeof init.body === "string") {
+    try {
+      const body = JSON.parse(init.body) as Record<string, unknown>;
+      const model = typeof body.model === "string" ? body.model : "";
+      const deepModel = process.env.AI_DEEP_MODEL?.trim() ?? "";
+
+      if (!deepModel || model !== deepModel) {
+        body.think = false;
+        return fetch(input, { ...init, body: JSON.stringify(body) });
+      }
+    } catch {
+      // Leave non-JSON or unexpected requests untouched.
+    }
+  }
+  return fetch(input, init);
+};
+
 const openAICompatibleProvider = () =>
   createOpenAICompatible({
     name: "norvi-local",
@@ -107,6 +133,7 @@ const openAICompatibleProvider = () =>
     baseURL: (process.env.AI_BASE_URL ?? "http://localhost:11434/v1").trim(),
     // Local servers usually need no key; keep it configurable anyway.
     apiKey: process.env.AI_API_KEY || "not-needed",
+    fetch: localProviderFetch as unknown as typeof fetch,
   });
 
 /** Resolves a model id to a language model on the configured provider. */
