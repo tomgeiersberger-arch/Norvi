@@ -22,10 +22,10 @@ async function errorMessage(response: Response): Promise<string> {
  * touching normal screenshots or already-small images.
  */
 async function prepareImage(file: File): Promise<File> {
-  // Tiny screenshots are already cheap to send and often contain text that
-  // benefits from keeping the original pixels. Larger photos get capped more
-  // aggressively because local vision inference is CPU-bound.
-  if (file.size < 300_000 || typeof createImageBitmap === "undefined") return file;
+  // Vision CPU cost follows pixel count much more than compressed file size.
+  // Even a tiny JPEG can still be a multi-megapixel photo, so inspect every
+  // image before deciding whether it is already small enough.
+  if (typeof createImageBitmap === "undefined") return file;
   try {
     const bitmap = await createImageBitmap(file);
     const longest = Math.max(bitmap.width, bitmap.height);
@@ -49,9 +49,16 @@ async function prepareImage(file: File): Promise<File> {
     context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
 
-    const type = file.type === "image/png" ? "image/png" : file.type === "image/webp" ? "image/webp" : "image/jpeg";
+    const type =
+      file.type === "image/png"
+        ? "image/png"
+        : file.type === "image/webp"
+          ? "image/webp"
+          : "image/jpeg";
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.86));
-    return blob && blob.size < file.size ? new File([blob], file.name, { type }) : file;
+    // Once dimensions were reduced, keep the smaller-resolution image even
+    // when compression happens to make it a few bytes larger.
+    return blob ? new File([blob], file.name, { type }) : file;
   } catch {
     return file;
   }

@@ -84,7 +84,7 @@ if curl -fsS --max-time 5 http://127.0.0.1:11434/api/tags >/dev/null; then
       else
         bad "$key=$model fehlt in Ollama"
       fi
-    done < <(grep -E '^(AI_MODEL|AI_FAST_MODEL|AI_POWER_MODEL|AI_DEEP_MODEL|AI_VISION_MODEL)=' "$ROOT/.env" || true)
+    done < <(grep -E '^(AI_MODEL|AI_FAST_MODEL|AI_POWER_MODEL|AI_DEEP_MODEL|AI_VISION_FAST_MODEL|AI_VISION_MODEL)=' "$ROOT/.env" || true)
   fi
 else
   bad "Ollama nicht erreichbar"

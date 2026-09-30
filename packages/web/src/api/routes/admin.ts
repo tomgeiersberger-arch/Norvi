@@ -104,6 +104,7 @@ export const admin = {
       ultraSeriousModel: process.env.AI_ULTRA_SERIOUS_MODEL?.trim() || null,
       powerModel: process.env.AI_POWER_MODEL?.trim() || null,
       deepModel: process.env.AI_DEEP_MODEL?.trim() || null,
+      visionFastModel: process.env.AI_VISION_FAST_MODEL?.trim() || null,
       visionModel: process.env.AI_VISION_MODEL?.trim() || null,
       vision: visionAvailable(),
       stt: await sttAvailable(1_500),

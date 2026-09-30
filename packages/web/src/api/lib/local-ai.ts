@@ -28,11 +28,14 @@ function enabled(value: string | undefined, fallback: boolean): boolean {
 
 function warmModelIds(): string[] {
   const primary = process.env.AI_FAST_MODEL?.trim() || process.env.AI_MODEL?.trim();
-  const vision =
-    enabled(process.env.AI_LOCAL_WARM_VISION, false)
-      ? process.env.AI_VISION_MODEL?.trim()
-      : undefined;
-  return [...new Set([primary, vision].filter((model): model is string => Boolean(model)))];
+  const warmVision = enabled(process.env.AI_LOCAL_WARM_VISION, false);
+  const fastVision = warmVision ? process.env.AI_VISION_FAST_MODEL?.trim() : undefined;
+  const preciseVision = warmVision ? process.env.AI_VISION_MODEL?.trim() : undefined;
+  return [
+    ...new Set(
+      [primary, fastVision, preciseVision].filter((model): model is string => Boolean(model)),
+    ),
+  ];
 }
 
 /** Refreshes an already-used local model's Ollama residency without generating tokens. */

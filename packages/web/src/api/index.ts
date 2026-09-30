@@ -176,6 +176,40 @@ function imagesOf(message: UIMessage | undefined): ImageRef[] {
 }
 
 /**
+ * Lightweight vision is ideal for ordinary scene understanding, but OCR,
+ * counting and tiny details need the stronger local vision model. Power/Deep
+ * intentionally keep maximum visual accuracy too.
+ */
+function preciseVisionRequest(
+  message: UIMessage | undefined,
+  mode: PerformanceMode,
+): boolean {
+  if (mode === "power" || mode === "deep") return true;
+
+  const query = textOf(message)
+    .toLocaleLowerCase("de-DE")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!query) return false;
+
+  return /(was steht|was heißt|was heisst|lies|lesen|vorlesen|text|schrift|buchstab|wort|satz|zahl|nummer|ziffer|kennzeichen|serien(?:nummer)?|modellnummer|barcode|qr(?:-?code)?|wie viele|anzahl|zähl|zaehl|genau|exakt|detail|kleine? schrift|read|text|word|number|digit|license plate|serial|barcode|qr(?: code)?|how many|count|exact|detail|small text)/i.test(
+    query,
+  );
+}
+
+function routedVisionModel(
+  message: UIMessage | undefined,
+  mode: PerformanceMode,
+  currentModelId: string,
+): string {
+  if (!preciseVisionRequest(message, mode)) {
+    const fast = process.env.AI_VISION_FAST_MODEL?.trim();
+    if (fast) return fast;
+  }
+  return visionModelId(currentModelId);
+}
+
+/**
  * Replaces `/api/files/...` references with inline `data:` URLs.
  *
  * The model gets the real image bytes. A link would not work here: this server
@@ -489,7 +523,9 @@ app.post("/api/agent/messages", async (c) => {
     const rawMessages = messages as UIMessage[];
     const latestUser = [...rawMessages].reverse().find((message) => message.role === "user");
     const hasImages = imagesOf(latestUser).length > 0;
-    const modelId = hasImages ? visionModelId(profile.modelId) : profile.modelId;
+    const modelId = hasImages
+      ? routedVisionModel(latestUser, prefs.performanceMode, profile.modelId)
+      : profile.modelId;
     const historyForModel = stripHistoricalFiles(rawMessages, latestUser);
     const uiMessages = hasImages
       ? await withInlineImages(historyForModel, c.req.url)

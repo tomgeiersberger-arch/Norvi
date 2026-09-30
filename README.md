@@ -136,8 +136,11 @@ Frontend liegt kein einziger Schlüssel.
 ```bash
 UPLOAD_DIR=data/uploads                     # Ablage der hochgeladenen Bilder
 
-AI_VISION_MODEL=                            # leer = automatische Wahl (siehe unten)
-# Lokal mit Ollama z. B.: AI_VISION_MODEL=llama3.2-vision
+AI_VISION_FAST_MODEL=                       # optional: schnelles Modell fuer normale Fotos
+AI_VISION_MODEL=                            # praezises Modell / Fallback fuer Bildanalyse
+# Lokal mit Ollama z. B.:
+# AI_VISION_FAST_MODEL=qwen3.5:0.8b
+# AI_VISION_MODEL=qwen3-vl:2b-instruct
 
 STT_LOCAL_ENABLED=false                    # true = eingebauten lokalen Sidecar starten
 STT_LOCAL_MODEL=tiny                        # CPU-freundlicher NORVI-Standard
@@ -154,15 +157,19 @@ STT_MODEL=whisper-1
 
 | Konfiguration | Verhalten |
 | --- | --- |
-| `AI_VISION_MODEL` gesetzt | Genau dieses Modell — gilt immer und überall zuerst. |
-| Gateway, Variable leer | Das aktuell gewählte Modell, falls es Bilder kann, sonst automatisch `anthropic/claude-sonnet-4.6`. |
-| `AI_PROVIDER=openai-compatible`, Variable leer | Klare Fehlermeldung mit der Bitte, `AI_VISION_MODEL` zu setzen — ein reines Textmodell würde sonst raten. |
+| `AI_VISION_FAST_MODEL` + `AI_VISION_MODEL` gesetzt | Normale Fotos/Szenen nutzen in Ultra Serious, Fast und Standard das schnelle Modell. OCR, Text, Zahlen, Zaehlen und Detailfragen gehen automatisch an das praezisere Modell. Power und Deep verwenden fuer Bilder immer das praezisere Modell. |
+| Nur `AI_VISION_MODEL` gesetzt | Alle Bildanfragen verwenden dieses Modell. |
+| Gateway, Variablen leer | Das aktuell gewählte Modell, falls es Bilder kann, sonst automatisch `anthropic/claude-sonnet-4.6`. |
+| `AI_PROVIDER=openai-compatible`, `AI_VISION_MODEL` leer | Klare Fehlermeldung statt Bildinhalte mit einem reinen Textmodell zu erraten. |
 
-Bei lokalem Ollama also einmalig:
+Fuer den kleinen lokalen CPU-Server ist die Hybrid-Konfiguration vorgesehen:
 
 ```bash
-ollama pull llama3.2-vision
-# .env: AI_VISION_MODEL=llama3.2-vision
+ollama pull qwen3.5:0.8b
+ollama pull qwen3-vl:2b-instruct
+# .env:
+# AI_VISION_FAST_MODEL=qwen3.5:0.8b
+# AI_VISION_MODEL=qwen3-vl:2b-instruct
 ```
 
 ### 8.4 Lokale Spracheingabe auf dem NORVI-Server
@@ -282,18 +289,22 @@ HTTPS-URL mit `/v1` am Ende.
 
 ### 9.3 Bildanalyse mit Ollama
 
-Beim lokalen Provider wählt NORVI **kein** Modell automatisch aus — ein reines Textmodell würde
-Bildinhalte sonst nur raten. Der Bild-Knopf bleibt deshalb ausgeblendet, bis ein bildfähiges
-Modell eingetragen ist:
+Beim lokalen Provider braucht NORVI mindestens ein explizit eingetragenes
+`AI_VISION_MODEL`; ein reines Textmodell soll Bildinhalte niemals erraten. Fuer den
+CPU-Server kann zusaetzlich ein schnelleres Modell fuer allgemeine Szenen gesetzt werden:
 
 ```bash
-ollama pull llama3.2-vision
+ollama pull qwen3.5:0.8b
+ollama pull qwen3-vl:2b-instruct
 # .env:
-AI_VISION_MODEL=llama3.2-vision
+AI_VISION_FAST_MODEL=qwen3.5:0.8b
+AI_VISION_MODEL=qwen3-vl:2b-instruct
 ```
 
-Kann dein eigenes Modell `norvi` bereits Bilder (also auf einer Vision-Basis gebaut), genügt
-`AI_VISION_MODEL=norvi`. Der Chat selbst läuft unabhängig davon weiter über `AI_MODEL`.
+NORVI routet normale Foto-/Szenenfragen zum schnellen Modell und anspruchsvollere
+OCR-, Zahlen-, Zaehlen- oder Detailfragen zum praeziseren Modell. Power und Deep verwenden
+bei Bildern ebenfalls das praezisere Modell. Der Textchat bleibt davon unabhaengig und laeuft
+weiter ueber `AI_MODEL`.
 
 ---
 
@@ -608,22 +619,28 @@ STT_API_KEY=norvi-loopback-only
 STT_MODEL=whisper-1
 ```
 
-Auf dem dedizierten CPU-only 16-GB-Homeserver werden Text- und Vision-Modell parallel
-vorgewärmt. Mit `AI_LOCAL_WARM_VISION=true` und `AI_LOCAL_KEEP_ALIVE=24h` bleiben beide
-kleinen Modelle im RAM und der reine Model-Cold-Start entfällt im Tagesbetrieb. Nach jeder
-erfolgreichen lokalen Modellantwort erneuert NORVI den Ollama-Keep-Alive außerdem über einen
-nahezu kostenlosen Load-Ping, weil der OpenAI-kompatible Ollama-Endpunkt die Residency sonst
-wieder auf seinen kurzen Standardwert setzen kann. Das spart bei Vision nur die Ladezeit:
-die eigentliche Bildkodierung bleibt auf dem i5-6500T der
-größte Engpass. Große Fotos werden deshalb vor dem Upload verkleinert. Für kurze lokale
+Auf dem dedizierten CPU-only 16-GB-Homeserver werden das leichte Textmodell sowie
+das schnelle und das praezise Vision-Modell vorgewaermt. Mit
+`AI_LOCAL_WARM_VISION=true` und `AI_LOCAL_KEEP_ALIVE=24h` bleiben diese kleinen Modelle
+im RAM und der reine Model-Cold-Start entfaellt im Tagesbetrieb. Nach jeder erfolgreichen
+lokalen Modellantwort erneuert NORVI den Ollama-Keep-Alive ueber einen nahezu kostenlosen
+Load-Ping.
+
+Bei Bildern routet NORVI allgemeine Foto-/Szenenfragen an `qwen3.5:0.8b`; OCR, Zahlen,
+Zaehlen, feine Details sowie Power/Deep gehen an `qwen3-vl:2b-instruct`. Das reduziert die
+Wartezeit fuer normale Bilder deutlich, ohne die staerkere Bildanalyse fuer schwierige
+Aufgaben zu verlieren. Hochaufgeloeste Fotos werden unabhaengig von ihrer Dateigroesse vor
+dem Upload verkleinert, weil bei CPU-Vision vor allem die Pixelzahl zaehlt. Fuer kurze lokale
 Textantworten nutzt NORVI `norvi-direct:latest`; dessen Template schaltet verstecktes
-Qwen-Thinking fest aus, während `NORVI Deep` weiterhin ein separates Thinking-Modell nutzt.
+Qwen-Thinking fest aus, waehrend `NORVI Deep` weiterhin ein separates Thinking-Modell nutzt.
 
 ```bash
+ollama pull qwen3.5:0.8b
 ollama pull qwen3-vl:2b-instruct
 ```
 
 ```env
+AI_VISION_FAST_MODEL=qwen3.5:0.8b
 AI_VISION_MODEL=qwen3-vl:2b-instruct
 ```
 
