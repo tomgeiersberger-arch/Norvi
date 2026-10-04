@@ -34,6 +34,9 @@ jobs:
       - name: Public local defaults
         run: bun deploy/test-public-local-defaults.ts
 
+      - name: First-run wizard wiring
+        run: bun deploy/test-first-run-wizard.ts
+
       - name: Typecheck
         run: bun run typecheck
 

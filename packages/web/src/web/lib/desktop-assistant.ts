@@ -18,6 +18,7 @@ export interface DesktopAssistantSettings {
   quickShortcutEnabled: boolean;
   conversationMode: boolean;
   conversationWindowSeconds: number;
+  onboardingComplete: boolean;
   desktopActionsEnabled: boolean;
   desktopActionAliases: Record<DesktopActionId, string[]>;
   websiteActions: WebsiteAction[];
@@ -49,6 +50,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   quickShortcutEnabled: true,
   conversationMode: false,
   conversationWindowSeconds: 12,
+  onboardingComplete: false,
   desktopActionsEnabled: true,
   desktopActionAliases: DEFAULT_DESKTOP_ACTION_ALIASES,
   websiteActions: [],
@@ -135,6 +137,7 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
       typeof value.conversationWindowSeconds === "number"
         ? Math.max(6, Math.min(30, Math.round(value.conversationWindowSeconds)))
         : DEFAULT_ASSISTANT_SETTINGS.conversationWindowSeconds,
+    onboardingComplete: value.onboardingComplete === true,
     desktopActionsEnabled: value.desktopActionsEnabled !== false,
     desktopActionAliases: {
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),

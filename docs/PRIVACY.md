@@ -48,3 +48,8 @@ Conversation Mode is also opt-in. It opens a short local microphone follow-up wi
 The public local installer defaults to `REQUIRE_AUTH=false`. On a normal desktop installation, chat history and preferences are scoped to the browser/device identifier and remain in the local SQLite database, so an email/password login is not required.
 
 If NORVI is deliberately exposed to another machine, a LAN, or the public internet, enable `REQUIRE_AUTH=true` before doing so. Login-less mode is designed for the owner sitting at the local computer, not as an internet-facing access-control mechanism.
+
+
+## First-run setup
+
+The Windows desktop app shows a local first-run wizard after installation. It does not create an online account. The wizard stores the assistant name, wake phrase, voice choice and desktop permission switches in local application/browser storage. Screen Mode remains opt-in.
