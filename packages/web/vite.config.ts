@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, root, "");
   Object.assign(process.env, env);
 
+  const telemetryEnabled = /^(1|true|yes|on)$/i.test(
+    (env.VITE_ENABLE_TELEMETRY ?? "").trim(),
+  );
+
   return {
     // All env files live at the repo root — keep Vite's own env loading there too,
     // so packages/web/.env* files can never shadow the root .env.
@@ -20,7 +24,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       honoDevPlugin(),
       react(),
-      runableAnalyticsPlugin(),
+      ...(telemetryEnabled ? [runableAnalyticsPlugin()] : []),
       tailwind(),
       assetOptimizerPlugin(),
     ],

@@ -1,6 +1,3 @@
-// System-managed layout — extend in place, never rewrite from scratch.
-// Keep the provider chain intact: ErrorBoundary → OneDollarStats → SafeArea → QueryClient.
-// To switch navigation, replace only the <Slot /> line with <Stack /> or <Tabs />.
 import { useEffect } from "react";
 import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -15,29 +12,39 @@ const queryClient = new QueryClient();
 
 const applicationId = appJson.expo.extra.applicationId ?? "";
 const hostname = applicationId ? `${applicationId}-mobile` : "localhost";
+const telemetryEnabled = /^(1|true|yes|on)$/i.test(
+  process.env.EXPO_PUBLIC_ENABLE_TELEMETRY ?? "",
+);
 
 export default function RootLayout() {
   useEffect(() => {
     if (isWeb) startWebSafeArea();
   }, []);
 
+  const app = (
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <StatusBar style="auto" />
+        <Slot />
+      </QueryClientProvider>
+    </SafeAreaProvider>
+  );
+
   return (
     <ErrorBoundary>
-      {/* Runable analytics provider — do not remove, required for analytics tracking */}
-      <OneDollarStatsProvider
-        config={{
-          hostname,
-          collectorUrl: "https://r.lilstts.com/events",
-          devmode: true,
-        }}
-      >
-        <SafeAreaProvider>
-          <QueryClientProvider client={queryClient}>
-            <StatusBar style="auto" />
-            <Slot />
-          </QueryClientProvider>
-        </SafeAreaProvider>
-      </OneDollarStatsProvider>
+      {telemetryEnabled ? (
+        <OneDollarStatsProvider
+          config={{
+            hostname,
+            collectorUrl: "https://r.lilstts.com/events",
+            devmode: false,
+          }}
+        >
+          {app}
+        </OneDollarStatsProvider>
+      ) : (
+        app
+      )}
     </ErrorBoundary>
   );
 }

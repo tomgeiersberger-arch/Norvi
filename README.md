@@ -1,22 +1,57 @@
-# App template
+# NORVI AI
 
-Runable copies this Bun and Turborepo project into each new sandbox.
+**Private, local AI that runs on your own hardware.**
 
-The root package commands are the external contract:
+NORVI is a self-hosted AI interface for chat, vision and speech-to-text. The local setup uses Ollama and SQLite so normal AI requests, chats, images and speech can stay on the computer running NORVI.
 
-- `bun run dev` starts the web app.
-- `bun run dev:desktop` and `bun run dev:mobile` start platform clients.
-- `bun run build` builds every package.
-- `bun run start` starts or restarts the production server.
-- `bun run stop` stops the production server.
-- `bun run lint` and `bun run typecheck` validate the project.
-- The `db:generate`, `db:migrate`, and `db:push` commands manage the database.
+The repository contains the app, not multi-gigabyte model files. During setup, NORVI detects the machine and downloads an appropriate model locally through Ollama.
 
-Deployment tools depend on these command names. Their implementations may change, but the names must remain stable.
+## Quick start
 
-The web package owns the API, database, and shared web interface. The mobile package is an Expo client. The desktop package is an Electron shell around the web app. Services use the fixed ports defined in `__ports.cjs`, and the web health endpoint is `/api/health`.
+### Windows
 
-Secrets belong in the root `.env` file. Browser values must use the `VITE_` prefix. Commands prefixed with `internal:` are for template maintenance.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\install-local.ps1
+```
+
+### Linux / macOS
+
+```bash
+chmod +x deploy/install-local.sh
+./deploy/install-local.sh
+```
+
+On macOS, Homebrew is used for Ollama when needed.
+
+Then start NORVI with `bun run serve` and open **http://localhost:4200**.
+
+## Automatic model profiles
+
+| Profile | Typical hardware | Text | Vision |
+| --- | --- | --- | --- |
+| Lite | smaller PCs / about 16 GB RAM | Qwen3 4B | Qwen3-VL 2B/4B |
+| Standard | gaming PC / about 8 GB VRAM or 24+ GB RAM | **Qwen3 8B** | Qwen3-VL 4B/8B |
+| Power | high-end GPU / about 14+ GB VRAM | Qwen3 14B | Qwen3-VL 8B |
+
+Use `--profile=lite`, `--profile=standard` or `--profile=power` to override auto-detection.
+
+## Local-first privacy
+
+The generated local setup uses Ollama on `127.0.0.1:11434`, local SQLite under `data/`, local image storage and a local Whisper sidecar. No hosted AI API key is required. Internet access is still needed during installation for packages and model downloads.
+
+Read [Self-hosting](docs/SELF_HOSTING.md) and [Privacy](docs/PRIVACY.md) for details.
+
+## Development
+
+```bash
+bun install
+bun run dev
+bun run typecheck
+bun run lint
+bun run build
+```
+
+Secrets belong only in `.env`. Local databases and `data/` are intentionally ignored by Git.
 
 ---
 
