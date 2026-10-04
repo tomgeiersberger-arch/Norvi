@@ -18,17 +18,8 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 
 if ! command -v ollama >/dev/null 2>&1; then
-  if [[ "$OS" == "Darwin" ]]; then
-    if ! command -v brew >/dev/null 2>&1; then
-      echo "Ollama fehlt. Installiere Homebrew oder Ollama von ollama.com und starte erneut." >&2
-      exit 2
-    fi
-    echo "==> Installiere Ollama"
-    brew install --cask ollama
-  else
-    echo "==> Installiere Ollama"
-    curl -fsSL https://ollama.com/install.sh | sh
-  fi
+  echo "==> Installiere Ollama"
+  curl -fsSL https://ollama.com/install.sh | sh
 fi
 
 if ! curl -fsS --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then

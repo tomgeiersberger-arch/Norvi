@@ -21,6 +21,7 @@ import { auth, trustedOrigins } from "./auth";
 import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasAdminAccess, hasPremiumAccess } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { recordAiRequest } from "./lib/ai-metrics";
+import { assertLocalOnlyConfiguration } from "./lib/privacy";
 import { refreshLocalModelKeepAlive, warmLocalAi } from "./lib/local-ai";
 import { startLocalStt } from "./lib/local-stt";
 import { SttError, transcribe } from "./lib/stt";
@@ -39,6 +40,8 @@ import { ping } from "./routes/ping";
 import { model } from "./routes/model";
 import { me } from "./routes/me";
 import { settings, settingsFor, type PerformanceMode } from "./routes/settings";
+
+assertLocalOnlyConfiguration();
 
 // API features are oRPC procedures, one file per feature in ./routes/,
 // composed into this router — typed end-to-end via the clients

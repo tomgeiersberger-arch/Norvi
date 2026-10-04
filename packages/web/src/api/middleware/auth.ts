@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { base } from "../__core/app";
 import { auth } from "../auth";
 import { hasAdminAccess, hasPremiumAccess, isOwnerRole } from "../lib/access";
+import { publicEditionEnabled } from "../lib/privacy";
 
 /** Shape of the session user we hand down to procedures. */
 export type SessionUser = {
@@ -51,6 +52,11 @@ export const authed = base.use(async ({ context, next }) => {
 
 /** Administration procedures: Owner and Admin. */
 export const adminOnly = authed.use(({ context, next }) => {
+  if (publicEditionEnabled()) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "Administration ist in der öffentlichen NORVI-Version deaktiviert.",
+    });
+  }
   if (!hasAdminAccess(context.user.role)) {
     throw new ORPCError("FORBIDDEN", { message: "Kein Zugriff." });
   }
@@ -59,6 +65,11 @@ export const adminOnly = authed.use(({ context, next }) => {
 
 /** Owner-only procedures for role/security changes. */
 export const ownerOnly = authed.use(({ context, next }) => {
+  if (publicEditionEnabled()) {
+    throw new ORPCError("FORBIDDEN", {
+      message: "Owner-Verwaltung ist in der öffentlichen NORVI-Version deaktiviert.",
+    });
+  }
   if (!isOwnerRole(context.user.role)) {
     throw new ORPCError("FORBIDDEN", { message: "Nur der Owner darf das ändern." });
   }

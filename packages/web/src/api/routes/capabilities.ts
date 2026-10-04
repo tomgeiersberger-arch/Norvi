@@ -5,6 +5,7 @@ import * as schema from "../database/schema";
 import { allowAdditionalSignups, requireAuthEnabled } from "../lib/access";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "../lib/uploads";
 import { sttAvailable, sttConfigured } from "../lib/stt";
+import { localOnlyModeEnabled, publicEditionEnabled } from "../lib/privacy";
 
 let aiHealthCache: { at: number; online: boolean } | null = null;
 
@@ -56,6 +57,8 @@ export const capabilities = {
       stt,
       sttConfigured: sttConfigured(),
       localAi: providerKind() === "openai-compatible",
+      localOnly: localOnlyModeEnabled(),
+      publicEdition: publicEditionEnabled(),
       aiOnline,
       /** True, wenn diese Instanz eine Anmeldung erzwingt (REQUIRE_AUTH=true). */
       requireAuth: requireAuthEnabled(),

@@ -144,6 +144,10 @@ if (existsSync(".env") && !process.argv.includes("--force")) {
   const secret = randomBytes(32).toString("base64url");
   const sttKey = randomBytes(24).toString("base64url");
   const values: Record<string, string> = {
+    LOCAL_ONLY_MODE: "true",
+    NORVI_PUBLIC_EDITION: "true",
+    VITE_ENABLE_TELEMETRY: "false",
+    EXPO_PUBLIC_ENABLE_TELEMETRY: "false",
     WEBSITE_URL: "http://localhost:4200",
     TRUSTED_ORIGINS: "http://127.0.0.1:4200",
     DATABASE_URL: "file:./data/norvi.db",
@@ -156,7 +160,7 @@ if (existsSync(".env") && !process.argv.includes("--force")) {
     AI_BASE_URL: "http://127.0.0.1:11434/v1",
     AI_MODEL: aliases.standard,
     AI_MODELS: Object.values(aliases).join(","),
-    AI_ULTRA_SERIOUS_MODEL: aliases.fast,
+    AI_ULTRA_SERIOUS_MODEL: "",
     AI_FAST_MODEL: aliases.fast,
     AI_POWER_MODEL: aliases.power,
     AI_DEEP_MODEL: aliases.deep,

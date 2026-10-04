@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { LogIn, LogOut, Settings, Shield, User } from "lucide-react";
 import { authClient, clearAuthToken } from "../lib/auth";
+import { useCapabilities } from "../queries/capabilities";
 import { useMe, useResetSession } from "../queries/me";
 import { SettingsDialog } from "./settings-dialog";
 
@@ -13,6 +14,7 @@ import { SettingsDialog } from "./settings-dialog";
  */
 export function AccountMenu() {
   const me = useMe();
+  const capabilities = useCapabilities();
   const resetSession = useResetSession();
   const [, navigate] = useLocation();
 
@@ -22,6 +24,7 @@ export function AccountMenu() {
   const boxRef = useRef<HTMLDivElement>(null);
 
   const user = me.data ?? null;
+  const publicEdition = capabilities.data?.publicEdition === true;
 
   // Klick außerhalb und Escape schließen das Menü.
   useEffect(() => {
@@ -84,7 +87,7 @@ export function AccountMenu() {
               <div className="truncate text-[11px] text-muted-foreground">
                 {user ? user.email : "Chats bleiben nur auf diesem Gerät"}
               </div>
-              {user && (user.role === "owner" || user.role === "admin" || user.premiumAccess) && (
+              {!publicEdition && user && (user.role === "owner" || user.role === "admin" || user.premiumAccess) && (
                 <span className="mt-2 inline-flex rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-0.5 text-[9px] font-semibold tracking-[0.1em] text-primary uppercase">
                   {user.role === "owner"
                     ? "Owner · Vollzugriff"
@@ -111,7 +114,7 @@ export function AccountMenu() {
               </button>
             )}
 
-            {(user?.role === "owner" || user?.role === "admin") && (
+            {!publicEdition && (user?.role === "owner" || user?.role === "admin") && (
               <button
                 type="button"
                 role="menuitem"

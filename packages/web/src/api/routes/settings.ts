@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { authed } from "../middleware/auth";
 import { hasAdminAccess } from "../lib/access";
+import { publicEditionEnabled } from "../lib/privacy";
 import { availableModels, defaultModelId, providerKind } from "../agent/gateway";
 import { db } from "../database";
 import * as schema from "../database/schema";
@@ -35,6 +36,9 @@ function present(
 ) {
   const models = availableModels();
   const stored = row?.modelId && models.includes(row.modelId) ? row.modelId : defaultModelId();
+  const publicEdition = publicEditionEnabled();
+  const effectivePremiumAccess = publicEdition || premiumAccess;
+  const effectiveChokeModeAccess = !publicEdition && chokeModeAccess;
   return {
     modelId: stored,
     temperature: row?.temperature ?? 30,
@@ -44,12 +48,12 @@ function present(
     supportsTemperature: providerKind() === "openai-compatible",
     performanceMode:
       performanceMode.safeParse(row?.performanceMode).success &&
-      (row!.performanceMode !== "deep" || premiumAccess) &&
-      (row!.performanceMode !== "serious" || chokeModeAccess)
+      (row!.performanceMode !== "deep" || effectivePremiumAccess) &&
+      (row!.performanceMode !== "serious" || effectiveChokeModeAccess)
         ? (row!.performanceMode as PerformanceMode)
         : "balanced",
-    premiumAccess,
-    chokeModeAccess,
+    premiumAccess: effectivePremiumAccess,
+    chokeModeAccess: effectiveChokeModeAccess,
   } satisfies UserSettings;
 }
 
@@ -76,7 +80,16 @@ export const settings = {
       }),
     )
     .handler(async ({ input, context }) => {
-      if (input.performanceMode === "deep" && !context.user.premiumAccess) {
+      if (input.performanceMode === "serious" && publicEditionEnabled()) {
+        throw new ORPCError("FORBIDDEN", {
+          message: "Choke Mode ist in der öffentlichen NORVI-Version deaktiviert.",
+        });
+      }
+      if (
+        input.performanceMode === "deep" &&
+        !context.user.premiumAccess &&
+        !publicEditionEnabled()
+      ) {
         throw new ORPCError("FORBIDDEN", {
           message: "NORVI Deep ist für Premium-Konten verfügbar.",
         });

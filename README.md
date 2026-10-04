@@ -21,7 +21,7 @@ chmod +x deploy/install-local.sh
 ./deploy/install-local.sh
 ```
 
-On macOS, Homebrew is used for Ollama when needed.
+The installer uses Ollama's official install command when Ollama is missing.
 
 Then start NORVI with `bun run serve` and open **http://localhost:4200**.
 
@@ -37,7 +37,7 @@ Use `--profile=lite`, `--profile=standard` or `--profile=power` to override auto
 
 ## Local-first privacy
 
-The generated local setup uses Ollama on `127.0.0.1:11434`, local SQLite under `data/`, local image storage and a local Whisper sidecar. No hosted AI API key is required. Internet access is still needed during installation for packages and model downloads.
+The generated local setup uses `LOCAL_ONLY_MODE=true` and `NORVI_PUBLIC_EDITION=true`, Ollama on `127.0.0.1:11434`, local SQLite under `data/`, local image storage and a local Whisper sidecar. In this mode NORVI refuses cloud AI/STT/database endpoints and hides private server-only Owner/Admin/Premium/Choke features. No hosted AI API key is required. Internet access is still needed during installation for packages and model downloads.
 
 Read [Self-hosting](docs/SELF_HOSTING.md) and [Privacy](docs/PRIVACY.md) for details.
 

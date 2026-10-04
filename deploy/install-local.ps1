@@ -10,11 +10,8 @@ if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
 }
 
 if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
-  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    throw "Ollama fehlt und winget ist nicht verfügbar. Installiere Ollama von https://ollama.com/download/windows und starte das Setup erneut."
-  }
   Write-Host "==> Installiere Ollama"
-  winget install --id Ollama.Ollama -e --accept-package-agreements --accept-source-agreements
+  irm https://ollama.com/install.ps1 | iex
   $env:Path = "$env:LOCALAPPDATA\Programs\Ollama;$env:Path"
 }
 

@@ -44,6 +44,7 @@ function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const registrationOpen = capabilities.data?.registrationOpen === true;
+  const publicEdition = capabilities.data?.publicEdition === true;
 
   useEffect(() => {
     if (!registrationOpen && mode === "signup") setMode("signin");
@@ -192,7 +193,9 @@ function SignIn() {
 
         <p className="mt-5 text-center text-[11.5px] leading-relaxed text-muted-foreground">
           {registrationOpen
-            ? "Der erste registrierte Account wird automatisch Administrator."
+            ? publicEdition
+              ? "Das erste Konto wird dein lokales NORVI-Profil."
+              : "Der erste registrierte Account wird automatisch Administrator."
             : "Neue Registrierungen sind auf diesem NORVI-Server deaktiviert."}
         </p>
       </div>

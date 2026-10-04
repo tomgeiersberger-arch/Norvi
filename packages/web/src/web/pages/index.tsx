@@ -115,7 +115,9 @@ function Index() {
 
   const statusLabel =
     healthState === "online"
-      ? "Online"
+      ? capabilities.data?.localOnly
+        ? "Lokal"
+        : "Online"
       : healthState === "ai-offline"
         ? "Dienst offline"
         : healthState === "offline"

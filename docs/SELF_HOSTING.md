@@ -49,11 +49,11 @@ After setup:
 bun run serve
 ```
 
-Open `http://localhost:4200`. The first account becomes Owner. Additional registrations are closed by default after bootstrap.
+Open `http://localhost:4200`. The first account becomes the local NORVI profile. Public Edition does not expose Owner/Admin/Premium/Choke controls. Additional registrations are closed by default after bootstrap.
 
 ## What the installer changes
 
-The installer creates a local `.env` with random authentication/STT secrets, configures Ollama as the local AI endpoint, downloads the selected Qwen models, creates lightweight NORVI model aliases, initializes SQLite and builds the web app.
+The installer creates a local `.env` with random authentication/STT secrets, enables `LOCAL_ONLY_MODE=true` and `NORVI_PUBLIC_EDITION=true`, configures Ollama as the loopback AI endpoint, downloads the selected Qwen models, creates lightweight NORVI model aliases, initializes SQLite and builds the web app.
 
 Existing `.env` files are not overwritten unless `--force` is supplied.
 
