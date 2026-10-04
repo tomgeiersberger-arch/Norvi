@@ -1,17 +1,38 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrainCircuit, Gauge, Loader2, Mic, Rocket, ShieldCheck, Volume2, X, Zap } from "lucide-react";
+import { BrainCircuit, Gauge, Link2, Loader2, Mic, Plus, Rocket, ShieldCheck, Trash2, Volume2, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import {
   getAssistantSettings,
   saveAssistantSettings,
   type DesktopAssistantSettings,
+  type WebsiteAction,
 } from "../lib/desktop-assistant";
 
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
+}
+
+function parseCallWords(value: string): string[] {
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function newWebsiteAction(): WebsiteAction {
+  return {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : "website-" + Date.now().toString(36),
+    label: "",
+    url: "",
+    aliases: [],
+  };
 }
 
 /** Personal NORVI settings: model and, where supported, answer style. */
@@ -339,6 +360,142 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     </span>
                   </label>
                 </div>
+
+                {assistant.desktopActionsEnabled && (
+                  <div className="mt-3 rounded-xl border border-white/[0.05] bg-black/10 p-3">
+                    <div className="mb-3 flex items-start gap-2">
+                      <Link2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <div>
+                        <div className="text-[12px] font-medium">Call-Wörter & Websites</div>
+                        <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
+                          Mehrere Call-Wörter mit Komma trennen. NORVI reagiert z. B. auf „Starte cs2“ oder „Starte winkelhof“.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {([
+                        ["spotify", "Spotify"],
+                        ["cs2", "Counter-Strike 2"],
+                      ] as const).map(([id, label]) => (
+                        <label key={id} className="block">
+                          <span className="mb-1 block text-[10px] text-muted-foreground">
+                            {label} · Call-Wörter
+                          </span>
+                          <input
+                            aria-label={label + " Call-Wörter"}
+                            value={assistant.desktopActionAliases[id].join(", ")}
+                            onChange={(event) =>
+                              setAssistant((current) => ({
+                                ...current,
+                                desktopActionAliases: {
+                                  ...current.desktopActionAliases,
+                                  [id]: parseCallWords(event.target.value),
+                                },
+                              }))
+                            }
+                            placeholder={id === "cs2" ? "cs2, counter strike 2" : "spotify"}
+                            className="w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-medium">Eigene Websites</div>
+                        <div className="text-[9.5px] text-muted-foreground">
+                          Name + Adresse + Call-Wörter. Es werden nur http/https-Adressen geöffnet.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAssistant((current) => ({
+                            ...current,
+                            websiteActions: [...current.websiteActions, newWebsiteAction()],
+                          }))
+                        }
+                        className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground"
+                      >
+                        <Plus className="size-3.5" />
+                        Website
+                      </button>
+                    </div>
+
+                    <div className="mt-2 grid gap-2">
+                      {assistant.websiteActions.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-white/[0.07] px-3 py-2.5 text-[10px] leading-4 text-muted-foreground">
+                          Beispiel: Name „Winkelhof“, URL „www.winkelhof.at“, Call-Wort „winkelhof“ → „Starte winkelhof“.
+                        </div>
+                      ) : (
+                        assistant.websiteActions.map((website, index) => (
+                          <div key={website.id} className="rounded-lg border border-white/[0.055] bg-background/30 p-2.5">
+                            <div className="grid gap-2 sm:grid-cols-[0.8fr_1.2fr_auto]">
+                              <input
+                                aria-label={"Website " + (index + 1) + " Name"}
+                                value={website.label}
+                                onChange={(event) =>
+                                  setAssistant((current) => ({
+                                    ...current,
+                                    websiteActions: current.websiteActions.map((item) =>
+                                      item.id === website.id ? { ...item, label: event.target.value } : item,
+                                    ),
+                                  }))
+                                }
+                                placeholder="Winkelhof"
+                                className="rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                              />
+                              <input
+                                aria-label={"Website " + (index + 1) + " Adresse"}
+                                value={website.url}
+                                onChange={(event) =>
+                                  setAssistant((current) => ({
+                                    ...current,
+                                    websiteActions: current.websiteActions.map((item) =>
+                                      item.id === website.id ? { ...item, url: event.target.value } : item,
+                                    ),
+                                  }))
+                                }
+                                placeholder="www.winkelhof.at"
+                                className="rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                              />
+                              <button
+                                type="button"
+                                aria-label={"Website " + (index + 1) + " entfernen"}
+                                onClick={() =>
+                                  setAssistant((current) => ({
+                                    ...current,
+                                    websiteActions: current.websiteActions.filter((item) => item.id !== website.id),
+                                  }))
+                                }
+                                className="icon-action flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                            <input
+                              aria-label={"Website " + (index + 1) + " Call-Wörter"}
+                              value={website.aliases.join(", ")}
+                              onChange={(event) =>
+                                setAssistant((current) => ({
+                                  ...current,
+                                  websiteActions: current.websiteActions.map((item) =>
+                                    item.id === website.id
+                                      ? { ...item, aliases: parseCallWords(event.target.value) }
+                                      : item,
+                                  ),
+                                }))
+                              }
+                              placeholder="winkelhof, hof"
+                              className="mt-2 w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                            />
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {voices.length > 0 && (
                   <label className="mt-3 block">

@@ -13,7 +13,7 @@ import {
   type SetupProgress,
 } from "./local-runtime";
 import { listLocalVoices, speakLocal, stopSpeech } from "./voice";
-import { launchDesktopAction, listDesktopActions } from "./actions";
+import { launchDesktopAction, listDesktopActions, openDesktopWebsite } from "./actions";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV !== "production";
@@ -154,6 +154,9 @@ function registerNorviHandlers() {
   ipcMain.handle("norvi:list-desktop-actions", () => listDesktopActions());
   ipcMain.handle("norvi:launch-desktop-action", async (_event, actionId: string) =>
     launchDesktopAction(String(actionId ?? "")),
+  );
+  ipcMain.handle("norvi:open-website", async (_event, url: string) =>
+    openDesktopWebsite(String(url ?? "")),
   );
 
   ipcMain.handle("norvi:set-background-mode", (_event, enabled: boolean) => {

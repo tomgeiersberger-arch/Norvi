@@ -147,16 +147,21 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
       const assistant = getAssistantSettings();
       if (!assistant.desktopActionsEnabled) return false;
 
-      const actionId = matchDesktopAction(text);
+      const action = matchDesktopAction(text, assistant);
       const api = getNorviDesktopAPI();
-      if (!actionId || !api) return false;
+      if (!action || !api) return false;
 
       let reply: string;
       try {
-        const result = await api.launchDesktopAction(actionId);
-        reply = result.label + " wird geöffnet.";
+        if (action.kind === "website") {
+          await api.openWebsite(action.url);
+          reply = action.label + " wird geöffnet.";
+        } else {
+          const result = await api.launchDesktopAction(action.id);
+          reply = result.label + " wird geöffnet.";
+        }
       } catch {
-        reply = desktopActionLabel(actionId) + " konnte nicht geöffnet werden.";
+        reply = action.label + " konnte nicht geöffnet werden.";
       }
 
       const now = Date.now();
