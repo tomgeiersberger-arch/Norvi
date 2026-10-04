@@ -60,6 +60,7 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const handleRef = useRef<RecordHandle | null>(null);
+  const toggleRecordingRef = useRef<() => void>(() => undefined);
 
   useEffect(() => subscribeAssistantSettings(setAssistantSettings), []);
 
@@ -201,6 +202,10 @@ export function Composer({
     }
   };
 
+  toggleRecordingRef.current = () => {
+    void toggleRecording();
+  };
+
   const captureScreen = async () => {
     if (!vision || !assistantSettings.screenCaptureEnabled) return;
     const api = getNorviDesktopAPI();
@@ -224,7 +229,7 @@ export function Composer({
     if (!api) return;
     return api.onVoiceShortcut(() => {
       if (!stt || !assistantSettings.microphoneEnabled || busy || transcribing) return;
-      void toggleRecording();
+      toggleRecordingRef.current();
     });
   }, [assistantSettings.microphoneEnabled, busy, recording, stt, transcribing]);
 
