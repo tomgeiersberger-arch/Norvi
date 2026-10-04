@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DesktopAssistantListener } from "./desktop-assistant-listener";
+import { FirstRunWizard } from "./first-run-wizard";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +15,7 @@ export function Provider({ children }: ProviderProps) {
     <QueryClientProvider client={queryClient}>
       <DesktopAssistantListener />
       {children}
+      <FirstRunWizard />
     </QueryClientProvider>
   );
 }

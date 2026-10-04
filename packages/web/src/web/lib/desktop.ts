@@ -29,7 +29,17 @@ export interface DesktopActionResult {
   label: string;
 }
 
+export interface DesktopHardwareProfile {
+  cpu: string;
+  threads: number;
+  ramGiB: number;
+  nvidiaVramGiB: number | null;
+  profile: "lite" | "standard" | "power";
+  label: string;
+}
+
 export interface NorviDesktopAPI {
+  detectHardware: () => Promise<DesktopHardwareProfile>;
   showWindow: () => Promise<boolean>;
   listVoices: () => Promise<string[]>;
   speak: (text: string, voice?: string) => Promise<boolean>;

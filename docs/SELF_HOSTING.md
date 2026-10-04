@@ -107,3 +107,8 @@ These features stay local in the public local-only profile. Screen Mode uses Ele
 A normal public local install starts without an account screen. The local device ID scopes chats and local model/answer-style preferences.
 
 For any installation that is reachable by other people or through a public reverse proxy, set `REQUIRE_AUTH=true`. That restores the account gate and disables anonymous chat/settings access.
+
+
+## First-run desktop wizard
+
+After the installer has detected the hardware and selected the 4B/8B/14B runtime profile, the desktop app finishes setup with a local wizard for the assistant name, wake phrase, Windows voice, microphone permission, Screen Mode and desktop actions. The wizard is only shown for the local public desktop profile and does not require an account.
