@@ -6,6 +6,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  net,
   screen,
   Tray,
 } from "electron";
