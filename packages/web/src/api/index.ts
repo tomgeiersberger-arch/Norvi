@@ -430,6 +430,10 @@ app.post("/api/agent/messages", async (c) => {
     const messages = body?.messages;
     const chatId: string | undefined = body?.chatId;
     const deviceId: string | undefined = body?.deviceId;
+    const assistantName =
+      typeof body?.assistantName === "string"
+        ? body.assistantName.replace(/[\r\n\t]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40)
+        : "";
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return c.json({ error: "Keine Nachricht erhalten." }, 400);
@@ -568,6 +572,7 @@ app.post("/api/agent/messages", async (c) => {
       // Keep the provider hint too for models/endpoints that support it natively.
       reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
       ultraSeriousMode: !hasImages && prefs.performanceMode === "serious",
+      assistantName: assistantName || undefined,
     });
 
     const persistAssistant = async (messageId: string, answer: string) => {

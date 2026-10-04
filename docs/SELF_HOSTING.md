@@ -62,3 +62,27 @@ Existing `.env` files are not overwritten unless `--force` is supplied.
 ## Privacy
 
 The local profile does not require a hosted AI provider. See [PRIVACY.md](PRIVACY.md) for the exact local/external boundary.
+
+## Desktop assistant (Windows)
+
+The Windows desktop app can stay in the system tray and act as a local voice assistant.
+
+In NORVI settings you can configure:
+
+- a custom assistant name, such as NORVI, Dexter or Ultron;
+- a custom wake phrase, such as Hey NORVI;
+- local spoken replies using installed Windows voices;
+- launch at Windows login and keep NORVI in the tray;
+- local desktop app commands.
+
+Wake audio is transcribed by NORVI's local Whisper service. The public local-only edition does not send microphone audio to a cloud speech service.
+
+### Local app commands
+
+NORVI can currently recognize commands such as:
+
+- Öffne Spotify
+- Starte CS2
+- Mach Counter Strike 2 auf
+
+Desktop actions use a fixed allowlist inside the Electron main process. The renderer and AI model do not receive a generic shell or terminal command runner. Current allowlisted targets are Spotify and Counter-Strike 2 (Steam app 730). More apps can be added later by extending that explicit allowlist.

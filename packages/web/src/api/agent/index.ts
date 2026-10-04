@@ -16,7 +16,9 @@ export function createAgent(options?: {
   maxOutputTokens?: number;
   reasoningEffort?: ReasoningEffort;
   ultraSeriousMode?: boolean;
+  assistantName?: string;
 }) {
+  const assistantName = options?.assistantName?.trim() || AGENT_NAME;
   return new ToolLoopAgent({
   model: resolveModel(options?.modelId),
   ...(providerKind() === "openai-compatible" && options?.temperature !== undefined
@@ -36,7 +38,7 @@ export function createAgent(options?: {
     {
       role: "system",
       content: dedent`
-        You are ${AGENT_NAME}, a helpful, natural and direct assistant.
+        You are ${assistantName}, a helpful, natural and direct assistant.
         Answer the user's actual intent instead of explaining their wording.
         Treat typos, missing punctuation, abbreviations, slang and casual German as
         normal input. Never claim you do not understand when a reasonable meaning

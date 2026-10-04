@@ -29,4 +29,16 @@ contextBridge.exposeInMainWorld("norviDesktop", {
     ipcRenderer.on("norvi:setup-progress", listener);
     return () => ipcRenderer.removeListener("norvi:setup-progress", listener);
   },
+
+  showWindow: () => ipcRenderer.invoke("norvi:show-window"),
+  listVoices: () => ipcRenderer.invoke("norvi:list-voices"),
+  speak: (text: string, voice?: string) => ipcRenderer.invoke("norvi:speak", text, voice),
+  stopSpeech: () => ipcRenderer.invoke("norvi:stop-speech"),
+  listDesktopActions: () => ipcRenderer.invoke("norvi:list-desktop-actions"),
+  launchDesktopAction: (actionId: "spotify" | "cs2") =>
+    ipcRenderer.invoke("norvi:launch-desktop-action", actionId),
+  setBackgroundMode: (enabled: boolean) =>
+    ipcRenderer.invoke("norvi:set-background-mode", enabled),
+  getAutoStart: () => ipcRenderer.invoke("norvi:get-auto-start"),
+  setAutoStart: (enabled: boolean) => ipcRenderer.invoke("norvi:set-auto-start", enabled),
 });

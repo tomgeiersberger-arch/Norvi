@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { ChevronDown, Loader2, RotateCcw } from "lucide-react";
@@ -8,6 +8,13 @@ import { getDeviceId } from "../../lib/device";
 import { useChatMessages, useCreateChat } from "../../queries/chats";
 import { useCapabilities } from "../../queries/capabilities";
 import type { UploadedImage } from "../../lib/uploads";
+import { getNorviDesktopAPI } from "../../lib/desktop";
+import {
+  desktopActionLabel,
+  getAssistantSettings,
+  matchDesktopAction,
+  VOICE_COMMAND_EVENT,
+} from "../../lib/desktop-assistant";
 import { Composer } from "./composer";
 import { EmptyState } from "./empty-state";
 import { Message, TypingIndicator } from "./message";
@@ -36,6 +43,14 @@ function parseAttachments(raw: string | null | undefined): { url: string; mediaT
 }
 
 /** DB rows -> UIMessage shape the chat hook expects. */
+function messageText(message: UIMessage | undefined): string {
+  if (!message) return "";
+  return message.parts
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("")
+    .trim();
+}
+
 function toUIMessages(rows: StoredMessage[] | undefined): UIMessage[] {
   return (rows ?? []).map((row) => ({
     id: row.id,
@@ -97,11 +112,17 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   const [nearBottom, setNearBottom] = useState(true);
   const idRef = useRef<string | null>(chatId);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const voiceTurnRef = useRef(false);
+  const spokenMessageRef = useRef<string | null>(null);
+  const busyRef = useRef(false);
+  const sendRef = useRef<(text: string, images?: UploadedImage[]) => Promise<void>>(
+    async () => undefined,
+  );
 
   const quickTunnel =
     typeof window !== "undefined" && window.location.hostname.endsWith(".trycloudflare.com");
 
-  const { messages, sendMessage, stop, regenerate, status, error } = useChat({
+  const { messages, setMessages, sendMessage, stop, regenerate, status, error } = useChat({
     messages: initialMessages,
     // Cloudflare Quick Tunnels occasionally terminate long-lived SSE responses.
     // Buffer only there; LAN, Tailscale and stable reverse proxies keep true
@@ -113,12 +134,53 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   });
 
   const busy = status === "submitted" || status === "streaming";
+  busyRef.current = busy;
   const last = messages.at(-1);
   const waitingForFirstToken = status === "submitted" || (last?.role === "user" && busy);
   const analyzingImage =
     waitingForFirstToken &&
     last?.role === "user" &&
     last.parts.some((part) => part.type === "file" && part.mediaType?.startsWith("image/"));
+
+  const executeDesktopAction = useCallback(
+    async (text: string, speakReply: boolean): Promise<boolean> => {
+      const assistant = getAssistantSettings();
+      if (!assistant.desktopActionsEnabled) return false;
+
+      const actionId = matchDesktopAction(text);
+      const api = getNorviDesktopAPI();
+      if (!actionId || !api) return false;
+
+      let reply: string;
+      try {
+        const result = await api.launchDesktopAction(actionId);
+        reply = result.label + " wird geöffnet.";
+      } catch {
+        reply = desktopActionLabel(actionId) + " konnte nicht geöffnet werden.";
+      }
+
+      const now = Date.now();
+      setMessages((current) => [
+        ...current,
+        {
+          id: "local-action-user-" + now,
+          role: "user",
+          parts: [{ type: "text", text }],
+        },
+        {
+          id: "local-action-assistant-" + now,
+          role: "assistant",
+          parts: [{ type: "text", text: reply }],
+        },
+      ]);
+
+      if (speakReply && assistant.speakReplies) {
+        await api.speak(reply, assistant.voice || undefined).catch(() => undefined);
+      }
+      return true;
+    },
+    [setMessages],
+  );
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = scrollRef.current;
@@ -139,6 +201,8 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
   }, [status, queryClient]);
 
   const send = async (text: string, images: UploadedImage[] = []) => {
+    if (images.length === 0 && (await executeDesktopAction(text, false))) return;
+
     const deviceId = getDeviceId();
     let target = idRef.current;
 
@@ -151,7 +215,10 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     }
 
     if (images.length === 0) {
-      await sendMessage({ text }, { body: { chatId: target, deviceId } });
+      await sendMessage(
+        { text },
+        { body: { chatId: target, deviceId, assistantName: agentName } },
+      );
       return;
     }
 
@@ -168,13 +235,55 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
           { type: "text" as const, text },
         ],
       },
-      { body: { chatId: target, deviceId } },
+      { body: { chatId: target, deviceId, assistantName: agentName } },
     );
   };
 
+  sendRef.current = send;
+
+  useEffect(() => {
+    const onVoiceCommand = (event: Event) => {
+      const detail = (event as CustomEvent<{ text?: string }>).detail;
+      const text = detail?.text?.trim();
+      if (!text || busyRef.current) return;
+
+      void (async () => {
+        if (await executeDesktopAction(text, true)) {
+          voiceTurnRef.current = false;
+          return;
+        }
+        voiceTurnRef.current = true;
+        await sendRef.current(text, []);
+      })();
+    };
+    window.addEventListener(VOICE_COMMAND_EVENT, onVoiceCommand);
+    return () => window.removeEventListener(VOICE_COMMAND_EVENT, onVoiceCommand);
+  }, [executeDesktopAction]);
+
+  useEffect(() => {
+    if (status !== "ready" || !voiceTurnRef.current) return;
+    const response = messages.at(-1);
+    if (!response || response.role !== "assistant" || spokenMessageRef.current === response.id) {
+      return;
+    }
+
+    voiceTurnRef.current = false;
+    spokenMessageRef.current = response.id;
+    const assistant = getAssistantSettings();
+    const text = messageText(response);
+    if (!assistant.speakReplies || !text) return;
+    void getNorviDesktopAPI()?.speak(text, assistant.voice || undefined);
+  }, [messages, status]);
+
+  useEffect(() => {
+    if (error) voiceTurnRef.current = false;
+  }, [error]);
+
   const retry = () => {
     const deviceId = getDeviceId();
-    void regenerate({ body: { chatId: idRef.current, deviceId } });
+    void regenerate({
+      body: { chatId: idRef.current, deviceId, assistantName: agentName },
+    });
   };
 
   return (

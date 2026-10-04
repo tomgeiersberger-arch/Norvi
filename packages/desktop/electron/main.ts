@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createManagedDeepLinks } from "@runablehq/managed-auth/desktop/main";
@@ -12,15 +12,24 @@ import {
   type ProfileName,
   type SetupProgress,
 } from "./local-runtime";
+import { listLocalVoices, speakLocal, stopSpeech } from "./voice";
+import { launchDesktopAction, listDesktopActions } from "./actions";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV !== "production";
 const WEB_DEV_URL = process.env.WEBSITE_URL ?? "http://localhost:4200";
 const LOCAL_NORVI_URL = "http://localhost:4200";
 const SETUP_PAGE = path.join(__dirname, "../dist/setup/index.html");
+const BACKGROUND_ARG = "--background";
+const TRAY_ICON_DATA =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA50lEQVR4nM2XMRaDIAyGA8857t6lq5fo1JM5eQlX7+LeE9iJ1z4FhPAnNmuE/zME+HHMvNON0eWS7+cDItLPazLnYhVACZeAeCvx1Nz+6gNtCJ9KWEGclsA6PJHt34cImsUVGKZFBSR7DhxFh2mh7TVeTnoclxtT3QPoSoiaEAkh3gUoiKZtiICoAog1UytEdQXQEKIlQEKIewAF0dSECIjmy6jkZFQFaIWAXcdSCKgfkEDADUkthGPmXcOQlFzd/bx+bbm1KwoW/T88IVH+9YKOXy2fSliInwC0IWJzR9+GIW57nFrGB5R9U7oSkIjNAAAAAElFTkSuQmCC";
 
 let win: BrowserWindow | null = null;
+let tray: Tray | null = null;
 let installPromise: Promise<void> | null = null;
+let backgroundMode = false;
+let quitting = false;
+const backgroundLaunch = process.argv.includes(BACKGROUND_ARG);
 const getWindow = () => win;
 
 const deepLinks = createManagedDeepLinks({
@@ -33,6 +42,49 @@ function sendSetupProgress(progress: SetupProgress) {
   if (window && !window.isDestroyed()) {
     window.webContents.send("norvi:setup-progress", progress);
   }
+}
+
+function showWindow() {
+  const window = win;
+  if (!window || window.isDestroyed()) return;
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+}
+
+function destroyTray() {
+  tray?.destroy();
+  tray = null;
+}
+
+function ensureTray() {
+  if (tray) return;
+  const image = nativeImage.createFromDataURL(TRAY_ICON_DATA).resize({ width: 16, height: 16 });
+  tray = new Tray(image);
+  tray.setToolTip("NORVI · lokaler KI-Assistent");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: "NORVI öffnen",
+        click: () => showWindow(),
+      },
+      { type: "separator" },
+      {
+        label: "NORVI beenden",
+        click: () => {
+          quitting = true;
+          app.quit();
+        },
+      },
+    ]),
+  );
+  tray.on("double-click", () => showWindow());
+}
+
+function setBackgroundMode(enabled: boolean) {
+  backgroundMode = enabled;
+  if (enabled) ensureTray();
+  else destroyTray();
 }
 
 async function showSetup() {
@@ -80,7 +132,42 @@ function registerNorviHandlers() {
 
   ipcMain.handle("norvi:launch", async () => {
     await openNorvi();
+    showWindow();
     return true;
+  });
+
+  ipcMain.handle("norvi:show-window", () => {
+    showWindow();
+    return true;
+  });
+
+  ipcMain.handle("norvi:list-voices", () => listLocalVoices());
+  ipcMain.handle("norvi:speak", async (_event, text: string, voice?: string) => {
+    await speakLocal(String(text ?? ""), typeof voice === "string" ? voice : undefined);
+    return true;
+  });
+  ipcMain.handle("norvi:stop-speech", () => {
+    stopSpeech();
+    return true;
+  });
+
+  ipcMain.handle("norvi:list-desktop-actions", () => listDesktopActions());
+  ipcMain.handle("norvi:launch-desktop-action", async (_event, actionId: string) =>
+    launchDesktopAction(String(actionId ?? "")),
+  );
+
+  ipcMain.handle("norvi:set-background-mode", (_event, enabled: boolean) => {
+    setBackgroundMode(Boolean(enabled));
+    return backgroundMode;
+  });
+
+  ipcMain.handle("norvi:get-auto-start", () => app.getLoginItemSettings().openAtLogin);
+  ipcMain.handle("norvi:set-auto-start", (_event, enabled: boolean) => {
+    app.setLoginItemSettings({
+      openAtLogin: Boolean(enabled),
+      args: enabled ? [BACKGROUND_ARG] : [],
+    });
+    return app.getLoginItemSettings().openAtLogin;
   });
 }
 
@@ -98,10 +185,20 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      backgroundThrottling: false,
     },
   });
 
-  win.once("ready-to-show", () => win?.show());
+  win.on("close", (event) => {
+    if (!quitting && backgroundMode) {
+      event.preventDefault();
+      win?.hide();
+    }
+  });
+
+  if (!backgroundLaunch) {
+    win.once("ready-to-show", () => win?.show());
+  }
 
   if (isDev) {
     void win.loadURL(WEB_DEV_URL);
@@ -114,10 +211,14 @@ registerIpcHandlers(getWindow);
 registerNorviHandlers();
 
 app.on("before-quit", () => {
+  quitting = true;
+  stopSpeech();
   stopLocalServer();
 });
 
 app.on("window-all-closed", () => {
+  if (backgroundMode && !quitting) return;
+  stopSpeech();
   stopLocalServer();
   if (process.platform !== "darwin") {
     app.quit();
@@ -127,16 +228,13 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  else showWindow();
 });
 
 if (app.requestSingleInstanceLock()) {
   app.on("second-instance", (_event, argv) => {
     deepLinks.handleArgv(argv);
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.show();
-      win.focus();
-    }
+    showWindow();
   });
 
   app.whenReady().then(() => {

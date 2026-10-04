@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Eye, Menu, Mic2, Share2, X } from "lucide-react";
 import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
 import { Sidebar } from "../components/chat/sidebar";
 import { getDeviceId } from "../lib/device";
+import { isDesktop } from "../lib/desktop";
+import {
+  getAssistantSettings,
+  subscribeAssistantSettings,
+} from "../lib/desktop-assistant";
 import { useCapabilities } from "../queries/capabilities";
 import { useChats, useDeleteChat, useRenameChat } from "../queries/chats";
 import { useModel } from "../queries/model";
@@ -25,8 +30,13 @@ function Index() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "shared" | "copied" | "error">("idle");
+  const [desktopAssistant, setDesktopAssistant] = useState(getAssistantSettings);
 
-  const agentName = model.data?.agent ?? "NORVI";
+  useEffect(() => subscribeAssistantSettings(setDesktopAssistant), []);
+
+  const agentName = isDesktop()
+    ? desktopAssistant.assistantName
+    : (model.data?.agent ?? "NORVI");
   const healthState = capabilities.isPending
     ? "connecting"
     : capabilities.isError

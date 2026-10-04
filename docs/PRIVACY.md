@@ -26,3 +26,9 @@ NORVI can also be configured with hosted model providers, public tunnels, mobile
 Do not commit `.env`, `*.db`, `data/`, private keys or API tokens. The repository ignores these paths by default.
 
 For a machine that should stay local-only, keep `WEBSITE_URL=http://localhost:4200` and do not enable a public tunnel.
+
+## Desktop assistant and microphone
+
+The optional Windows wake-phrase mode records short microphone chunks locally and sends voice-containing chunks only to NORVI's loopback speech-to-text endpoint. The generated public configuration keeps that endpoint on 127.0.0.1.
+
+Desktop app launching is also local. NORVI exposes only an explicit application allowlist to the renderer; it does not expose an unrestricted shell-command interface.

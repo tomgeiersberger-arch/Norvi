@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrainCircuit, Gauge, Loader2, Rocket, ShieldCheck, X, Zap } from "lucide-react";
+import { BrainCircuit, Gauge, Loader2, Mic, Rocket, ShieldCheck, Volume2, X, Zap } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
+import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
+import {
+  getAssistantSettings,
+  saveAssistantSettings,
+  type DesktopAssistantSettings,
+} from "../lib/desktop-assistant";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -15,13 +21,28 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   const [temperature, setTemperature] = useState(30);
   const [performanceMode, setPerformanceMode] = useState<"serious" | "fast" | "balanced" | "power" | "deep">("balanced");
+  const [assistant, setAssistant] = useState<DesktopAssistantSettings>(getAssistantSettings);
+  const [voices, setVoices] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const desktop = isDesktop();
 
   useEffect(() => {
     if (!settings.data) return;
     setTemperature(settings.data.temperature);
     setPerformanceMode(settings.data.performanceMode);
   }, [settings.data]);
+
+  useEffect(() => {
+    if (!open || !desktop) return;
+    setAssistant(getAssistantSettings());
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    void api.listVoices().then(setVoices).catch(() => setVoices([]));
+    void api
+      .getAutoStart()
+      .then((enabled) => setAssistant((current) => ({ ...current, startWithWindows: enabled })))
+      .catch(() => undefined);
+  }, [open, desktop]);
 
   useEffect(() => {
     if (!open) return;
@@ -41,14 +62,21 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     ...(chokeModeAccess
       ? ([["serious", "Choke Mode", ShieldCheck, "ultraschnell · Spezialmodus"]] as const)
       : []),
-    ["fast", "NORVI Fast", Zap, "2B · schnell"],
-    ["balanced", "NORVI Standard", Gauge, "2B · Alltag"],
-    ["power", "NORVI Power", Rocket, "4B · stärker"],
-    ["deep", "NORVI Deep", BrainCircuit, "4B · stärkste Analyse"],
+    ["fast", "NORVI Fast", Zap, "schnell"],
+    ["balanced", "NORVI Standard", Gauge, "Alltag"],
+    ["power", "NORVI Power", Rocket, "stärker"],
+    ["deep", "NORVI Deep", BrainCircuit, "mehr Denkzeit"],
   ] as const;
 
   const save = () => {
     setSaved(false);
+    if (desktop) {
+      const next = saveAssistantSettings(assistant);
+      setAssistant(next);
+      const api = getNorviDesktopAPI();
+      void api?.setBackgroundMode(next.wakeEnabled || next.startWithWindows);
+      void api?.setAutoStart(next.startWithWindows);
+    }
     update.mutate(
       { temperature, performanceMode },
       { onSuccess: () => setSaved(true) },
@@ -136,8 +164,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </div>
               <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
                 {chokeModeAccess
-                  ? "Choke Mode ist ein speziell freigeschalteter Schnellmodus. Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit."
-                  : "Fast ist für Tempo, Standard für normale Chats, Power nutzt das größere 4B-Modell. Deep gibt dem 4B-Modell extra Denkzeit."}
+                  ? "Choke Mode ist ein speziell freigeschalteter Schnellmodus. Fast ist für Tempo, Standard für normale Chats, Power priorisiert Qualität. Deep gibt dem lokalen Modell zusätzliche Denkzeit."
+                  : "Fast ist für Tempo, Standard für normale Chats, Power priorisiert Qualität. Deep gibt dem lokalen Modell zusätzliche Denkzeit."}
               </p>
             </div>
 
@@ -174,6 +202,171 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <p className="rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[12px] text-muted-foreground">
                 Der aktive KI-Dienst unterstützt keine Feineinstellung des Antwortstils.
               </p>
+            )}
+
+            {desktop && (
+              <div className="rounded-2xl border border-white/[0.065] bg-white/[0.018] p-4">
+                <div className="mb-3 flex items-start gap-3">
+                  <div className="icon-action flex size-9 shrink-0 items-center justify-center rounded-xl text-primary">
+                    <Mic className="size-4" />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold">Desktop-Assistent</div>
+                    <p className="mt-0.5 text-[10.5px] leading-4 text-muted-foreground">
+                      Wake-Phrase, Stimme und Autostart laufen lokal auf diesem PC.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label htmlFor="norvi-assistant-name" className="block">
+                    <span className="mb-1.5 block text-[11px] text-muted-foreground">
+                      Assistentenname
+                    </span>
+                    <input
+                      id="norvi-assistant-name"
+                      aria-label="Assistentenname"
+                      value={assistant.assistantName}
+                      maxLength={40}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          assistantName: event.target.value,
+                        }))
+                      }
+                      placeholder="NORVI"
+                      className="w-full rounded-xl border border-border bg-background/60 px-3 py-2 text-[12px] outline-none transition focus:border-primary/60"
+                    />
+                  </label>
+                  <label htmlFor="norvi-wake-phrase" className="block">
+                    <span className="mb-1.5 block text-[11px] text-muted-foreground">
+                      Wake-Phrase
+                    </span>
+                    <input
+                      id="norvi-wake-phrase"
+                      aria-label="Wake-Phrase"
+                      value={assistant.wakePhrase}
+                      maxLength={40}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          wakePhrase: event.target.value,
+                        }))
+                      }
+                      placeholder="Hey NORVI"
+                      className="w-full rounded-xl border border-border bg-background/60 px-3 py-2 text-[12px] outline-none transition focus:border-primary/60"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 grid gap-2">
+                  <label htmlFor="norvi-wake-enabled" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-wake-enabled"
+                      aria-label="Wake-Phrase im Hintergrund"
+                      type="checkbox"
+                      checked={assistant.wakeEnabled}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          wakeEnabled: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px] font-medium">Wake-Phrase im Hintergrund</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        NORVI bleibt im Tray und reagiert, wenn die App nicht im Vordergrund ist.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label htmlFor="norvi-speak-replies" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-speak-replies"
+                      aria-label="Antworten auf Sprachbefehle vorlesen"
+                      type="checkbox"
+                      checked={assistant.speakReplies}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          speakReplies: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <Volume2 className="size-4 text-muted-foreground" />
+                    <span className="text-[12px]">Antworten auf Sprachbefehle vorlesen</span>
+                  </label>
+
+                  <label htmlFor="norvi-start-with-windows" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-start-with-windows"
+                      aria-label="Mit Windows im Hintergrund starten"
+                      type="checkbox"
+                      checked={assistant.startWithWindows}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          startWithWindows: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <span className="text-[12px]">Mit Windows im Hintergrund starten</span>
+                  </label>
+
+                  <label htmlFor="norvi-desktop-actions" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-desktop-actions"
+                      aria-label="Lokale App-Befehle erlauben"
+                      type="checkbox"
+                      checked={assistant.desktopActionsEnabled}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          desktopActionsEnabled: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px]">Lokale App-Befehle erlauben</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        Zum Beispiel „Öffne Spotify“ oder „Starte CS2“. Nur freigegebene Apps können gestartet werden.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                {voices.length > 0 && (
+                  <label className="mt-3 block">
+                    <span className="mb-1.5 block text-[11px] text-muted-foreground">
+                      Lokale Windows-Stimme
+                    </span>
+                    <select
+                      value={assistant.voice}
+                      onChange={(event) =>
+                        setAssistant((current) => ({ ...current, voice: event.target.value }))
+                      }
+                      className="w-full rounded-xl border border-border bg-background/60 px-3 py-2 text-[12px] outline-none transition focus:border-primary/60"
+                    >
+                      <option value="">Windows-Standardstimme</option>
+                      {voices.map((voice) => (
+                        <option key={voice} value={voice}>
+                          {voice}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
+                <p className="mt-3 text-[10px] leading-4 text-muted-foreground">
+                  Die Wake-Erkennung nutzt den lokalen Whisper-Dienst. Mikrofonaufnahmen
+                  werden nicht an einen Cloud-Sprachdienst geschickt.
+                </p>
+              </div>
             )}
 
             <div className="flex items-center justify-end gap-3 pt-1">
