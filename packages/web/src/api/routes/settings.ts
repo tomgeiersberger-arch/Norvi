@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { authed } from "../middleware/auth";
+import { hasAdminAccess } from "../lib/access";
 import { availableModels, defaultModelId, providerKind } from "../agent/gateway";
 import { db } from "../database";
 import * as schema from "../database/schema";
@@ -62,7 +63,7 @@ export const settings = {
     return present(
       row,
       context.user.premiumAccess,
-      context.user.role === "admin" || context.user.chokeModeEnabled,
+      hasAdminAccess(context.user.role) || context.user.chokeModeEnabled,
     );
   }),
 
@@ -82,7 +83,7 @@ export const settings = {
       }
       if (
         input.performanceMode === "serious" &&
-        context.user.role !== "admin" &&
+        !hasAdminAccess(context.user.role) &&
         !context.user.chokeModeEnabled
       ) {
         throw new ORPCError("FORBIDDEN", {
@@ -132,7 +133,7 @@ export const settings = {
       return present(
         row,
         context.user.premiumAccess,
-        context.user.role === "admin" || context.user.chokeModeEnabled,
+        hasAdminAccess(context.user.role) || context.user.chokeModeEnabled,
       );
     }),
 };

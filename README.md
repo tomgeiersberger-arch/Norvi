@@ -538,8 +538,8 @@ Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
 | Power | stärkere Antworten ohne extra Thinking | `AI_POWER_MODEL`, 768 Output-Tokens |
 | Deep | stärkste Analyse mit zusätzlicher Denkzeit | `AI_DEEP_MODEL`, 1024 Output-Tokens |
 
-Choke Mode ist ein admin-gesteuerter Spezialmodus: Admin-Konten haben ihn automatisch,
-normale Benutzer sehen ihn erst, nachdem ein Admin ihn in der Benutzerverwaltung freigeschaltet
+Choke Mode ist ein admin-gesteuerter Spezialmodus: Owner- und Admin-Konten haben ihn automatisch,
+normale Benutzer sehen ihn erst, nachdem ein Owner oder Admin ihn in der Benutzerverwaltung freigeschaltet
 hat. Die Berechtigung wird serverseitig geprüft, nicht nur in der UI. Choke Mode, Fast und
 Standard nutzen `norvi-direct:latest`: ein leichtes Qwen-2B-Modell, dessen Template verstecktes
 Thinking fest deaktiviert. Dadurch beginnt es auf CPU wesentlich schneller mit der Antwort.
@@ -559,7 +559,7 @@ AI_POWER_MODEL=norvi-power:latest
 AI_DEEP_MODEL=norvi-deep:latest
 ```
 
-„Deep“ ist für Premium-Konten sowie Administratoren freigeschaltet. Premium verdoppelt
+„Deep“ ist für Premium-Konten sowie Owner/Admin-Konten freigeschaltet. Premium verdoppelt
 außerdem das Chat-Burst-Limit von 30 auf 60 Nachrichten pro 10 Minuten. Ein gesetztes
 `premiumUntil` wird bei jedem Request geprüft; abgelaufene Premium-Zugänge fallen automatisch
 auf den normalen Leistungsumfang zurück.
@@ -591,10 +591,13 @@ ALLOW_SIGNUP=false
 AI_BASE_URL=http://127.0.0.1:11434/v1
 ```
 
-Der erste Account kann einen frischen Server weiterhin initialisieren. Sobald bereits ein
-Nutzer existiert, blockiert NORVI weitere Registrierungen serverseitig. Der Admin kann die
-Registrierung im Admin-Bereich temporär öffnen, um z. B. einen Freund anzulegen, und danach
-sofort wieder schließen. Diese Laufzeit-Freigabe wird bei jedem NORVI-Neustart automatisch
+Der erste Account kann einen frischen Server weiterhin initialisieren und wird dabei Owner.
+Die Rollen sind hierarchisch: Owner > Admin > Benutzer. Nur der Owner darf Benutzer zu Admins
+machen oder Admins wieder zu Benutzern zurückstufen. Admins dürfen normale Benutzer aktivieren
+oder deaktivieren, Premium und Choke Mode verwalten, die Registrierung steuern und Systemstatus
+sehen; sie dürfen weder den Owner noch andere Admins verändern. Sobald bereits ein Nutzer existiert,
+blockiert NORVI weitere Registrierungen serverseitig. Owner und Admins können die Registrierung im
+Admin-Bereich temporär öffnen, um z. B. einen Freund anzulegen, und danach sofort wieder schließen. Diese Laufzeit-Freigabe wird bei jedem NORVI-Neustart automatisch
 zurückgesetzt. `ALLOW_SIGNUP=true` ist nur für eine bewusst dauerhaft offene Registrierung
 gedacht.
 

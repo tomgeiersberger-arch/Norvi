@@ -39,7 +39,18 @@ export function setRuntimeSignupEnabled(value: boolean): boolean {
   return allowAdditionalSignups();
 }
 
-/** Active Premium access. Administrators always get the full local feature set. */
+export type AccountRole = "owner" | "admin" | "user";
+
+/** Owner and admins may open the administration area. */
+export function hasAdminAccess(role: string | null | undefined): boolean {
+  return role === "owner" || role === "admin";
+}
+
+export function isOwnerRole(role: string | null | undefined): boolean {
+  return role === "owner";
+}
+
+/** Active Premium access. Owner/admin accounts always get the full local feature set. */
 export function hasPremiumAccess(
   user:
     | {
@@ -51,7 +62,7 @@ export function hasPremiumAccess(
     | undefined,
 ): boolean {
   if (!user) return false;
-  if (user.role === "admin") return true;
+  if (hasAdminAccess(user.role)) return true;
   if (!user.isPremium) return false;
   if (!user.premiumUntil) return true;
 

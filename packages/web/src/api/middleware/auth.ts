@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server";
 import { base } from "../__core/app";
 import { auth } from "../auth";
-import { hasPremiumAccess } from "../lib/access";
+import { hasAdminAccess, hasPremiumAccess, isOwnerRole } from "../lib/access";
 
 /** Shape of the session user we hand down to procedures. */
 export type SessionUser = {
@@ -49,10 +49,18 @@ export const authed = base.use(async ({ context, next }) => {
   return next({ context: { user } });
 });
 
-/** Owner-only procedures. */
+/** Administration procedures: Owner and Admin. */
 export const adminOnly = authed.use(({ context, next }) => {
-  if (context.user.role !== "admin") {
+  if (!hasAdminAccess(context.user.role)) {
     throw new ORPCError("FORBIDDEN", { message: "Kein Zugriff." });
+  }
+  return next({ context });
+});
+
+/** Owner-only procedures for role/security changes. */
+export const ownerOnly = authed.use(({ context, next }) => {
+  if (!isOwnerRole(context.user.role)) {
+    throw new ORPCError("FORBIDDEN", { message: "Nur der Owner darf das ändern." });
   }
   return next({ context });
 });

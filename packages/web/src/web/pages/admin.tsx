@@ -10,6 +10,7 @@ import {
   Mic2,
   Timer,
   UserPlus,
+  Crown,
 } from "lucide-react";
 import { NorviMark } from "../components/chat/norvi-mark";
 import {
@@ -20,7 +21,9 @@ import {
   useSetChokeMode,
   useSetPremium,
   useSetRegistration,
+  useSetRole,
 } from "../queries/admin";
+import { useMe } from "../queries/me";
 
 function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—";
@@ -48,8 +51,10 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-/** Owner-only administration for this NORVI AI instance. */
+/** Owner/Admin administration for this NORVI AI instance. */
 function Admin() {
+  const me = useMe();
+  const isOwner = me.data?.role === "owner";
   const users = useAdminUsers(true);
   const stats = useAdminStats(true);
   const system = useAdminSystem(true);
@@ -57,6 +62,7 @@ function Admin() {
   const setChokeMode = useSetChokeMode();
   const setPremium = useSetPremium();
   const setRegistration = useSetRegistration();
+  const setRole = useSetRole();
   const [dateDraft, setDateDraft] = useState<Record<string, string>>({});
 
   return (
@@ -180,8 +186,16 @@ function Admin() {
         )}
 
         <h2 className="mt-10 mb-3 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-          Benutzer
+          Benutzer & Rollen
         </h2>
+
+        <div className="mb-3 flex items-start gap-3 rounded-2xl border border-border/70 bg-secondary/25 px-4 py-3">
+          <Crown className="mt-0.5 size-4 shrink-0 text-primary" />
+          <div className="text-[12px] leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">Owner</span> kann Rollen ändern und alle Konten verwalten.
+            {" "}<span className="font-medium text-foreground">Admins</span> können normale Benutzer aktivieren, Premium/Choke Mode verwalten, Registrierung steuern und den Systemstatus sehen — aber keine Admins oder den Owner ändern.
+          </div>
+        </div>
 
         <div className="glass-panel scroll-slim overflow-x-auto rounded-2xl">
           <table className="w-full min-w-[54rem] text-left text-[13px]">
@@ -211,18 +225,44 @@ function Admin() {
                     <div className="text-[12px] text-muted-foreground">{row.email}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={
-                        row.role === "admin" ? "text-primary" : "text-muted-foreground"
-                      }
-                    >
-                      {row.role === "admin" ? "Admin" : "Benutzer"}
-                    </span>
+                    {row.role === "owner" ? (
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+                        <Crown className="size-3.5" /> Owner
+                      </span>
+                    ) : isOwner ? (
+                      <button
+                        type="button"
+                        disabled={setRole.isPending}
+                        onClick={() =>
+                          setRole.mutate({
+                            id: row.id,
+                            role: row.role === "admin" ? "user" : "admin",
+                          })
+                        }
+                        className={`rounded-lg px-2.5 py-1 text-[12px] font-medium transition disabled:opacity-50 ${
+                          row.role === "admin"
+                            ? "bg-primary/15 text-primary hover:bg-primary/25"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                        title={row.role === "admin" ? "Zu Benutzer machen" : "Zu Admin machen"}
+                      >
+                        {row.role === "admin" ? "Admin" : "Benutzer"}
+                      </button>
+                    ) : (
+                      <span className={row.role === "admin" ? "text-primary" : "text-muted-foreground"}>
+                        {row.role === "admin" ? "Admin" : "Benutzer"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{row.chats}</td>
                   <td className="px-4 py-3">
                     <button
                       type="button"
+                      disabled={
+                        setActive.isPending ||
+                        row.role === "owner" ||
+                        (!isOwner && row.role !== "user")
+                      }
                       onClick={() =>
                         setActive.mutate({ id: row.id, isActive: !row.isActive })
                       }
@@ -236,26 +276,33 @@ function Admin() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPremium.mutate({
-                          id: row.id,
-                          isPremium: !row.isPremium,
-                          premiumUntil: dateDraft[row.id] || null,
-                        })
-                      }
-                      className={`rounded-lg px-2.5 py-1 text-[12px] transition ${
-                        row.isPremium
-                          ? "bg-primary/15 text-primary hover:bg-primary/25"
-                          : "bg-secondary text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {row.isPremium ? "Premium an" : "Premium aus"}
-                    </button>
+                    {row.role === "owner" || row.role === "admin" ? (
+                      <span className="rounded-lg bg-primary/15 px-2.5 py-1 text-[12px] text-primary">
+                        Immer an
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={setPremium.isPending || (!isOwner && row.role !== "user")}
+                        onClick={() =>
+                          setPremium.mutate({
+                            id: row.id,
+                            isPremium: !row.isPremium,
+                            premiumUntil: dateDraft[row.id] || null,
+                          })
+                        }
+                        className={`rounded-lg px-2.5 py-1 text-[12px] transition disabled:opacity-50 ${
+                          row.isPremium
+                            ? "bg-primary/15 text-primary hover:bg-primary/25"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {row.isPremium ? "Premium an" : "Premium aus"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    {row.role === "admin" ? (
+                    {row.role === "owner" || row.role === "admin" ? (
                       <span className="rounded-lg bg-primary/15 px-2.5 py-1 text-[12px] text-primary">
                         Immer an
                       </span>
@@ -287,13 +334,18 @@ function Admin() {
                       <input
                         type="date"
                         aria-label="Premium-Ablaufdatum"
+                        disabled={
+                          row.role === "owner" ||
+                          row.role === "admin" ||
+                          (!isOwner && row.role !== "user")
+                        }
                         value={dateDraft[row.id] ?? ""}
                         onChange={(e) =>
                           setDateDraft((prev) => ({ ...prev, [row.id]: e.target.value }))
                         }
                         onBlur={() => {
                           const value = dateDraft[row.id];
-                          if (value && row.isPremium) {
+                          if (value && row.isPremium && row.role === "user") {
                             setPremium.mutate({
                               id: row.id,
                               isPremium: true,
@@ -301,7 +353,7 @@ function Admin() {
                             });
                           }
                         }}
-                        className="rounded-lg border border-border bg-background/60 px-2 py-1 text-[12px] outline-none focus:border-primary/60"
+                        className="rounded-lg border border-border bg-background/60 px-2 py-1 text-[12px] outline-none focus:border-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
                       />
                     </div>
                   </td>
@@ -311,7 +363,8 @@ function Admin() {
           </table>
         </div>
 
-        {(setActive.error ||
+        {(setRole.error ||
+          setActive.error ||
           setChokeMode.error ||
           setPremium.error ||
           setRegistration.error) && (

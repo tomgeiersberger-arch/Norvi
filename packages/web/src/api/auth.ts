@@ -38,12 +38,12 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      // Owner/admin flag — never settable from the client.
+      // Account role (owner/admin/user) — never settable from the client.
       role: { type: "string", defaultValue: "user", input: false },
       isActive: { type: "boolean", defaultValue: true, input: false },
       isPremium: { type: "boolean", defaultValue: false, input: false },
       premiumUntil: { type: "date", required: false, input: false },
-      // Admin-controlled feature gate. Admin accounts always get access server-side.
+      // Admin-controlled feature gate. Owner/admin accounts always get access server-side.
       chokeModeEnabled: { type: "boolean", defaultValue: false, input: false },
     },
   },
@@ -52,7 +52,7 @@ export const auth = betterAuth({
       create: {
         before: async (newUser) => {
           // Owner bootstrap: the configured ADMIN_EMAIL, or the very first
-          // account ever created, becomes admin. Never client-settable.
+          // account ever created, becomes owner. Never client-settable.
           const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
           const isConfiguredAdmin =
             !!adminEmail && newUser.email.trim().toLowerCase() === adminEmail;
@@ -64,7 +64,7 @@ export const auth = betterAuth({
             });
           }
 
-          const role = isConfiguredAdmin || !existing ? "admin" : "user";
+          const role = isConfiguredAdmin || !existing ? "owner" : "user";
           return { data: { ...newUser, role } };
         },
       },

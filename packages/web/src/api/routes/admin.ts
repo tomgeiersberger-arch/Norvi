@@ -2,7 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { freemem, loadavg, totalmem, uptime } from "node:os";
 import { count, desc, eq, gte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { adminOnly } from "../middleware/auth";
+import { adminOnly, ownerOnly } from "../middleware/auth";
 import { defaultModelId, providerKind, visionAvailable } from "../agent/gateway";
 import { db } from "../database";
 import { sttAvailable } from "../lib/stt";
@@ -11,10 +11,32 @@ import { allowAdditionalSignups, setRuntimeSignupEnabled } from "../lib/access";
 import * as schema from "../database/schema";
 
 const userId = z.string().min(1).max(120);
+const assignableRole = z.enum(["admin", "user"]);
 
-/** Owner-only administration for the self-hosted NORVI AI instance. */
+async function targetAccount(id: string) {
+  const [target] = await db
+    .select({ id: schema.user.id, role: schema.user.role })
+    .from(schema.user)
+    .where(eq(schema.user.id, id))
+    .limit(1);
+  if (!target) throw new ORPCError("NOT_FOUND", { message: "Konto nicht gefunden." });
+  return target;
+}
+
+function assertCanManage(actorRole: string, targetRole: string) {
+  if (targetRole === "owner") {
+    throw new ORPCError("FORBIDDEN", { message: "Der Owner kann nicht verwaltet werden." });
+  }
+  if (actorRole === "admin" && targetRole !== "user") {
+    throw new ORPCError("FORBIDDEN", {
+      message: "Admins dürfen nur normale Benutzer verwalten.",
+    });
+  }
+}
+
+/** Administration for the self-hosted NORVI AI instance. */
 export const admin = {
-  /** All accounts with their real chat/message counts. */
+  /** Owner/Admin: all accounts with their real chat/message counts. */
   users: adminOnly.handler(async () => {
     const rows = await db
       .select({
@@ -40,13 +62,31 @@ export const admin = {
     return rows.map((row) => ({ ...row, chats: byUser.get(row.id) ?? 0 }));
   }),
 
-  /** Enable or disable an account. The last admin can never lock themselves out. */
+  /** Owner only: promote a user to Admin or demote an Admin to User. */
+  setRole: ownerOnly
+    .input(z.object({ id: userId, role: assignableRole }))
+    .handler(async ({ input }) => {
+      const target = await targetAccount(input.id);
+      if (target.role === "owner") {
+        throw new ORPCError("FORBIDDEN", { message: "Die Owner-Rolle kann nicht geändert werden." });
+      }
+      const [updated] = await db
+        .update(schema.user)
+        .set({ role: input.role })
+        .where(eq(schema.user.id, input.id))
+        .returning({ id: schema.user.id, role: schema.user.role });
+      return updated;
+    }),
+
+  /** Owner/Admin: enable or disable accounts inside their permission level. */
   setActive: adminOnly
     .input(z.object({ id: userId, isActive: z.boolean() }))
     .handler(async ({ input, context }) => {
+      const target = await targetAccount(input.id);
+      assertCanManage(context.user.role, target.role);
       if (input.id === context.user.id && !input.isActive) {
         throw new ORPCError("BAD_REQUEST", {
-          message: "Das eigene Admin-Konto kann nicht deaktiviert werden.",
+          message: "Das eigene Konto kann nicht deaktiviert werden.",
         });
       }
       const [updated] = await db
@@ -54,21 +94,21 @@ export const admin = {
         .set({ isActive: input.isActive })
         .where(eq(schema.user.id, input.id))
         .returning({ id: schema.user.id, isActive: schema.user.isActive });
-      if (!updated) throw new ORPCError("NOT_FOUND", { message: "Konto nicht gefunden." });
       return updated;
     }),
 
-  /** Manually grant or revoke premium, optionally with an expiry date. */
+  /** Owner/Admin: grant or revoke Premium for manageable users. */
   setPremium: adminOnly
     .input(
       z.object({
         id: userId,
         isPremium: z.boolean(),
-        // ISO date string (yyyy-mm-dd) or null for "unlimited".
         premiumUntil: z.string().trim().min(4).max(40).nullable().optional(),
       }),
     )
-    .handler(async ({ input }) => {
+    .handler(async ({ input, context }) => {
+      const target = await targetAccount(input.id);
+      assertCanManage(context.user.role, target.role);
       const until =
         input.isPremium && input.premiumUntil ? new Date(input.premiumUntil) : null;
       if (until && Number.isNaN(until.getTime())) {
@@ -83,25 +123,18 @@ export const admin = {
           isPremium: schema.user.isPremium,
           premiumUntil: schema.user.premiumUntil,
         });
-      if (!updated) throw new ORPCError("NOT_FOUND", { message: "Konto nicht gefunden." });
       return updated;
     }),
 
-  /** Grant or revoke Choke Mode for a normal user. Admins always have access. */
+  /** Owner/Admin: grant or revoke Choke Mode for manageable normal users. */
   setChokeMode: adminOnly
     .input(z.object({ id: userId, enabled: z.boolean() }))
-    .handler(async ({ input }) => {
-      const [target] = await db
-        .select({ id: schema.user.id, role: schema.user.role })
-        .from(schema.user)
-        .where(eq(schema.user.id, input.id))
-        .limit(1);
-      if (!target) throw new ORPCError("NOT_FOUND", { message: "Konto nicht gefunden." });
-
-      const enabled = target.role === "admin" ? true : input.enabled;
+    .handler(async ({ input, context }) => {
+      const target = await targetAccount(input.id);
+      assertCanManage(context.user.role, target.role);
       const [updated] = await db
         .update(schema.user)
-        .set({ chokeModeEnabled: enabled })
+        .set({ chokeModeEnabled: input.enabled })
         .where(eq(schema.user.id, input.id))
         .returning({
           id: schema.user.id,
@@ -110,14 +143,14 @@ export const admin = {
       return updated;
     }),
 
-  /** Temporarily open/close account registration until the next server restart. */
+  /** Owner/Admin: temporarily open/close registration until restart. */
   setRegistration: adminOnly
     .input(z.object({ enabled: z.boolean() }))
     .handler(({ input }) => ({
       enabled: setRuntimeSignupEnabled(input.enabled),
     })),
 
-  /** Safe runtime diagnostics for the owner UI — no credentials or tokens. */
+  /** Owner/Admin: safe runtime diagnostics — no credentials or tokens. */
   system: adminOnly.handler(async () => {
     const total = totalmem();
     const free = freemem();
@@ -141,7 +174,7 @@ export const admin = {
     };
   }),
 
-  /** Real usage numbers straight from the database — no estimates. */
+  /** Owner/Admin: real usage numbers straight from the database. */
   stats: adminOnly.handler(async () => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 

@@ -18,7 +18,7 @@ import { visionModelId } from "./agent/gateway";
 import { db } from "./database";
 import * as schema from "./database/schema";
 import { auth, trustedOrigins } from "./auth";
-import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasPremiumAccess } from "./lib/access";
+import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasAdminAccess, hasPremiumAccess } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { recordAiRequest } from "./lib/ai-metrics";
 import { refreshLocalModelKeepAlive, warmLocalAi } from "./lib/local-ai";
@@ -519,7 +519,7 @@ app.post("/api/agent/messages", async (c) => {
     const prefs = await settingsFor(
       user?.id,
       premiumAccess,
-      user?.role === "admin" || user?.chokeModeEnabled === true,
+      hasAdminAccess(user?.role) || user?.chokeModeEnabled === true,
     );
 
     // Route by the latest user turn, not the whole chat history. Otherwise one

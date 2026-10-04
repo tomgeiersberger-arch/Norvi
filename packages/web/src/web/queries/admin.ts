@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "../lib/api";
 
-/** Owner-only: all accounts of this NORVI AI instance. */
+/** Owner/Admin: all accounts of this NORVI AI instance. */
 export function useAdminUsers(enabled: boolean) {
   return useQuery(orpc.admin.users.queryOptions({ enabled, retry: false }));
 }
 
-/** Owner-only: real usage numbers from the database. */
+/** Owner/Admin: real usage numbers from the database. */
 export function useAdminStats(enabled: boolean) {
   return useQuery(orpc.admin.stats.queryOptions({ enabled, retry: false }));
 }
 
-/** Owner-only: runtime health of the local NORVI server. */
+/** Owner/Admin: runtime health of the local NORVI server. */
 export function useAdminSystem(enabled: boolean) {
   return useQuery(
     orpc.admin.system.queryOptions({
@@ -25,6 +25,11 @@ export function useAdminSystem(enabled: boolean) {
 function useInvalidateAdmin() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: orpc.admin.key() });
+}
+
+export function useSetRole() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation(orpc.admin.setRole.mutationOptions({ onSuccess: invalidate }));
 }
 
 export function useSetActive() {

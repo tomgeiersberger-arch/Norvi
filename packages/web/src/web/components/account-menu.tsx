@@ -84,9 +84,13 @@ export function AccountMenu() {
               <div className="truncate text-[11px] text-muted-foreground">
                 {user ? user.email : "Chats bleiben nur auf diesem Gerät"}
               </div>
-              {user && (user.role === "admin" || user.premiumAccess) && (
+              {user && (user.role === "owner" || user.role === "admin" || user.premiumAccess) && (
                 <span className="mt-2 inline-flex rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-0.5 text-[9px] font-semibold tracking-[0.1em] text-primary uppercase">
-                  {user.role === "admin" ? "Admin · Vollzugriff" : "Premium"}
+                  {user.role === "owner"
+                    ? "Owner · Vollzugriff"
+                    : user.role === "admin"
+                      ? "Admin · Verwaltung"
+                      : "Premium"}
                 </span>
               )}
             </div>
@@ -107,7 +111,7 @@ export function AccountMenu() {
               </button>
             )}
 
-            {user?.role === "admin" && (
+            {(user?.role === "owner" || user?.role === "admin") && (
               <button
                 type="button"
                 role="menuitem"

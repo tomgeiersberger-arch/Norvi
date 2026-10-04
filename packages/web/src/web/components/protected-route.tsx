@@ -5,17 +5,19 @@ import { useMe } from "../queries/me";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  /** When true the page additionally requires the admin role. */
+  /** When true the page additionally requires Owner or Admin. */
   adminOnly?: boolean;
 }
 
-/** Gate for pages that need a NORVI AI account (and optionally the owner role). */
+/** Gate for pages that need a NORVI AI account (and optionally Owner/Admin access). */
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
   const me = useMe();
   const [, navigate] = useLocation();
 
   const user = me.data ?? null;
-  const denied = !me.isLoading && (!user || (adminOnly && user.role !== "admin"));
+  const denied =
+    !me.isLoading &&
+    (!user || (adminOnly && user.role !== "owner" && user.role !== "admin"));
 
   useEffect(() => {
     if (!denied) return;
