@@ -10,7 +10,6 @@ import { useCapabilities } from "../../queries/capabilities";
 import type { UploadedImage } from "../../lib/uploads";
 import { getNorviDesktopAPI } from "../../lib/desktop";
 import {
-  desktopActionLabel,
   getAssistantSettings,
   matchDesktopAction,
   VOICE_COMMAND_EVENT,
