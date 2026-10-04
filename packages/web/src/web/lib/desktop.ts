@@ -65,7 +65,9 @@ export interface NorviDesktopAPI {
   openWebsite: (url: string) => Promise<{ ok: true; url: string }>;
   capturePrimaryScreen: () => Promise<{ dataUrl: string; name: string }>;
   setQuickShortcut: (enabled: boolean) => Promise<boolean>;
+  setVoiceShortcut: (accelerator: string | null) => Promise<boolean>;
   onFocusCommandInput: (cb: () => void) => () => void;
+  onVoiceShortcut: (cb: () => void) => () => void;
   setBackgroundMode: (enabled: boolean) => Promise<boolean>;
   getAutoStart: () => Promise<boolean>;
   setAutoStart: (enabled: boolean) => Promise<boolean>;

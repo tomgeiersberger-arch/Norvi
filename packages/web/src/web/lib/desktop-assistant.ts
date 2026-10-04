@@ -22,6 +22,8 @@ export interface DesktopAssistantSettings {
   microphoneEnabled: boolean;
   screenCaptureEnabled: boolean;
   quickShortcutEnabled: boolean;
+  voiceShortcutEnabled: boolean;
+  voiceShortcut: string;
   conversationMode: boolean;
   conversationWindowSeconds: number;
   onboardingComplete: boolean;
@@ -55,6 +57,8 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   microphoneEnabled: true,
   screenCaptureEnabled: false,
   quickShortcutEnabled: true,
+  voiceShortcutEnabled: false,
+  voiceShortcut: "CommandOrControl+Shift+Space",
   conversationMode: false,
   conversationWindowSeconds: 12,
   onboardingComplete: false,
@@ -158,6 +162,12 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     microphoneEnabled: value.microphoneEnabled !== false,
     screenCaptureEnabled: value.screenCaptureEnabled === true,
     quickShortcutEnabled: value.quickShortcutEnabled !== false,
+    voiceShortcutEnabled: value.voiceShortcutEnabled === true,
+    voiceShortcut: cleanName(
+      value.voiceShortcut,
+      DEFAULT_ASSISTANT_SETTINGS.voiceShortcut,
+      80,
+    ),
     conversationMode: value.conversationMode === true,
     conversationWindowSeconds:
       typeof value.conversationWindowSeconds === "number"

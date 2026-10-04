@@ -60,6 +60,7 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const handleRef = useRef<RecordHandle | null>(null);
+  const toggleRecordingRef = useRef<() => void>(() => undefined);
 
   useEffect(() => subscribeAssistantSettings(setAssistantSettings), []);
 
@@ -201,6 +202,10 @@ export function Composer({
     }
   };
 
+  toggleRecordingRef.current = () => {
+    void toggleRecording();
+  };
+
   const captureScreen = async () => {
     if (!vision || !assistantSettings.screenCaptureEnabled) return;
     const api = getNorviDesktopAPI();
@@ -218,6 +223,15 @@ export function Composer({
       setNotice(error instanceof Error ? error.message : "Screenshot konnte nicht erstellt werden.");
     }
   };
+
+  useEffect(() => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    return api.onVoiceShortcut(() => {
+      if (!stt || !assistantSettings.microphoneEnabled || busy || transcribing) return;
+      toggleRecordingRef.current();
+    });
+  }, [assistantSettings.microphoneEnabled, busy, recording, stt, transcribing]);
 
   const micAllowed = !isDesktop() || assistantSettings.microphoneEnabled;
   const micDisabled = transcribing || busy || !micAllowed;

@@ -124,3 +124,8 @@ The desktop settings include a local system overview for CPU, RAM, NVIDIA VRAM, 
 Windows users can add their own games/programs from Desktop Assistant settings. NORVI opens a native file picker and accepts an explicitly selected `.exe` or `.lnk`. The main process stores that path in its private local registry and returns only an opaque action id to the web UI. The user can then assign one or more call-words, for example `fn` for Fortnite.
 
 Chat or model text can never supply an executable path, command line, arguments, or shell command. Launching is limited to the fixed built-ins plus ids that already exist in the native user-selected registry.
+
+
+## Push-to-talk / voice shortcut
+
+Desktop users can optionally register a global voice shortcut such as `CommandOrControl+Shift+Space`. One press starts the normal local microphone flow and the next press stops it. The accelerator is configurable in settings and can be disabled completely.

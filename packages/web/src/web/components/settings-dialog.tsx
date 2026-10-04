@@ -129,6 +129,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         (next.microphoneEnabled && next.wakeEnabled) || next.startWithWindows,
       );
       void api?.setQuickShortcut(next.quickShortcutEnabled);
+      void api?.setVoiceShortcut(next.voiceShortcutEnabled ? next.voiceShortcut : null);
       void api?.setAutoStart(next.startWithWindows);
     }
     update.mutate(
@@ -383,6 +384,46 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       </span>
                     </span>
                   </label>
+
+                  <div className="rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <label htmlFor="norvi-voice-shortcut-enabled" className="flex cursor-pointer items-center gap-3">
+                      <input
+                        id="norvi-voice-shortcut-enabled"
+                        aria-label="Sprach-Hotkey aktivieren"
+                        type="checkbox"
+                        checked={assistant.voiceShortcutEnabled}
+                        disabled={!assistant.microphoneEnabled}
+                        onChange={(event) =>
+                          setAssistant((current) => ({
+                            ...current,
+                            voiceShortcutEnabled: event.target.checked,
+                          }))
+                        }
+                        className="size-4 accent-[var(--primary)]"
+                      />
+                      <Keyboard className="size-4 text-muted-foreground" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[12px]">Push-to-talk / Sprach-Hotkey</span>
+                        <span className="block text-[10px] text-muted-foreground">
+                          Einmal drücken startet die Aufnahme, nochmal drücken beendet sie.
+                        </span>
+                      </span>
+                    </label>
+                    {assistant.voiceShortcutEnabled && (
+                      <input
+                        aria-label="Sprach-Hotkey Tastenkombination"
+                        value={assistant.voiceShortcut}
+                        onChange={(event) =>
+                          setAssistant((current) => ({
+                            ...current,
+                            voiceShortcut: event.target.value,
+                          }))
+                        }
+                        placeholder="CommandOrControl+Shift+Space"
+                        className="mt-2 w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                      />
+                    )}
+                  </div>
 
                   <label htmlFor="norvi-wake-enabled" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
                     <input

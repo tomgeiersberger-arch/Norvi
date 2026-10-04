@@ -46,6 +46,7 @@ let tray: Tray | null = null;
 let installPromise: Promise<void> | null = null;
 let backgroundMode = false;
 let quickShortcutEnabled = false;
+let voiceShortcutRegistered: string | null = null;
 let quitting = false;
 const backgroundLaunch = process.argv.includes(BACKGROUND_ARG);
 const getWindow = () => win;
@@ -118,6 +119,31 @@ function setQuickShortcut(enabled: boolean): boolean {
     }
   });
   return quickShortcutEnabled;
+}
+
+function setVoiceShortcut(rawAccelerator: string | null): boolean {
+  if (voiceShortcutRegistered) {
+    globalShortcut.unregister(voiceShortcutRegistered);
+    voiceShortcutRegistered = null;
+  }
+
+  const accelerator = (rawAccelerator ?? "").replace(/[\r\n\t]/g, "").trim().slice(0, 80);
+  if (!accelerator) return false;
+  if (accelerator.toLocaleLowerCase() === "alt+space" && quickShortcutEnabled) return false;
+
+  try {
+    const registered = globalShortcut.register(accelerator, () => {
+      showWindow();
+      const window = win;
+      if (window && !window.isDestroyed()) {
+        window.webContents.send("norvi:voice-shortcut");
+      }
+    });
+    if (registered) voiceShortcutRegistered = accelerator;
+    return registered;
+  } catch {
+    return false;
+  }
 }
 
 async function capturePrimaryScreen(): Promise<{ dataUrl: string; name: string }> {
@@ -272,6 +298,9 @@ function registerNorviHandlers() {
   ipcMain.handle("norvi:set-quick-shortcut", (_event, enabled: boolean) =>
     setQuickShortcut(Boolean(enabled)),
   );
+  ipcMain.handle("norvi:set-voice-shortcut", (_event, accelerator: string | null) =>
+    setVoiceShortcut(typeof accelerator === "string" ? accelerator : null),
+  );
 
   ipcMain.handle("norvi:set-background-mode", (_event, enabled: boolean) => {
     setBackgroundMode(Boolean(enabled));
@@ -331,6 +360,7 @@ app.on("before-quit", () => {
   quitting = true;
   globalShortcut.unregisterAll();
   quickShortcutEnabled = false;
+  voiceShortcutRegistered = null;
   stopSpeech();
   stopLocalServer();
 });

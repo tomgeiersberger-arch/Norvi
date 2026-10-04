@@ -78,6 +78,7 @@ export function DesktopMaintenancePanel() {
       const api = getNorviDesktopAPI();
       await Promise.all([
         api?.setQuickShortcut(saved.quickShortcutEnabled),
+        api?.setVoiceShortcut(saved.voiceShortcutEnabled ? saved.voiceShortcut : null),
         api?.setBackgroundMode(
           (saved.microphoneEnabled && saved.wakeEnabled) || saved.startWithWindows,
         ),

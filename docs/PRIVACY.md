@@ -65,3 +65,8 @@ The update check is manual. Only when the user presses the update button does th
 ## Custom desktop actions
 
 Custom game/program paths are selected through the native Windows file picker and stored in the desktop app's private local user-data directory. The browser UI only sees an opaque action id and display label. NORVI does not upload the selected executable path or expose a generic command runner.
+
+
+## Voice shortcut
+
+The optional voice shortcut is registered locally through Electron's global shortcut API. Pressing it only signals the local NORVI renderer to start or stop its existing microphone recording flow. The shortcut does not send keystrokes, audio or commands to a cloud service.
