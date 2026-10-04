@@ -41,7 +41,6 @@ async function ollama(
       ...init,
       headers: {
         "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
       },
     });
   } catch {
