@@ -14,7 +14,9 @@ The installer detects system RAM, CPU threads and NVIDIA VRAM when available. A 
 
 ## Windows
 
-Open PowerShell in the cloned/extracted NORVI folder:
+The recommended path for normal users is a tagged GitHub Release containing **`NORVI-Setup-x.y.z.exe`**. The NSIS installer installs the NORVI desktop launcher. On first launch a graphical setup detects the hardware, lets the user choose Lite/Standard/Power, downloads the matching tagged NORVI source, installs Ollama/models locally, builds the web runtime and then opens NORVI.
+
+For a cloned/extracted source tree, PowerShell remains available:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\deploy\install-local.ps1
@@ -33,7 +35,7 @@ chmod +x deploy/install-local.sh
 ./deploy/install-local.sh
 ```
 
-On macOS, the installer uses Homebrew for Ollama when Ollama is not already installed.
+On macOS and Linux, the script uses Ollama's official install command when Ollama is not already installed.
 
 Manual profile:
 

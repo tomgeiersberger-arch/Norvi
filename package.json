@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "cd packages/web && bunx vite",
     "dev:desktop": "cd packages/desktop && bunx vite",
+    "dist:windows": "cd packages/desktop && bun run dist:win",
     "dev:mobile": "cd packages/mobile && bunx expo start --port $(bun --print \"require('../../__ports.cjs').mobile\") --host lan",
     "dev:mobile:tunnel": "cd packages/mobile && bunx expo start --port $(bun --print \"require('../../__ports.cjs').mobile\") --host tunnel",
     "dev:mobile:localhost": "cd packages/mobile && bunx expo start --port $(bun --print \"require('../../__ports.cjs').mobile\") --host localhost",

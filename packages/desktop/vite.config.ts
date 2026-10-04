@@ -6,7 +6,7 @@ import ports from "../../__ports.cjs";
 export default defineConfig({
   build: {
     rollupOptions: {
-      input: path.join(__dirname, "electron/__no-renderer.ts"),
+      input: path.join(__dirname, "setup/index.html"),
     },
   },
   plugins: [

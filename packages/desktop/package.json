@@ -1,13 +1,14 @@
 {
   "name": "@template/desktop",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "dist": "vite build && electron-builder",
+    "dist:win": "vite build && electron-builder --win nsis --x64",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

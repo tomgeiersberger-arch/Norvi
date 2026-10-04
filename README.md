@@ -21,9 +21,7 @@ chmod +x deploy/install-local.sh
 ./deploy/install-local.sh
 ```
 
-The installer uses Ollama's official install command when Ollama is missing.
-
-Then start NORVI with `bun run serve` and open **http://localhost:4200**.
+The installers use Ollama's official install command when Ollama is missing. The Windows desktop app starts the local NORVI server automatically. Source installs can be started with `bun run serve` and opened at **http://localhost:4200**.
 
 ## Automatic model profiles
 
