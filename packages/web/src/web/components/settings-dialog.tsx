@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
+import { getDeviceId } from "../lib/device";
 import {
   getAssistantSettings,
   saveAssistantSettings,
@@ -117,7 +118,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       void api?.setAutoStart(next.startWithWindows);
     }
     update.mutate(
-      { temperature, performanceMode },
+      { deviceId: getDeviceId(), temperature, performanceMode },
       { onSuccess: () => setSaved(true) },
     );
   };

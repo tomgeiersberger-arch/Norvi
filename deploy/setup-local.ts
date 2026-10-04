@@ -166,7 +166,7 @@ if (existsSync(".env") && !process.argv.includes("--force")) {
     DATABASE_AUTH_TOKEN: "",
     BETTER_AUTH_SECRET: secret,
     ADMIN_EMAIL: "",
-    REQUIRE_AUTH: "true",
+    REQUIRE_AUTH: "false",
     ALLOW_SIGNUP: "false",
     AI_PROVIDER: "openai-compatible",
     AI_BASE_URL: "http://127.0.0.1:11434/v1",

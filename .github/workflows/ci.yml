@@ -31,6 +31,9 @@ jobs:
       - name: Desktop action matcher
         run: bun deploy/test-desktop-actions.ts
 
+      - name: Public local defaults
+        run: bun deploy/test-public-local-defaults.ts
+
       - name: Typecheck
         run: bun run typecheck
 

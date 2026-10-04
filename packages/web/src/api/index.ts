@@ -525,6 +525,7 @@ app.post("/api/agent/messages", async (c) => {
     // Per-account model / answer style, falling back to the server default.
     const prefs = await settingsFor(
       user?.id,
+      deviceId,
       premiumAccess,
       hasAdminAccess(user?.role) || user?.chokeModeEnabled === true,
     );

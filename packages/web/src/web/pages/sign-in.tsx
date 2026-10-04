@@ -45,10 +45,26 @@ function SignIn() {
   const [busy, setBusy] = useState(false);
   const registrationOpen = capabilities.data?.registrationOpen === true;
   const publicEdition = capabilities.data?.publicEdition === true;
+  const loginlessLocal =
+    publicEdition &&
+    capabilities.data?.localOnly === true &&
+    capabilities.data?.requireAuth !== true;
+
+  useEffect(() => {
+    if (loginlessLocal) navigate("/", { replace: true });
+  }, [loginlessLocal, navigate]);
 
   useEffect(() => {
     if (!registrationOpen && mode === "signup") setMode("signin");
   }, [registrationOpen, mode]);
+
+  if (loginlessLocal) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-sm text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+      </div>
+    );
+  }
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

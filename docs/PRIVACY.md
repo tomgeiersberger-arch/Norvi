@@ -41,3 +41,10 @@ Screen Mode is opt-in and disabled by default. When enabled, NORVI only captures
 The Alt + Space desktop shortcut only brings NORVI to the foreground and focuses its input field. It does not execute a command by itself.
 
 Conversation Mode is also opt-in. It opens a short local microphone follow-up window after a completed voice turn so a second wake phrase is not required. The microphone master switch disables both wake listening and conversation follow-ups.
+
+
+## Login-less local profile
+
+The public local installer defaults to `REQUIRE_AUTH=false`. On a normal desktop installation, chat history and preferences are scoped to the browser/device identifier and remain in the local SQLite database, so an email/password login is not required.
+
+If NORVI is deliberately exposed to another machine, a LAN, or the public internet, enable `REQUIRE_AUTH=true` before doing so. Login-less mode is designed for the owner sitting at the local computer, not as an internet-facing access-control mechanism.
