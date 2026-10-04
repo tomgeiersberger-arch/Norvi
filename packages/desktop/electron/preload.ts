@@ -22,6 +22,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 contextBridge.exposeInMainWorld("norviDesktop", {
   detectHardware: () => ipcRenderer.invoke("norvi:detect-hardware"),
   checkForUpdates: () => ipcRenderer.invoke("norvi:check-for-updates"),
+  runRuntimeSelfTest: () => ipcRenderer.invoke("norvi:runtime-self-test"),
+  repairRuntime: () => ipcRenderer.invoke("norvi:repair-runtime"),
+  listManagedModels: () => ipcRenderer.invoke("norvi:list-managed-models"),
+  pullManagedModel: (profile: "lite" | "standard" | "power") =>
+    ipcRenderer.invoke("norvi:pull-managed-model", profile),
+  activateManagedModel: (profile: "lite" | "standard" | "power") =>
+    ipcRenderer.invoke("norvi:activate-managed-model", profile),
+  deleteManagedModel: (profile: "lite" | "standard" | "power") =>
+    ipcRenderer.invoke("norvi:delete-managed-model", profile),
   install: (profile: "lite" | "standard" | "power") =>
     ipcRenderer.invoke("norvi:install", profile),
   launch: () => ipcRenderer.invoke("norvi:launch"),

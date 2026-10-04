@@ -21,6 +21,13 @@ export interface SetupProgress {
   percent?: number;
 }
 
+export interface RuntimeCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
 let serverProcess: ChildProcessWithoutNullStreams | null = null;
 
 export function runtimeDirectory(): string {
@@ -235,6 +242,66 @@ function bunExecutable(): string {
   return process.platform === "win32" ? "bun.exe" : "bun";
 }
 
+async function ollamaHealthOk(): Promise<boolean> {
+  try {
+    const response = await net.fetch("http://127.0.0.1:11434/api/tags");
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function sttHealthOk(): Promise<boolean> {
+  try {
+    const response = await net.fetch("http://127.0.0.1:8000/v1/models");
+    return response.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function startOllamaIfNeeded(): Promise<void> {
+  if (await ollamaHealthOk()) return;
+
+  const candidates =
+    process.platform === "win32"
+      ? [
+          path.join(
+            process.env.LOCALAPPDATA ?? "",
+            "Programs",
+            "Ollama",
+            "ollama.exe",
+          ),
+          "ollama.exe",
+        ]
+      : ["ollama"];
+
+  let started = false;
+  for (const command of candidates) {
+    try {
+      const child = spawn(command, ["serve"], {
+        detached: true,
+        windowsHide: true,
+        stdio: "ignore",
+        shell: false,
+      });
+      child.unref();
+      started = true;
+      break;
+    } catch {
+      // Try the next known Ollama path.
+    }
+  }
+  if (!started) throw new Error("Ollama konnte nicht gestartet werden.");
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 30_000) {
+    if (await ollamaHealthOk()) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error("Ollama antwortet nach dem Start nicht.");
+}
+
 async function localHealthOk(): Promise<boolean> {
   try {
     const response = await net.fetch("http://127.0.0.1:4200/api/health");
@@ -293,4 +360,85 @@ export function stopLocalServer(): void {
   if (!serverProcess || serverProcess.killed) return;
   serverProcess.kill();
   serverProcess = null;
+}
+
+export async function runRuntimeSelfTest(): Promise<RuntimeCheck[]> {
+  const runtime = await runtimeReady();
+  const [ollamaOk, norviOk, sttOk] = await Promise.all([
+    ollamaHealthOk(),
+    localHealthOk(),
+    sttHealthOk(),
+  ]);
+
+  let bunOk = false;
+  try {
+    execFileSync(bunExecutable(), ["--version"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    bunOk = true;
+  } catch {
+    bunOk = false;
+  }
+
+  return [
+    {
+      id: "runtime",
+      label: "NORVI-Dateien",
+      ok: runtime,
+      detail: runtime ? "Runtime vollständig" : "Runtime unvollständig",
+    },
+    {
+      id: "bun",
+      label: "Bun",
+      ok: bunOk,
+      detail: bunOk ? "Bun ausführbar" : "Bun nicht gefunden",
+    },
+    {
+      id: "ollama",
+      label: "Ollama",
+      ok: ollamaOk,
+      detail: ollamaOk ? "Ollama API erreichbar" : "Ollama API offline",
+    },
+    {
+      id: "norvi",
+      label: "NORVI Server",
+      ok: norviOk,
+      detail: norviOk ? "Port 4200 bereit" : "Lokaler Server offline",
+    },
+    {
+      id: "stt",
+      label: "Speech-to-Text",
+      ok: sttOk,
+      detail: sttOk ? "Lokaler STT-Dienst erreichbar" : "STT-Dienst offline",
+    },
+  ];
+}
+
+export async function repairLocalRuntime(): Promise<RuntimeCheck[]> {
+  if (!(await runtimeReady())) {
+    throw new Error("NORVI Runtime ist unvollständig. Bitte die Installation erneut ausführen.");
+  }
+
+  await startOllamaIfNeeded();
+
+  const needsSttRestart = !(await sttHealthOk());
+  if (needsSttRestart && serverProcess && !serverProcess.killed) {
+    stopLocalServer();
+    await new Promise((resolve) => setTimeout(resolve, 700));
+  }
+
+  if (!(await localHealthOk())) {
+    await startLocalServer();
+  }
+
+  if (needsSttRestart) {
+    const started = Date.now();
+    while (Date.now() - started < 20_000) {
+      if (await sttHealthOk()) break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+
+  return runRuntimeSelfTest();
 }

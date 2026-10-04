@@ -134,3 +134,10 @@ Desktop users can optionally register a global voice shortcut such as `CommandOr
 ## Local Memory
 
 The desktop app includes a small explicit memory manager. Users can keep up to 30 short local notes, edit/delete them individually, or disable memory entirely. Memory is not automatically extracted from chats. It is only forwarded to the model when the server is in `LOCAL_ONLY_MODE`.
+
+
+## Model Manager and recovery
+
+The Windows desktop settings expose curated Lite 4B, Standard 8B and Power 14B text profiles. A model can be pulled through the loopback Ollama API, activated by updating NORVI's local aliases, or deleted when it is not active.
+
+The System & Maintenance card can also run a local self-test for runtime files, Bun, Ollama, NORVI's local web server and STT. The repair action can restart locally owned services where possible.

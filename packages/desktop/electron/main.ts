@@ -17,6 +17,8 @@ import { registerIpcHandlers } from "./ipc";
 import {
   detectHardware,
   installRuntime,
+  repairLocalRuntime,
+  runRuntimeSelfTest,
   runtimeReady,
   startLocalServer,
   stopLocalServer,
@@ -31,6 +33,12 @@ import {
   openDesktopWebsite,
   removeCustomDesktopAction,
 } from "./actions";
+import {
+  activateManagedModel,
+  deleteManagedModel,
+  listManagedModels,
+  pullManagedModel,
+} from "./models";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV !== "production";
@@ -248,6 +256,18 @@ async function checkForUpdates(): Promise<{
 function registerNorviHandlers() {
   ipcMain.handle("norvi:detect-hardware", () => detectHardware());
   ipcMain.handle("norvi:check-for-updates", () => checkForUpdates());
+  ipcMain.handle("norvi:runtime-self-test", () => runRuntimeSelfTest());
+  ipcMain.handle("norvi:repair-runtime", () => repairLocalRuntime());
+  ipcMain.handle("norvi:list-managed-models", () => listManagedModels());
+  ipcMain.handle("norvi:pull-managed-model", (_event, profile: string) =>
+    pullManagedModel(String(profile ?? "")),
+  );
+  ipcMain.handle("norvi:activate-managed-model", (_event, profile: string) =>
+    activateManagedModel(String(profile ?? "")),
+  );
+  ipcMain.handle("norvi:delete-managed-model", (_event, profile: string) =>
+    deleteManagedModel(String(profile ?? "")),
+  );
 
   ipcMain.handle("norvi:install", async (_event, rawProfile: string) => {
     if (installPromise) return installPromise;
