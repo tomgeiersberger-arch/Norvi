@@ -39,3 +39,6 @@ jobs:
 
       - name: Build web
         run: bun run build:web
+
+      - name: Build desktop
+        run: cd packages/desktop && bun run build

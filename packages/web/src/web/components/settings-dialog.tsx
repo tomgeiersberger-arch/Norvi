@@ -1,6 +1,21 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrainCircuit, Gauge, Link2, Loader2, Mic, Plus, Rocket, ShieldCheck, Trash2, Volume2, X, Zap } from "lucide-react";
+import {
+  BrainCircuit,
+  Gauge,
+  Keyboard,
+  Link2,
+  Loader2,
+  Mic,
+  MonitorUp,
+  Plus,
+  Rocket,
+  ShieldCheck,
+  Trash2,
+  Volume2,
+  X,
+  Zap,
+} from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import {
@@ -95,7 +110,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       const next = saveAssistantSettings(assistant);
       setAssistant(next);
       const api = getNorviDesktopAPI();
-      void api?.setBackgroundMode(next.wakeEnabled || next.startWithWindows);
+      void api?.setBackgroundMode(
+        (next.microphoneEnabled && next.wakeEnabled) || next.startWithWindows,
+      );
+      void api?.setQuickShortcut(next.quickShortcutEnabled);
       void api?.setAutoStart(next.startWithWindows);
     }
     update.mutate(
@@ -281,12 +299,83 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 </div>
 
                 <div className="mt-3 grid gap-2">
+                  <label htmlFor="norvi-microphone-enabled" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-microphone-enabled"
+                      aria-label="Mikrofon in NORVI erlauben"
+                      type="checkbox"
+                      checked={assistant.microphoneEnabled}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          microphoneEnabled: event.target.checked,
+                          wakeEnabled: event.target.checked ? current.wakeEnabled : false,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <Mic className="size-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px]">Mikrofon in NORVI erlauben</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        Master-Schalter für Spracheingabe und Wake-Phrase auf diesem PC.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label htmlFor="norvi-screen-capture" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-screen-capture"
+                      aria-label="Bildschirm-Screenshots erlauben"
+                      type="checkbox"
+                      checked={assistant.screenCaptureEnabled}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          screenCaptureEnabled: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <MonitorUp className="size-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px]">Screen Mode erlauben</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        Fügt auf Knopfdruck einen Screenshot deines aktuellen Bildschirms zum Chat hinzu.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label htmlFor="norvi-quick-shortcut" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-quick-shortcut"
+                      aria-label="Alt plus Leertaste Schnellzugriff"
+                      type="checkbox"
+                      checked={assistant.quickShortcutEnabled}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          quickShortcutEnabled: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <Keyboard className="size-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px]">Alt + Leertaste Schnellzugriff</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        Holt NORVI nach vorne und setzt den Fokus direkt ins Eingabefeld.
+                      </span>
+                    </span>
+                  </label>
+
                   <label htmlFor="norvi-wake-enabled" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
                     <input
                       id="norvi-wake-enabled"
                       aria-label="Wake-Phrase im Hintergrund"
                       type="checkbox"
                       checked={assistant.wakeEnabled}
+                      disabled={!assistant.microphoneEnabled}
                       onChange={(event) =>
                         setAssistant((current) => ({
                           ...current,
@@ -301,6 +390,47 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                         NORVI bleibt im Tray und reagiert, wenn die App nicht im Vordergrund ist.
                       </span>
                     </span>
+                  </label>
+
+                  <label htmlFor="norvi-conversation-mode" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <input
+                      id="norvi-conversation-mode"
+                      aria-label="Gesprächsmodus"
+                      type="checkbox"
+                      checked={assistant.conversationMode}
+                      disabled={!assistant.microphoneEnabled || !assistant.wakeEnabled}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          conversationMode: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px]">Gesprächsmodus</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        Nach einer Sprachantwort hört NORVI kurz auf eine Folgefrage, ohne erneut das Wake-Wort zu brauchen.
+                      </span>
+                    </span>
+                    {assistant.conversationMode && (
+                      <select
+                        aria-label="Gesprächsfenster"
+                        value={assistant.conversationWindowSeconds}
+                        onChange={(event) =>
+                          setAssistant((current) => ({
+                            ...current,
+                            conversationWindowSeconds: Number(event.target.value),
+                          }))
+                        }
+                        className="rounded-lg border border-border bg-background/60 px-2 py-1.5 text-[10px]"
+                      >
+                        <option value={8}>8 s</option>
+                        <option value={12}>12 s</option>
+                        <option value={20}>20 s</option>
+                        <option value={30}>30 s</option>
+                      </select>
+                    )}
                   </label>
 
                   <label htmlFor="norvi-speak-replies" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">

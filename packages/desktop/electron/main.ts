@@ -1,4 +1,14 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from "electron";
+import {
+  app,
+  BrowserWindow,
+  desktopCapturer,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeImage,
+  screen,
+  Tray,
+} from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createManagedDeepLinks } from "@runablehq/managed-auth/desktop/main";
@@ -28,6 +38,7 @@ let win: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let installPromise: Promise<void> | null = null;
 let backgroundMode = false;
+let quickShortcutEnabled = false;
 let quitting = false;
 const backgroundLaunch = process.argv.includes(BACKGROUND_ARG);
 const getWindow = () => win;
@@ -85,6 +96,45 @@ function setBackgroundMode(enabled: boolean) {
   backgroundMode = enabled;
   if (enabled) ensureTray();
   else destroyTray();
+}
+
+function setQuickShortcut(enabled: boolean): boolean {
+  globalShortcut.unregister("Alt+Space");
+  quickShortcutEnabled = false;
+  if (!enabled) return false;
+
+  quickShortcutEnabled = globalShortcut.register("Alt+Space", () => {
+    showWindow();
+    const window = win;
+    if (window && !window.isDestroyed()) {
+      window.webContents.send("norvi:focus-command-input");
+    }
+  });
+  return quickShortcutEnabled;
+}
+
+async function capturePrimaryScreen(): Promise<{ dataUrl: string; name: string }> {
+  const primary = screen.getPrimaryDisplay();
+  const logicalWidth = Math.max(1, primary.size.width);
+  const logicalHeight = Math.max(1, primary.size.height);
+  const width = Math.min(1920, Math.round(logicalWidth * primary.scaleFactor));
+  const height = Math.max(1, Math.round((width / logicalWidth) * logicalHeight));
+
+  const sources = await desktopCapturer.getSources({
+    types: ["screen"],
+    thumbnailSize: { width, height },
+    fetchWindowIcons: false,
+  });
+  const source =
+    sources.find((candidate) => candidate.display_id === String(primary.id)) ?? sources[0];
+  if (!source || source.thumbnail.isEmpty()) {
+    throw new Error("Der Bildschirm konnte nicht aufgenommen werden.");
+  }
+
+  return {
+    dataUrl: source.thumbnail.toDataURL(),
+    name: "norvi-screen-" + Date.now() + ".png",
+  };
 }
 
 async function showSetup() {
@@ -158,6 +208,10 @@ function registerNorviHandlers() {
   ipcMain.handle("norvi:open-website", async (_event, url: string) =>
     openDesktopWebsite(String(url ?? "")),
   );
+  ipcMain.handle("norvi:capture-primary-screen", () => capturePrimaryScreen());
+  ipcMain.handle("norvi:set-quick-shortcut", (_event, enabled: boolean) =>
+    setQuickShortcut(Boolean(enabled)),
+  );
 
   ipcMain.handle("norvi:set-background-mode", (_event, enabled: boolean) => {
     setBackgroundMode(Boolean(enabled));
@@ -215,6 +269,8 @@ registerNorviHandlers();
 
 app.on("before-quit", () => {
   quitting = true;
+  globalShortcut.unregisterAll();
+  quickShortcutEnabled = false;
   stopSpeech();
   stopLocalServer();
 });

@@ -37,6 +37,9 @@ export interface NorviDesktopAPI {
   listDesktopActions: () => Promise<{ id: DesktopActionId; label: string }[]>;
   launchDesktopAction: (actionId: DesktopActionId) => Promise<DesktopActionResult>;
   openWebsite: (url: string) => Promise<{ ok: true; url: string }>;
+  capturePrimaryScreen: () => Promise<{ dataUrl: string; name: string }>;
+  setQuickShortcut: (enabled: boolean) => Promise<boolean>;
+  onFocusCommandInput: (cb: () => void) => () => void;
   setBackgroundMode: (enabled: boolean) => Promise<boolean>;
   getAutoStart: () => Promise<boolean>;
   setAutoStart: (enabled: boolean) => Promise<boolean>;

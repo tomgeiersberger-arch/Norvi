@@ -10,6 +10,7 @@ import { useCapabilities } from "../../queries/capabilities";
 import type { UploadedImage } from "../../lib/uploads";
 import { getNorviDesktopAPI } from "../../lib/desktop";
 import {
+  dispatchVoiceTurnComplete,
   getAssistantSettings,
   matchDesktopAction,
   VOICE_COMMAND_EVENT,
@@ -181,6 +182,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
       if (speakReply && assistant.speakReplies) {
         await api.speak(reply, assistant.voice || undefined).catch(() => undefined);
       }
+      if (speakReply) dispatchVoiceTurnComplete();
       return true;
     },
     [setMessages],
@@ -275,12 +277,19 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     spokenMessageRef.current = response.id;
     const assistant = getAssistantSettings();
     const text = messageText(response);
-    if (!assistant.speakReplies || !text) return;
-    void getNorviDesktopAPI()?.speak(text, assistant.voice || undefined);
+    if (!assistant.speakReplies || !text) {
+      dispatchVoiceTurnComplete();
+      return;
+    }
+    void getNorviDesktopAPI()
+      ?.speak(text, assistant.voice || undefined)
+      .finally(() => dispatchVoiceTurnComplete());
   }, [messages, status]);
 
   useEffect(() => {
-    if (error) voiceTurnRef.current = false;
+    if (!error || !voiceTurnRef.current) return;
+    voiceTurnRef.current = false;
+    dispatchVoiceTurnComplete();
   }, [error]);
 
   const retry = () => {

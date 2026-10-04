@@ -13,6 +13,11 @@ export interface DesktopAssistantSettings {
   wakeEnabled: boolean;
   speakReplies: boolean;
   startWithWindows: boolean;
+  microphoneEnabled: boolean;
+  screenCaptureEnabled: boolean;
+  quickShortcutEnabled: boolean;
+  conversationMode: boolean;
+  conversationWindowSeconds: number;
   desktopActionsEnabled: boolean;
   desktopActionAliases: Record<DesktopActionId, string[]>;
   websiteActions: WebsiteAction[];
@@ -26,6 +31,7 @@ export type MatchedDesktopAction =
 const STORAGE_KEY = "norvi.desktop-assistant.v1";
 export const ASSISTANT_SETTINGS_EVENT = "norvi:assistant-settings";
 export const VOICE_COMMAND_EVENT = "norvi:voice-command";
+export const VOICE_TURN_COMPLETE_EVENT = "norvi:voice-turn-complete";
 
 export const DEFAULT_DESKTOP_ACTION_ALIASES: Record<DesktopActionId, string[]> = {
   spotify: ["spotify"],
@@ -38,6 +44,11 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   wakeEnabled: false,
   speakReplies: true,
   startWithWindows: false,
+  microphoneEnabled: true,
+  screenCaptureEnabled: false,
+  quickShortcutEnabled: true,
+  conversationMode: false,
+  conversationWindowSeconds: 12,
   desktopActionsEnabled: true,
   desktopActionAliases: DEFAULT_DESKTOP_ACTION_ALIASES,
   websiteActions: [],
@@ -116,6 +127,14 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     wakeEnabled: value.wakeEnabled === true,
     speakReplies: value.speakReplies !== false,
     startWithWindows: value.startWithWindows === true,
+    microphoneEnabled: value.microphoneEnabled !== false,
+    screenCaptureEnabled: value.screenCaptureEnabled === true,
+    quickShortcutEnabled: value.quickShortcutEnabled !== false,
+    conversationMode: value.conversationMode === true,
+    conversationWindowSeconds:
+      typeof value.conversationWindowSeconds === "number"
+        ? Math.max(6, Math.min(30, Math.round(value.conversationWindowSeconds)))
+        : DEFAULT_ASSISTANT_SETTINGS.conversationWindowSeconds,
     desktopActionsEnabled: value.desktopActionsEnabled !== false,
     desktopActionAliases: {
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),
@@ -192,6 +211,11 @@ export function dispatchVoiceCommand(text: string): void {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return;
   window.dispatchEvent(new CustomEvent(VOICE_COMMAND_EVENT, { detail: { text: clean } }));
+}
+
+export function dispatchVoiceTurnComplete(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(VOICE_TURN_COMPLETE_EVENT));
 }
 
 const DESKTOP_LABELS: Record<DesktopActionId, string> = {

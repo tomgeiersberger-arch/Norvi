@@ -32,3 +32,12 @@ For a machine that should stay local-only, keep `WEBSITE_URL=http://localhost:42
 The optional Windows wake-phrase mode records short microphone chunks locally and sends voice-containing chunks only to NORVI's loopback speech-to-text endpoint. The generated public configuration keeps that endpoint on 127.0.0.1.
 
 Desktop app launching is also local. NORVI exposes only an explicit application allowlist to the renderer; it does not expose an unrestricted shell-command interface.
+
+
+## Screen Mode and desktop shortcut
+
+Screen Mode is opt-in and disabled by default. When enabled, NORVI only captures a screenshot when the user presses the Screen button. The captured image is attached through the same local image pipeline as other uploaded images.
+
+The Alt + Space desktop shortcut only brings NORVI to the foreground and focuses its input field. It does not execute a command by itself.
+
+Conversation Mode is also opt-in. It opens a short local microphone follow-up window after a completed voice turn so a second wake phrase is not required. The microphone master switch disables both wake listening and conversation follow-ups.

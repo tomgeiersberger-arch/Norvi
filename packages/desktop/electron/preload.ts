@@ -38,6 +38,13 @@ contextBridge.exposeInMainWorld("norviDesktop", {
   launchDesktopAction: (actionId: "spotify" | "cs2") =>
     ipcRenderer.invoke("norvi:launch-desktop-action", actionId),
   openWebsite: (url: string) => ipcRenderer.invoke("norvi:open-website", url),
+  capturePrimaryScreen: () => ipcRenderer.invoke("norvi:capture-primary-screen"),
+  setQuickShortcut: (enabled: boolean) => ipcRenderer.invoke("norvi:set-quick-shortcut", enabled),
+  onFocusCommandInput: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("norvi:focus-command-input", listener);
+    return () => ipcRenderer.removeListener("norvi:focus-command-input", listener);
+  },
   setBackgroundMode: (enabled: boolean) =>
     ipcRenderer.invoke("norvi:set-background-mode", enabled),
   getAutoStart: () => ipcRenderer.invoke("norvi:get-auto-start"),
