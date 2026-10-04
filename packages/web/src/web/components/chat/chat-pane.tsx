@@ -334,6 +334,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         deviceId,
         assistantName: agentName,
         ...(localMemory.length ? { localMemory } : {}),
+        ...(responseStyle ? { responseStyle } : {}),
       },
     });
   };
