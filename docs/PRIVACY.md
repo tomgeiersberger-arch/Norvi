@@ -77,3 +77,10 @@ The optional voice shortcut is registered locally through Electron's global shor
 Local Memory is explicit and user-controlled. NORVI does not automatically scrape chats into memory. The user adds, edits or deletes memory items in Desktop settings and can disable the feature completely.
 
 Memory items are stored in the desktop/browser local settings. They are attached to a chat request only when `LOCAL_ONLY_MODE=true`; the server ignores client-supplied memory outside local-only mode. Items are capped in count and size and are passed to the model as user-controlled context, never as higher-priority instructions.
+
+
+## Model Manager and recovery
+
+The desktop Model Manager talks only to the local Ollama API on `127.0.0.1:11434`. It is restricted to NORVI's curated Lite/Standard/Power text models and cannot pull arbitrary model names supplied by chat text. Deleting a model is a user-triggered action and the active model is protected from deletion.
+
+The recovery self-test checks local runtime files, Bun, Ollama, the NORVI server and local STT. “Repair” may start the local Ollama service and restart NORVI's locally owned server/STT process; it does not send diagnostics to a remote service.

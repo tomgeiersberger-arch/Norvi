@@ -19,6 +19,7 @@ import {
 import { useSettings, useUpdateSettings } from "../queries/settings";
 import { DesktopMaintenancePanel } from "./desktop-maintenance-panel";
 import { DesktopMemoryPanel } from "./desktop-memory-panel";
+import { DesktopModelManager } from "./desktop-model-manager";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import { getDeviceId } from "../lib/device";
 import {
@@ -803,6 +804,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             {desktop && (
               <>
                 <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
+                <DesktopModelManager />
                 <DesktopMaintenancePanel />
               </>
             )}

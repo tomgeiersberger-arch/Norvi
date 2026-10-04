@@ -1,6 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, FileUp, RefreshCw, RotateCcw, ShieldCheck, Stethoscope } from "lucide-react";
-import { getNorviDesktopAPI, type DesktopHardwareProfile, type DesktopUpdateInfo } from "../lib/desktop";
+import {
+  CheckCircle2,
+  Download,
+  FileUp,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  Stethoscope,
+  Wrench,
+  XCircle,
+} from "lucide-react";
+import {
+  getNorviDesktopAPI,
+  type DesktopHardwareProfile,
+  type DesktopUpdateInfo,
+  type RuntimeCheck,
+} from "../lib/desktop";
 import {
   getAssistantSettings,
   saveAssistantSettings,
@@ -31,6 +46,8 @@ export function DesktopMaintenancePanel() {
   const [hardware, setHardware] = useState<DesktopHardwareProfile | null>(null);
   const [updateInfo, setUpdateInfo] = useState<DesktopUpdateInfo | null>(null);
   const [busyUpdate, setBusyUpdate] = useState(false);
+  const [busyRecovery, setBusyRecovery] = useState(false);
+  const [checks, setChecks] = useState<RuntimeCheck[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,6 +127,21 @@ export function DesktopMaintenancePanel() {
       setNotice(error instanceof Error ? error.message : "Update-Check fehlgeschlagen.");
     } finally {
       setBusyUpdate(false);
+    }
+  };
+
+  const runSelfTest = async (repair = false) => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    setBusyRecovery(true);
+    setNotice(null);
+    try {
+      setChecks(repair ? await api.repairRuntime() : await api.runRuntimeSelfTest());
+      setNotice(repair ? "Reparaturprüfung abgeschlossen." : "Selbsttest abgeschlossen.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Selbsttest fehlgeschlagen.");
+    } finally {
+      setBusyRecovery(false);
     }
   };
 
@@ -194,6 +226,22 @@ export function DesktopMaintenancePanel() {
         />
         <button
           type="button"
+          disabled={busyRecovery}
+          onClick={() => void runSelfTest(false)}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] disabled:opacity-50"
+        >
+          <Stethoscope className="size-4" /> Selbsttest
+        </button>
+        <button
+          type="button"
+          disabled={busyRecovery}
+          onClick={() => void runSelfTest(true)}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] disabled:opacity-50"
+        >
+          <Wrench className="size-4" /> Reparatur versuchen
+        </button>
+        <button
+          type="button"
           disabled={busyUpdate}
           onClick={() => void checkUpdates()}
           className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] disabled:opacity-50"
@@ -209,6 +257,25 @@ export function DesktopMaintenancePanel() {
           <RotateCcw className="size-4" /> Einrichtung erneut öffnen
         </button>
       </div>
+
+      {checks.length > 0 && (
+        <div className="mt-3 grid gap-1.5">
+          {checks.map((check) => (
+            <div
+              key={check.id}
+              className="flex items-center gap-2 rounded-lg border border-white/[0.05] bg-black/10 px-2.5 py-2 text-[10px]"
+            >
+              {check.ok ? (
+                <CheckCircle2 className="size-3.5 shrink-0 text-green-400" />
+              ) : (
+                <XCircle className="size-3.5 shrink-0 text-destructive" />
+              )}
+              <span className="font-medium">{check.label}</span>
+              <span className="ml-auto text-right text-muted-foreground">{check.detail}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {updateInfo && (
         <div className="mt-3 rounded-xl border border-white/[0.055] bg-black/10 px-3 py-2.5 text-[10.5px] text-muted-foreground">

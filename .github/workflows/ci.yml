@@ -49,6 +49,9 @@ jobs:
       - name: Local memory
         run: bun deploy/test-local-memory.ts
 
+      - name: Model manager and recovery
+        run: bun deploy/test-model-manager-recovery.ts
+
       - name: Typecheck
         run: bun run typecheck
 

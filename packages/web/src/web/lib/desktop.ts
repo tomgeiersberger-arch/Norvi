@@ -51,9 +51,31 @@ export interface DesktopUpdateInfo {
   releaseUrl: string | null;
 }
 
+export interface RuntimeCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface ManagedModelInfo {
+  profile: "lite" | "standard" | "power";
+  label: string;
+  model: string;
+  installed: boolean;
+  active: boolean;
+  sizeBytes: number | null;
+}
+
 export interface NorviDesktopAPI {
   detectHardware: () => Promise<DesktopHardwareProfile>;
   checkForUpdates: () => Promise<DesktopUpdateInfo>;
+  runRuntimeSelfTest: () => Promise<RuntimeCheck[]>;
+  repairRuntime: () => Promise<RuntimeCheck[]>;
+  listManagedModels: () => Promise<ManagedModelInfo[]>;
+  pullManagedModel: (profile: "lite" | "standard" | "power") => Promise<ManagedModelInfo[]>;
+  activateManagedModel: (profile: "lite" | "standard" | "power") => Promise<ManagedModelInfo[]>;
+  deleteManagedModel: (profile: "lite" | "standard" | "power") => Promise<ManagedModelInfo[]>;
   showWindow: () => Promise<boolean>;
   listVoices: () => Promise<string[]>;
   speak: (text: string, voice?: string) => Promise<boolean>;
