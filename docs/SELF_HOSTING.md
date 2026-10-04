@@ -100,3 +100,10 @@ The Windows desktop settings also include:
 - opt-in Conversation Mode with a configurable 8–30 second follow-up window.
 
 These features stay local in the public local-only profile. Screen Mode uses Electron's desktop capture API and then sends the screenshot through NORVI's existing local image-analysis path.
+
+
+## Login behavior
+
+A normal public local install starts without an account screen. The local device ID scopes chats and local model/answer-style preferences.
+
+For any installation that is reachable by other people or through a public reverse proxy, set `REQUIRE_AUTH=true`. That restores the account gate and disables anonymous chat/settings access.
