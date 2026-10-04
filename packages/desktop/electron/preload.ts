@@ -36,7 +36,10 @@ contextBridge.exposeInMainWorld("norviDesktop", {
   speak: (text: string, voice?: string) => ipcRenderer.invoke("norvi:speak", text, voice),
   stopSpeech: () => ipcRenderer.invoke("norvi:stop-speech"),
   listDesktopActions: () => ipcRenderer.invoke("norvi:list-desktop-actions"),
-  launchDesktopAction: (actionId: "spotify" | "cs2") =>
+  addCustomDesktopAction: () => ipcRenderer.invoke("norvi:add-custom-desktop-action"),
+  removeCustomDesktopAction: (actionId: string) =>
+    ipcRenderer.invoke("norvi:remove-custom-desktop-action", actionId),
+  launchDesktopAction: (actionId: string) =>
     ipcRenderer.invoke("norvi:launch-desktop-action", actionId),
   openWebsite: (url: string) => ipcRenderer.invoke("norvi:open-website", url),
   capturePrimaryScreen: () => ipcRenderer.invoke("norvi:capture-primary-screen"),

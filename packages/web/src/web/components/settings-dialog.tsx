@@ -77,6 +77,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     if (!api) return;
     void api.listVoices().then(setVoices).catch(() => setVoices([]));
     void api
+      .listDesktopActions()
+      .then((actions) => {
+        const custom = actions.filter((action) => !action.builtin);
+        setAssistant((current) => ({
+          ...current,
+          customDesktopActions: custom.map((action) => {
+            const existing = current.customDesktopActions.find((item) => item.id === action.id);
+            return existing ?? { id: action.id, label: action.label, aliases: [action.label] };
+          }),
+        }));
+      })
+      .catch(() => undefined);
+    void api
       .getAutoStart()
       .then((enabled) => setAssistant((current) => ({ ...current, startWithWindows: enabled })))
       .catch(() => undefined);
@@ -531,6 +544,93 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                           />
                         </label>
                       ))}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-medium">Eigene Games & Programme</div>
+                        <div className="text-[9.5px] text-muted-foreground">
+                          Wähle eine .exe oder .lnk selbst aus. Danach kannst du beliebige Call-Wörter vergeben.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const api = getNorviDesktopAPI();
+                          if (!api) return;
+                          void api.addCustomDesktopAction().then((action) => {
+                            if (!action) return;
+                            setAssistant((current) => {
+                              if (current.customDesktopActions.some((item) => item.id === action.id)) {
+                                return current;
+                              }
+                              return {
+                                ...current,
+                                customDesktopActions: [
+                                  ...current.customDesktopActions,
+                                  { id: action.id, label: action.label, aliases: [action.label] },
+                                ],
+                              };
+                            });
+                          });
+                        }}
+                        className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground"
+                      >
+                        <Plus className="size-3.5" />
+                        Programm
+                      </button>
+                    </div>
+
+                    <div className="mt-2 grid gap-2">
+                      {assistant.customDesktopActions.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-white/[0.07] px-3 py-2.5 text-[10px] leading-4 text-muted-foreground">
+                          Beispiel: Fortnite.exe auswählen → Call-Wort „fn“ → „Starte fn“.
+                        </div>
+                      ) : (
+                        assistant.customDesktopActions.map((action, index) => (
+                          <div key={action.id} className="rounded-lg border border-white/[0.055] bg-background/30 p-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[11px] font-medium">{action.label}</div>
+                                <div className="text-[9px] text-muted-foreground">Freigegebenes lokales Programm</div>
+                              </div>
+                              <button
+                                type="button"
+                                aria-label={action.label + " entfernen"}
+                                onClick={() => {
+                                  const api = getNorviDesktopAPI();
+                                  void api?.removeCustomDesktopAction(action.id);
+                                  setAssistant((current) => ({
+                                    ...current,
+                                    customDesktopActions: current.customDesktopActions.filter(
+                                      (item) => item.id !== action.id,
+                                    ),
+                                  }));
+                                }}
+                                className="icon-action flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                            <input
+                              aria-label={"Programm " + (index + 1) + " Call-Wörter"}
+                              value={action.aliases.join(", ")}
+                              onChange={(event) =>
+                                setAssistant((current) => ({
+                                  ...current,
+                                  customDesktopActions: current.customDesktopActions.map((item) =>
+                                    item.id === action.id
+                                      ? { ...item, aliases: parseCallWords(event.target.value) }
+                                      : item,
+                                  ),
+                                }))
+                              }
+                              placeholder="fortnite, fn"
+                              className="mt-2 w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                            />
+                          </div>
+                        ))
+                      )}
                     </div>
 
                     <div className="mt-4 flex items-center justify-between gap-3">
