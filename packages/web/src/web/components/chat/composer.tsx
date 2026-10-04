@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ImagePlus, Loader2, Mic, Square, X } from "lucide-react";
+import { ArrowUp, ImagePlus, Loader2, Mic, MonitorUp, Square, X } from "lucide-react";
 import {
   ACCEPTED_IMAGE_TYPES,
   transcribeAudio,
@@ -7,6 +7,11 @@ import {
   type UploadedImage,
 } from "../../lib/uploads";
 import { startRecording } from "../../lib/recorder";
+import { getNorviDesktopAPI, isDesktop } from "../../lib/desktop";
+import {
+  getAssistantSettings,
+  subscribeAssistantSettings,
+} from "../../lib/desktop-assistant";
 
 interface ComposerProps {
   agentName: string;
@@ -50,10 +55,22 @@ export function Composer({
   const [seconds, setSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [assistantSettings, setAssistantSettings] = useState(getAssistantSettings);
 
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const handleRef = useRef<RecordHandle | null>(null);
+
+  useEffect(() => subscribeAssistantSettings(setAssistantSettings), []);
+
+  useEffect(() => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    return api.onFocusCommandInput(() => {
+      ref.current?.focus();
+      ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -184,7 +201,26 @@ export function Composer({
     }
   };
 
-  const micDisabled = transcribing || busy;
+  const captureScreen = async () => {
+    if (!vision || !assistantSettings.screenCaptureEnabled) return;
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+
+    setNotice(null);
+    try {
+      const screenshot = await api.capturePrimaryScreen();
+      const response = await fetch(screenshot.dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], screenshot.name, { type: "image/png" });
+      await addFiles([file]);
+      setNotice("Screenshot angehängt. Schreib jetzt, was NORVI darauf prüfen soll.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Screenshot konnte nicht erstellt werden.");
+    }
+  };
+
+  const micAllowed = !isDesktop() || assistantSettings.microphoneEnabled;
+  const micDisabled = transcribing || busy || !micAllowed;
 
   return (
     <div
@@ -305,7 +341,21 @@ export function Composer({
           </button>
         )}
 
-        {stt && (
+        {vision && isDesktop() && assistantSettings.screenCaptureEnabled && (
+          <button
+            type="button"
+            onClick={() => void captureScreen()}
+            disabled={busy || uploading}
+            aria-label="Bildschirm aufnehmen"
+            title="Aktuellen Bildschirm als Bild an NORVI anhängen"
+            className="icon-action mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] px-0 text-muted-foreground transition duration-200 disabled:opacity-40 sm:px-3"
+          >
+            <MonitorUp className="size-4.5 shrink-0" />
+            <span className="hidden text-[11px] font-medium sm:inline">Screen</span>
+          </button>
+        )}
+
+        {stt && micAllowed && (
           <button
             type="button"
             onClick={() => void toggleRecording()}

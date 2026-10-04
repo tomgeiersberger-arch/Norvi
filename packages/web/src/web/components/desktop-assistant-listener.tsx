@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCapabilities } from "../queries/capabilities";
 import { startRecording } from "../lib/recorder";
 import { transcribeAudio } from "../lib/uploads";
@@ -8,6 +8,7 @@ import {
   dispatchVoiceCommand,
   getAssistantSettings,
   subscribeAssistantSettings,
+  VOICE_TURN_COMPLETE_EVENT,
 } from "../lib/desktop-assistant";
 
 const WAKE_CHUNK_MS = 3600;
@@ -28,17 +29,50 @@ function sleep(ms: number): Promise<void> {
 export function DesktopAssistantListener() {
   const capabilities = useCapabilities();
   const [settings, setSettings] = useState(getAssistantSettings);
+  const conversationUntilRef = useRef(0);
 
   useEffect(() => subscribeAssistantSettings(setSettings), []);
 
   useEffect(() => {
     const api = getNorviDesktopAPI();
     if (!api) return;
-    void api.setBackgroundMode(settings.wakeEnabled || settings.startWithWindows);
-  }, [settings.startWithWindows, settings.wakeEnabled]);
+    void api.setQuickShortcut(settings.quickShortcutEnabled);
+  }, [settings.quickShortcutEnabled]);
 
   useEffect(() => {
-    if (!isDesktop() || !settings.wakeEnabled || capabilities.data?.stt !== true) return;
+    const onTurnComplete = () => {
+      if (!settings.conversationMode || !settings.microphoneEnabled) {
+        conversationUntilRef.current = 0;
+        return;
+      }
+      conversationUntilRef.current =
+        Date.now() + settings.conversationWindowSeconds * 1000;
+    };
+    window.addEventListener(VOICE_TURN_COMPLETE_EVENT, onTurnComplete);
+    return () => window.removeEventListener(VOICE_TURN_COMPLETE_EVENT, onTurnComplete);
+  }, [
+    settings.conversationMode,
+    settings.conversationWindowSeconds,
+    settings.microphoneEnabled,
+  ]);
+
+  useEffect(() => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    void api.setBackgroundMode(
+      (settings.microphoneEnabled && settings.wakeEnabled) || settings.startWithWindows,
+    );
+  }, [settings.microphoneEnabled, settings.startWithWindows, settings.wakeEnabled]);
+
+  useEffect(() => {
+    if (
+      !isDesktop() ||
+      !settings.microphoneEnabled ||
+      !settings.wakeEnabled ||
+      capabilities.data?.stt !== true
+    ) {
+      return;
+    }
 
     let cancelled = false;
     let activeHandle: Awaited<ReturnType<typeof startRecording>> | null = null;
@@ -71,14 +105,33 @@ export function DesktopAssistantListener() {
 
     const loop = async () => {
       while (!cancelled) {
-        // While NORVI is in the foreground the normal microphone button owns
-        // the input. Wake listening is meant for the background/tray use case.
-        if (document.visibilityState === "visible" && document.hasFocus()) {
+        const conversationActive =
+          settings.conversationMode && Date.now() < conversationUntilRef.current;
+
+        // Outside conversation mode, the foreground composer owns the microphone.
+        if (
+          !conversationActive &&
+          document.visibilityState === "visible" &&
+          document.hasFocus()
+        ) {
           await sleep(900);
           continue;
         }
 
         try {
+          if (conversationActive) {
+            const followUp = await recordFor(COMMAND_CHUNK_MS);
+            if (!followUp?.voiceDetected || cancelled) {
+              await sleep(180);
+              continue;
+            }
+            const text = await transcribeAudio(followUp.blob, "de", followUp.filename);
+            conversationUntilRef.current = 0;
+            if (!cancelled && text.trim()) dispatchVoiceCommand(text);
+            await sleep(500);
+            continue;
+          }
+
           const recording = await recordFor(WAKE_CHUNK_MS);
           if (!recording?.voiceDetected || cancelled) {
             await sleep(180);
@@ -117,6 +170,8 @@ export function DesktopAssistantListener() {
     };
   }, [
     capabilities.data?.stt,
+    settings.conversationMode,
+    settings.microphoneEnabled,
     settings.speakReplies,
     settings.voice,
     settings.wakeEnabled,
