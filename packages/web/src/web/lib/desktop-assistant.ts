@@ -18,6 +18,14 @@ export interface LocalMemoryItem {
   text: string;
 }
 
+export type ResponsePreset =
+  | "normal"
+  | "short"
+  | "coding"
+  | "gaming"
+  | "explain"
+  | "custom";
+
 export interface DesktopAssistantSettings {
   assistantName: string;
   wakePhrase: string;
@@ -34,6 +42,8 @@ export interface DesktopAssistantSettings {
   onboardingComplete: boolean;
   memoryEnabled: boolean;
   memoryItems: LocalMemoryItem[];
+  responsePreset: ResponsePreset;
+  customResponseStyle: string;
   desktopActionsEnabled: boolean;
   desktopActionAliases: Record<DesktopActionId, string[]>;
   customDesktopActions: CustomDesktopAction[];
@@ -71,6 +81,8 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   onboardingComplete: false,
   memoryEnabled: true,
   memoryItems: [],
+  responsePreset: "normal",
+  customResponseStyle: "",
   desktopActionsEnabled: true,
   desktopActionAliases: DEFAULT_DESKTOP_ACTION_ALIASES,
   customDesktopActions: [],
@@ -159,6 +171,16 @@ function cleanWebsiteAction(value: unknown, index: number): WebsiteAction | null
   return { id, label, url, aliases };
 }
 
+function cleanResponsePreset(value: unknown): ResponsePreset {
+  return value === "short" ||
+    value === "coding" ||
+    value === "gaming" ||
+    value === "explain" ||
+    value === "custom"
+    ? value
+    : "normal";
+}
+
 function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssistantSettings {
   const rawAliases = value.desktopActionAliases as Partial<Record<DesktopActionId, unknown>> | undefined;
   const memoryItems = Array.isArray(value.memoryItems)
@@ -203,6 +225,8 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     onboardingComplete: value.onboardingComplete === true,
     memoryEnabled: value.memoryEnabled !== false,
     memoryItems,
+    responsePreset: cleanResponsePreset(value.responsePreset),
+    customResponseStyle: cleanName(value.customResponseStyle, "", 500),
     desktopActionsEnabled: value.desktopActionsEnabled !== false,
     desktopActionAliases: {
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),

@@ -52,6 +52,9 @@ jobs:
       - name: Model manager and recovery
         run: bun deploy/test-model-manager-recovery.ts
 
+      - name: Response presets
+        run: bun deploy/test-response-presets.ts
+
       - name: Typecheck
         run: bun run typecheck
 

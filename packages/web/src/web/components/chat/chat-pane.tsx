@@ -206,17 +206,28 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     void queryClient.invalidateQueries({ queryKey: orpc.chats.key() });
   }, [status, queryClient]);
 
-  const requestMemory = () => {
+  const requestLocalContext = () => {
     const assistant = getAssistantSettings();
-    if (!capabilities.data?.localOnly || !assistant.memoryEnabled) return [];
-    return assistant.memoryItems.map((item) => item.text).filter(Boolean);
+    if (!capabilities.data?.localOnly) {
+      return { localMemory: [] as string[], responseStyle: undefined };
+    }
+    const localMemory = assistant.memoryEnabled
+      ? assistant.memoryItems.map((item) => item.text).filter(Boolean)
+      : [];
+    const responseStyle = {
+      preset: assistant.responsePreset,
+      ...(assistant.responsePreset === "custom" && assistant.customResponseStyle.trim()
+        ? { custom: assistant.customResponseStyle.trim() }
+        : {}),
+    };
+    return { localMemory, responseStyle };
   };
 
   const send = async (text: string, images: UploadedImage[] = []) => {
     if (images.length === 0 && (await executeDesktopAction(text, false))) return;
 
     const deviceId = getDeviceId();
-    const localMemory = requestMemory();
+    const { localMemory, responseStyle } = requestLocalContext();
     let target = idRef.current;
 
     if (!target) {
@@ -236,6 +247,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
             deviceId,
             assistantName: agentName,
             ...(localMemory.length ? { localMemory } : {}),
+            ...(responseStyle ? { responseStyle } : {}),
           },
         },
       );
@@ -315,13 +327,14 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
 
   const retry = () => {
     const deviceId = getDeviceId();
-    const localMemory = requestMemory();
+    const { localMemory, responseStyle } = requestLocalContext();
     void regenerate({
       body: {
         chatId: idRef.current,
         deviceId,
         assistantName: agentName,
         ...(localMemory.length ? { localMemory } : {}),
+        ...(responseStyle ? { responseStyle } : {}),
       },
     });
   };

@@ -434,6 +434,29 @@ app.post("/api/agent/messages", async (c) => {
       typeof body?.assistantName === "string"
         ? body.assistantName.replace(/[\r\n\t]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40)
         : "";
+    const responsePreset =
+      localOnlyModeEnabled() &&
+      (body?.responseStyle?.preset === "short" ||
+        body?.responseStyle?.preset === "coding" ||
+        body?.responseStyle?.preset === "gaming" ||
+        body?.responseStyle?.preset === "explain" ||
+        body?.responseStyle?.preset === "custom")
+        ? body.responseStyle.preset
+        : "normal";
+    const customResponseStyle =
+      localOnlyModeEnabled() &&
+      responsePreset === "custom" &&
+      typeof body?.responseStyle?.custom === "string"
+        ? body.responseStyle.custom
+            .replace(/[\r\n\t]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 500)
+        : "";
+    const responseStyle = localOnlyModeEnabled()
+      ? { preset: responsePreset, custom: customResponseStyle }
+      : undefined;
+
     const localMemory: string[] = [];
     let localMemoryChars = 0;
     if (localOnlyModeEnabled() && Array.isArray(body?.localMemory)) {
@@ -590,6 +613,7 @@ app.post("/api/agent/messages", async (c) => {
       ultraSeriousMode: !hasImages && prefs.performanceMode === "serious",
       assistantName: assistantName || undefined,
       localMemory,
+      responseStyle,
     });
 
     const persistAssistant = async (messageId: string, answer: string) => {

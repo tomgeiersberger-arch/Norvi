@@ -141,3 +141,8 @@ The desktop app includes a small explicit memory manager. Users can keep up to 3
 The Windows desktop settings expose curated Lite 4B, Standard 8B and Power 14B text profiles. A model can be pulled through the loopback Ollama API, activated by updating NORVI's local aliases, or deleted when it is not active.
 
 The System & Maintenance card can also run a local self-test for runtime files, Bun, Ollama, NORVI's local web server and STT. The repair action can restart locally owned services where possible.
+
+
+## Response presets
+
+The local desktop app offers Normal, Short, Coding, Gaming, Explain and a custom response-style preset. Presets only influence presentation, tone and verbosity and are not treated as higher-priority instructions.
