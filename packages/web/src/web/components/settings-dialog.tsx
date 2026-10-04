@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
 import { DesktopMaintenancePanel } from "./desktop-maintenance-panel";
+import { DesktopMemoryPanel } from "./desktop-memory-panel";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import { getDeviceId } from "../lib/device";
 import {
@@ -799,7 +800,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </div>
             )}
 
-            {desktop && <DesktopMaintenancePanel />}
+            {desktop && (
+              <>
+                <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
+                <DesktopMaintenancePanel />
+              </>
+            )}
 
             <div className="flex items-center justify-end gap-3 pt-1">
               {saved && !update.isPending && (

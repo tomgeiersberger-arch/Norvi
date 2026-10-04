@@ -129,3 +129,8 @@ Chat or model text can never supply an executable path, command line, arguments,
 ## Push-to-talk / voice shortcut
 
 Desktop users can optionally register a global voice shortcut such as `CommandOrControl+Shift+Space`. One press starts the normal local microphone flow and the next press stops it. The accelerator is configurable in settings and can be disabled completely.
+
+
+## Local Memory
+
+The desktop app includes a small explicit memory manager. Users can keep up to 30 short local notes, edit/delete them individually, or disable memory entirely. Memory is not automatically extracted from chats. It is only forwarded to the model when the server is in `LOCAL_ONLY_MODE`.

@@ -46,6 +46,9 @@ jobs:
       - name: Voice shortcut
         run: bun deploy/test-voice-shortcut.ts
 
+      - name: Local memory
+        run: bun deploy/test-local-memory.ts
+
       - name: Typecheck
         run: bun run typecheck
 

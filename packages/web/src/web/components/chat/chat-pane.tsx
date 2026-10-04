@@ -206,10 +206,17 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     void queryClient.invalidateQueries({ queryKey: orpc.chats.key() });
   }, [status, queryClient]);
 
+  const requestMemory = () => {
+    const assistant = getAssistantSettings();
+    if (!capabilities.data?.localOnly || !assistant.memoryEnabled) return [];
+    return assistant.memoryItems.map((item) => item.text).filter(Boolean);
+  };
+
   const send = async (text: string, images: UploadedImage[] = []) => {
     if (images.length === 0 && (await executeDesktopAction(text, false))) return;
 
     const deviceId = getDeviceId();
+    const localMemory = requestMemory();
     let target = idRef.current;
 
     if (!target) {
@@ -223,7 +230,14 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     if (images.length === 0) {
       await sendMessage(
         { text },
-        { body: { chatId: target, deviceId, assistantName: agentName } },
+        {
+          body: {
+            chatId: target,
+            deviceId,
+            assistantName: agentName,
+            ...(localMemory.length ? { localMemory } : {}),
+          },
+        },
       );
       return;
     }
@@ -241,7 +255,14 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
           { type: "text" as const, text },
         ],
       },
-      { body: { chatId: target, deviceId, assistantName: agentName } },
+      {
+        body: {
+          chatId: target,
+          deviceId,
+          assistantName: agentName,
+          ...(localMemory.length ? { localMemory } : {}),
+        },
+      },
     );
   };
 
@@ -294,8 +315,14 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
 
   const retry = () => {
     const deviceId = getDeviceId();
+    const localMemory = requestMemory();
     void regenerate({
-      body: { chatId: idRef.current, deviceId, assistantName: agentName },
+      body: {
+        chatId: idRef.current,
+        deviceId,
+        assistantName: agentName,
+        ...(localMemory.length ? { localMemory } : {}),
+      },
     });
   };
 

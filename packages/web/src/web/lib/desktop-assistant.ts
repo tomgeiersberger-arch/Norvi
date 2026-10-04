@@ -13,6 +13,11 @@ export interface CustomDesktopAction {
   aliases: string[];
 }
 
+export interface LocalMemoryItem {
+  id: string;
+  text: string;
+}
+
 export interface DesktopAssistantSettings {
   assistantName: string;
   wakePhrase: string;
@@ -27,6 +32,8 @@ export interface DesktopAssistantSettings {
   conversationMode: boolean;
   conversationWindowSeconds: number;
   onboardingComplete: boolean;
+  memoryEnabled: boolean;
+  memoryItems: LocalMemoryItem[];
   desktopActionsEnabled: boolean;
   desktopActionAliases: Record<DesktopActionId, string[]>;
   customDesktopActions: CustomDesktopAction[];
@@ -62,6 +69,8 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   conversationMode: false,
   conversationWindowSeconds: 12,
   onboardingComplete: false,
+  memoryEnabled: true,
+  memoryItems: [],
   desktopActionsEnabled: true,
   desktopActionAliases: DEFAULT_DESKTOP_ACTION_ALIASES,
   customDesktopActions: [],
@@ -125,6 +134,18 @@ function cleanCustomDesktopAction(value: unknown): CustomDesktopAction | null {
   return { id, label, aliases: cleanAliases(item.aliases, [label]) };
 }
 
+function cleanMemoryItem(value: unknown, index: number): LocalMemoryItem | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<LocalMemoryItem>;
+  const text = cleanName(item.text, "", 300);
+  if (!text) return null;
+  const rawId = typeof item.id === "string" ? item.id : "";
+  const id =
+    rawId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) ||
+    "memory-" + (index + 1);
+  return { id, text };
+}
+
 function cleanWebsiteAction(value: unknown, index: number): WebsiteAction | null {
   if (!value || typeof value !== "object") return null;
   const item = value as Partial<WebsiteAction>;
@@ -140,6 +161,12 @@ function cleanWebsiteAction(value: unknown, index: number): WebsiteAction | null
 
 function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssistantSettings {
   const rawAliases = value.desktopActionAliases as Partial<Record<DesktopActionId, unknown>> | undefined;
+  const memoryItems = Array.isArray(value.memoryItems)
+    ? value.memoryItems
+        .map((item, index) => cleanMemoryItem(item, index))
+        .filter((item): item is LocalMemoryItem => item !== null)
+        .slice(0, 30)
+    : [];
   const customDesktopActions = Array.isArray(value.customDesktopActions)
     ? value.customDesktopActions
         .map((item) => cleanCustomDesktopAction(item))
@@ -174,6 +201,8 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
         ? Math.max(6, Math.min(30, Math.round(value.conversationWindowSeconds)))
         : DEFAULT_ASSISTANT_SETTINGS.conversationWindowSeconds,
     onboardingComplete: value.onboardingComplete === true,
+    memoryEnabled: value.memoryEnabled !== false,
+    memoryItems,
     desktopActionsEnabled: value.desktopActionsEnabled !== false,
     desktopActionAliases: {
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),

@@ -70,3 +70,10 @@ Custom game/program paths are selected through the native Windows file picker an
 ## Voice shortcut
 
 The optional voice shortcut is registered locally through Electron's global shortcut API. Pressing it only signals the local NORVI renderer to start or stop its existing microphone recording flow. The shortcut does not send keystrokes, audio or commands to a cloud service.
+
+
+## Local Memory
+
+Local Memory is explicit and user-controlled. NORVI does not automatically scrape chats into memory. The user adds, edits or deletes memory items in Desktop settings and can disable the feature completely.
+
+Memory items are stored in the desktop/browser local settings. They are attached to a chat request only when `LOCAL_ONLY_MODE=true`; the server ignores client-supplied memory outside local-only mode. Items are capped in count and size and are passed to the model as user-controlled context, never as higher-priority instructions.
