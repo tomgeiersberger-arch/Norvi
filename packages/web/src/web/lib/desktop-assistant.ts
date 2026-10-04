@@ -7,6 +7,12 @@ export interface WebsiteAction {
   aliases: string[];
 }
 
+export interface CustomDesktopAction {
+  id: string;
+  label: string;
+  aliases: string[];
+}
+
 export interface DesktopAssistantSettings {
   assistantName: string;
   wakePhrase: string;
@@ -21,12 +27,13 @@ export interface DesktopAssistantSettings {
   onboardingComplete: boolean;
   desktopActionsEnabled: boolean;
   desktopActionAliases: Record<DesktopActionId, string[]>;
+  customDesktopActions: CustomDesktopAction[];
   websiteActions: WebsiteAction[];
   voice: string;
 }
 
 export type MatchedDesktopAction =
-  | { kind: "desktop"; id: DesktopActionId; label: string }
+  | { kind: "desktop"; id: string; label: string }
   | { kind: "website"; id: string; label: string; url: string };
 
 const STORAGE_KEY = "norvi.desktop-assistant.v1";
@@ -53,6 +60,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   onboardingComplete: false,
   desktopActionsEnabled: true,
   desktopActionAliases: DEFAULT_DESKTOP_ACTION_ALIASES,
+  customDesktopActions: [],
   websiteActions: [],
   voice: "",
 };
@@ -101,6 +109,18 @@ export function normaliseWebsiteUrl(value: unknown): string | null {
   }
 }
 
+function cleanCustomDesktopAction(value: unknown): CustomDesktopAction | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<CustomDesktopAction>;
+  const id =
+    typeof item.id === "string" && /^custom-[a-zA-Z0-9-]+$/.test(item.id)
+      ? item.id.slice(0, 100)
+      : "";
+  const label = cleanName(item.label, "", 80);
+  if (!id || !label) return null;
+  return { id, label, aliases: cleanAliases(item.aliases, [label]) };
+}
+
 function cleanWebsiteAction(value: unknown, index: number): WebsiteAction | null {
   if (!value || typeof value !== "object") return null;
   const item = value as Partial<WebsiteAction>;
@@ -116,6 +136,12 @@ function cleanWebsiteAction(value: unknown, index: number): WebsiteAction | null
 
 function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssistantSettings {
   const rawAliases = value.desktopActionAliases as Partial<Record<DesktopActionId, unknown>> | undefined;
+  const customDesktopActions = Array.isArray(value.customDesktopActions)
+    ? value.customDesktopActions
+        .map((item) => cleanCustomDesktopAction(item))
+        .filter((item): item is CustomDesktopAction => item !== null)
+        .slice(0, 50)
+    : [];
   const websiteActions = Array.isArray(value.websiteActions)
     ? value.websiteActions
         .map((item, index) => cleanWebsiteAction(item, index))
@@ -143,6 +169,7 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),
       cs2: cleanAliases(rawAliases?.cs2, DEFAULT_DESKTOP_ACTION_ALIASES.cs2),
     },
+    customDesktopActions,
     websiteActions,
     voice: typeof value.voice === "string" ? value.voice.trim().slice(0, 120) : "",
   };
@@ -254,6 +281,18 @@ export function matchDesktopAction(
         candidates.push({
           alias: key,
           action: { kind: "desktop", id, label: DESKTOP_LABELS[id] },
+        });
+      }
+    }
+  }
+
+  for (const custom of settings.customDesktopActions) {
+    for (const alias of custom.aliases) {
+      const key = normalise(alias);
+      if (key && containsAlias(clean, key)) {
+        candidates.push({
+          alias: key,
+          action: { kind: "desktop", id: custom.id, label: custom.label },
         });
       }
     }

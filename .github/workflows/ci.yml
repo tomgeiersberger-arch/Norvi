@@ -40,6 +40,9 @@ jobs:
       - name: Desktop maintenance tools
         run: bun deploy/test-desktop-maintenance.ts
 
+      - name: Custom program actions
+        run: bun deploy/test-custom-program-actions.ts
+
       - name: Typecheck
         run: bun run typecheck
 

@@ -23,9 +23,15 @@ export interface ElectronAPI {
 
 export type DesktopActionId = "spotify" | "cs2";
 
+export interface DesktopActionDescriptor {
+  id: string;
+  label: string;
+  builtin: boolean;
+}
+
 export interface DesktopActionResult {
   ok: true;
-  id: DesktopActionId;
+  id: string;
   label: string;
 }
 
@@ -52,8 +58,10 @@ export interface NorviDesktopAPI {
   listVoices: () => Promise<string[]>;
   speak: (text: string, voice?: string) => Promise<boolean>;
   stopSpeech: () => Promise<boolean>;
-  listDesktopActions: () => Promise<{ id: DesktopActionId; label: string }[]>;
-  launchDesktopAction: (actionId: DesktopActionId) => Promise<DesktopActionResult>;
+  listDesktopActions: () => Promise<DesktopActionDescriptor[]>;
+  addCustomDesktopAction: () => Promise<DesktopActionDescriptor | null>;
+  removeCustomDesktopAction: (actionId: string) => Promise<boolean>;
+  launchDesktopAction: (actionId: string) => Promise<DesktopActionResult>;
   openWebsite: (url: string) => Promise<{ ok: true; url: string }>;
   capturePrimaryScreen: () => Promise<{ dataUrl: string; name: string }>;
   setQuickShortcut: (enabled: boolean) => Promise<boolean>;

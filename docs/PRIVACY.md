@@ -60,3 +60,8 @@ The Windows desktop app shows a local first-run wizard after installation. It do
 The desktop settings backup is a user-triggered local JSON export. It contains NORVI preferences such as assistant name, wake phrase, permissions, call-words and model/answer-style selection; it does not export authentication secrets.
 
 The update check is manual. Only when the user presses the update button does the desktop app request the latest public NORVI release metadata from GitHub. No background telemetry is added.
+
+
+## Custom desktop actions
+
+Custom game/program paths are selected through the native Windows file picker and stored in the desktop app's private local user-data directory. The browser UI only sees an opaque action id and display label. NORVI does not upload the selected executable path or expose a generic command runner.

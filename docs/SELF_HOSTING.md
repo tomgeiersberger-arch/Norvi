@@ -117,3 +117,10 @@ After the installer has detected the hardware and selected the 4B/8B/14B runtime
 ## Desktop diagnostics and backup
 
 The desktop settings include a local system overview for CPU, RAM, NVIDIA VRAM, hardware profile, active model, Vision and STT status. Users can export/import a JSON settings backup and can manually query the latest GitHub release. Update checking is not performed in the background.
+
+
+## Custom programs and games
+
+Windows users can add their own games/programs from Desktop Assistant settings. NORVI opens a native file picker and accepts an explicitly selected `.exe` or `.lnk`. The main process stores that path in its private local registry and returns only an opaque action id to the web UI. The user can then assign one or more call-words, for example `fn` for Fortnite.
+
+Chat or model text can never supply an executable path, command line, arguments, or shell command. Launching is limited to the fixed built-ins plus ids that already exist in the native user-selected registry.

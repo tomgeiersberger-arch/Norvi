@@ -11,6 +11,7 @@ const defaults: DesktopAssistantSettings = {
     spotify: [...DEFAULT_ASSISTANT_SETTINGS.desktopActionAliases.spotify],
     cs2: [...DEFAULT_ASSISTANT_SETTINGS.desktopActionAliases.cs2],
   },
+  customDesktopActions: [],
   websiteActions: [],
 };
 
@@ -27,6 +28,13 @@ const custom: DesktopAssistantSettings = {
     spotify: ["musik"],
     cs2: ["shooter"],
   },
+  customDesktopActions: [
+    {
+      id: "custom-demo-1234",
+      label: "Demo Game",
+      aliases: ["demo", "dg"],
+    },
+  ],
   websiteActions: [
     {
       id: "winkelhof",
@@ -43,6 +51,12 @@ assert.deepEqual(matchDesktopAction("Mach shooter auf", custom), {
   label: "Counter-Strike 2",
 });
 
+assert.deepEqual(matchDesktopAction("Starte dg", custom), {
+  kind: "desktop",
+  id: "custom-demo-1234",
+  label: "Demo Game",
+});
+
 const website = matchDesktopAction("Starte winkelhof", custom);
 assert.equal(website?.kind, "website");
 if (website?.kind === "website") {
@@ -52,6 +66,7 @@ if (website?.kind === "website") {
 
 const unsafe: DesktopAssistantSettings = {
   ...custom,
+  customDesktopActions: custom.customDesktopActions,
   websiteActions: [
     { id: "bad", label: "Bad", url: "javascript:alert(1)", aliases: ["bad"] },
   ],
