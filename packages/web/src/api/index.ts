@@ -21,7 +21,7 @@ import { auth, trustedOrigins } from "./auth";
 import { AUTH_REQUIRED_MESSAGE, denyAnonymous, hasAdminAccess, hasPremiumAccess } from "./lib/access";
 import { rateLimit } from "./lib/rate-limit";
 import { recordAiRequest } from "./lib/ai-metrics";
-import { assertLocalOnlyConfiguration } from "./lib/privacy";
+import { assertLocalOnlyConfiguration, localOnlyModeEnabled } from "./lib/privacy";
 import { refreshLocalModelKeepAlive, warmLocalAi } from "./lib/local-ai";
 import { startLocalStt } from "./lib/local-stt";
 import { SttError, transcribe } from "./lib/stt";
@@ -434,6 +434,21 @@ app.post("/api/agent/messages", async (c) => {
       typeof body?.assistantName === "string"
         ? body.assistantName.replace(/[\r\n\t]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40)
         : "";
+    const localMemory: string[] = [];
+    let localMemoryChars = 0;
+    if (localOnlyModeEnabled() && Array.isArray(body?.localMemory)) {
+      for (const raw of body.localMemory.slice(0, 30)) {
+        if (typeof raw !== "string") continue;
+        const clean = raw
+          .replace(/[\r\n\t]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 300);
+        if (!clean || localMemoryChars + clean.length > 3000) continue;
+        localMemory.push(clean);
+        localMemoryChars += clean.length;
+      }
+    }
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return c.json({ error: "Keine Nachricht erhalten." }, 400);
@@ -574,6 +589,7 @@ app.post("/api/agent/messages", async (c) => {
       reasoningEffort: hasImages ? "none" : profile.reasoningEffort,
       ultraSeriousMode: !hasImages && prefs.performanceMode === "serious",
       assistantName: assistantName || undefined,
+      localMemory,
     });
 
     const persistAssistant = async (messageId: string, answer: string) => {
