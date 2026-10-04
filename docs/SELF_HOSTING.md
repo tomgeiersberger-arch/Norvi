@@ -112,3 +112,8 @@ For any installation that is reachable by other people or through a public rever
 ## First-run desktop wizard
 
 After the installer has detected the hardware and selected the 4B/8B/14B runtime profile, the desktop app finishes setup with a local wizard for the assistant name, wake phrase, Windows voice, microphone permission, Screen Mode and desktop actions. The wizard is only shown for the local public desktop profile and does not require an account.
+
+
+## Desktop diagnostics and backup
+
+The desktop settings include a local system overview for CPU, RAM, NVIDIA VRAM, hardware profile, active model, Vision and STT status. Users can export/import a JSON settings backup and can manually query the latest GitHub release. Update checking is not performed in the background.

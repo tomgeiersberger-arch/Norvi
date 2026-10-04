@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useSettings, useUpdateSettings } from "../queries/settings";
+import { DesktopMaintenancePanel } from "./desktop-maintenance-panel";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import { getDeviceId } from "../lib/device";
 import {
@@ -656,6 +657,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 </p>
               </div>
             )}
+
+            {desktop && <DesktopMaintenancePanel />}
 
             <div className="flex items-center justify-end gap-3 pt-1">
               {saved && !update.isPending && (

@@ -38,8 +38,16 @@ export interface DesktopHardwareProfile {
   label: string;
 }
 
+export interface DesktopUpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  available: boolean;
+  releaseUrl: string | null;
+}
+
 export interface NorviDesktopAPI {
   detectHardware: () => Promise<DesktopHardwareProfile>;
+  checkForUpdates: () => Promise<DesktopUpdateInfo>;
   showWindow: () => Promise<boolean>;
   listVoices: () => Promise<string[]>;
   speak: (text: string, voice?: string) => Promise<boolean>;

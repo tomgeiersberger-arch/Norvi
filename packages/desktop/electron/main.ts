@@ -6,6 +6,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  net,
   screen,
   Tray,
 } from "electron";
@@ -164,8 +165,57 @@ async function bootProduction() {
   }
 }
 
+function compareVersions(a: string, b: string): number {
+  const clean = (value: string) =>
+    value
+      .replace(/^v/i, "")
+      .split(".")
+      .map((part) => Number(part.replace(/[^0-9].*$/, "")) || 0);
+  const left = clean(a);
+  const right = clean(b);
+  const count = Math.max(left.length, right.length);
+  for (let index = 0; index < count; index += 1) {
+    const diff = (left[index] ?? 0) - (right[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+async function checkForUpdates(): Promise<{
+  currentVersion: string;
+  latestVersion: string;
+  available: boolean;
+  releaseUrl: string | null;
+}> {
+  const currentVersion = app.getVersion();
+  const response = await net.fetch(
+    "https://api.github.com/repos/tomgeiersberger-arch/Norvi/releases/latest",
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "NORVI-Desktop",
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Update-Informationen konnten nicht geladen werden.");
+  }
+  const payload = (await response.json()) as {
+    tag_name?: string;
+    html_url?: string;
+  };
+  const latestVersion = (payload.tag_name ?? "").replace(/^v/i, "") || currentVersion;
+  return {
+    currentVersion,
+    latestVersion,
+    available: compareVersions(latestVersion, currentVersion) > 0,
+    releaseUrl: typeof payload.html_url === "string" ? payload.html_url : null,
+  };
+}
+
 function registerNorviHandlers() {
   ipcMain.handle("norvi:detect-hardware", () => detectHardware());
+  ipcMain.handle("norvi:check-for-updates", () => checkForUpdates());
 
   ipcMain.handle("norvi:install", async (_event, rawProfile: string) => {
     if (installPromise) return installPromise;
