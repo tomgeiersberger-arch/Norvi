@@ -25,6 +25,23 @@ function isDesktopActionId(value: string): value is DesktopActionId {
   return Object.prototype.hasOwnProperty.call(ACTIONS, value);
 }
 
+function safeWebsiteUrl(rawUrl: string): string {
+  const input = rawUrl.trim().slice(0, 2048);
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    throw new Error("Die Website-Adresse ist ungültig.");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("NORVI öffnet hier nur http/https-Websites.");
+  }
+  if (!parsed.hostname || parsed.username || parsed.password) {
+    throw new Error("Die Website-Adresse ist nicht erlaubt.");
+  }
+  return parsed.toString();
+}
+
 /**
  * Safe desktop actions exposed to the renderer.
  *
@@ -48,4 +65,13 @@ export async function launchDesktopAction(rawId: string): Promise<{
   const action = ACTIONS[id];
   await shell.openExternal(action.uri, { activate: true });
   return { ok: true, id: action.id, label: action.label };
+}
+
+export async function openDesktopWebsite(rawUrl: string): Promise<{
+  ok: true;
+  url: string;
+}> {
+  const url = safeWebsiteUrl(rawUrl);
+  await shell.openExternal(url, { activate: true });
+  return { ok: true, url };
 }

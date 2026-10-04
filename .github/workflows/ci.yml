@@ -28,6 +28,9 @@ jobs:
         shell: bash
         run: bash deploy/public-release-check.sh
 
+      - name: Desktop action matcher
+        run: bun deploy/test-desktop-actions.ts
+
       - name: Typecheck
         run: bun run typecheck
 

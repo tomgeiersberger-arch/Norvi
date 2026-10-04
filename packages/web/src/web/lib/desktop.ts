@@ -36,6 +36,7 @@ export interface NorviDesktopAPI {
   stopSpeech: () => Promise<boolean>;
   listDesktopActions: () => Promise<{ id: DesktopActionId; label: string }[]>;
   launchDesktopAction: (actionId: DesktopActionId) => Promise<DesktopActionResult>;
+  openWebsite: (url: string) => Promise<{ ok: true; url: string }>;
   setBackgroundMode: (enabled: boolean) => Promise<boolean>;
   getAutoStart: () => Promise<boolean>;
   setAutoStart: (enabled: boolean) => Promise<boolean>;

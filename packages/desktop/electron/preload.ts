@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld("norviDesktop", {
   listDesktopActions: () => ipcRenderer.invoke("norvi:list-desktop-actions"),
   launchDesktopAction: (actionId: "spotify" | "cs2") =>
     ipcRenderer.invoke("norvi:launch-desktop-action", actionId),
+  openWebsite: (url: string) => ipcRenderer.invoke("norvi:open-website", url),
   setBackgroundMode: (enabled: boolean) =>
     ipcRenderer.invoke("norvi:set-background-mode", enabled),
   getAutoStart: () => ipcRenderer.invoke("norvi:get-auto-start"),

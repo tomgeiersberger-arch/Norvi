@@ -85,4 +85,6 @@ NORVI can currently recognize commands such as:
 - Starte CS2
 - Mach Counter Strike 2 auf
 
-Desktop actions use a fixed allowlist inside the Electron main process. The renderer and AI model do not receive a generic shell or terminal command runner. Current allowlisted targets are Spotify and Counter-Strike 2 (Steam app 730). More apps can be added later by extending that explicit allowlist.
+Desktop actions use a fixed allowlist inside the Electron main process. The renderer and AI model do not receive a generic shell or terminal command runner. Current allowlisted program/game targets are Spotify and Counter-Strike 2 (Steam app 730).
+
+The desktop settings let each user change the spoken call-words for those actions. For example, the CS2 action can use `cs2`, `counter strike` or another personal alias. Users can also add named website actions such as `Winkelhof → https://www.winkelhof.at` and then say `Starte winkelhof`. Custom website targets are validated and restricted to normal `http://` or `https://` URLs.
