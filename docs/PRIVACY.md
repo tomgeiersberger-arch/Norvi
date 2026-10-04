@@ -17,7 +17,7 @@ With the local installer and the generated configuration:
 
 ## Network access
 
-Internet access is needed during installation to download source dependencies and model files. After installation, ordinary AI requests can stay on the local machine.
+Internet access is needed during installation to download source dependencies, Ollama models and the selected Whisper model. The installer preloads these assets so ordinary chat, vision and speech-to-text can stay on the local machine after setup.
 
 NORVI can also be configured with hosted model providers, public tunnels, mobile clients or other external services. Those are optional and can send data outside the machine depending on how the owner configures them.
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROJECT_DIR="${NORVI_PROJECT_DIR:-/home/norviadmin/norvi}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${NORVI_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 CLOUDFLARED="${CLOUDFLARED_BIN:-/usr/local/bin/cloudflared}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/norvi"
 LOG_FILE="${STATE_DIR}/cloudflared-quick.log"
@@ -71,7 +72,7 @@ PY
 )"
 
 if [[ "$changed" == "1" ]]; then
-  pid="$(pgrep -f '^/home/norviadmin/.bun/bin/bun packages/web/src/__server.ts$' | head -1 || true)"
+  pid="$(pgrep -u "$(id -u)" -f 'packages/web/src/__server.ts' | head -1 || true)"
   [[ -n "$pid" ]] && kill -TERM "$pid" || true
 fi
 

@@ -17,11 +17,16 @@ function localSttEnabled(): boolean {
   return /^(1|true|yes|on)$/i.test((process.env.STT_LOCAL_ENABLED ?? "").trim());
 }
 
-function executable(): string {
-  return (
-    process.env.STT_LOCAL_BIN?.trim() ||
-    `${projectRoot}/packages/web/node_modules/.bin/whisper-api`
-  );
+function executable(): string[] {
+  const configured = process.env.STT_LOCAL_BIN?.trim();
+  if (configured) return [configured];
+
+  // Invoke the package with the same Bun runtime as NORVI. This avoids
+  // platform-specific node_modules/.bin shims on Windows.
+  return [
+    Bun.argv[0] || "bun",
+    `${projectRoot}/packages/web/node_modules/whisper-api/bin/whisper-api.js`,
+  ];
 }
 
 function scheduleRestart() {
@@ -53,7 +58,7 @@ function spawnLocalStt() {
   try {
     child = Bun.spawn(
       [
-        executable(),
+        ...executable(),
         "start",
         "--host",
         host,

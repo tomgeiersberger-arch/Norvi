@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/norviadmin/norvi
-ExecStart=/home/norviadmin/norvi/deploy/start-quick-tunnel.sh
+WorkingDirectory=%h/norvi
+ExecStart=/usr/bin/env bash %h/norvi/deploy/start-quick-tunnel.sh
 Restart=always
 RestartSec=5
 

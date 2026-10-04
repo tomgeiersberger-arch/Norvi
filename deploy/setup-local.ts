@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { cpus, totalmem } from "node:os";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 type ProfileName = "lite" | "standard" | "power";
 type Profile = {
@@ -41,14 +42,21 @@ function argValue(name: string): string | undefined {
   return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
 }
 
-function run(command: string, args: string[], quiet = false): string {
+function run(
+  command: string,
+  args: string[],
+  quiet = false,
+  extraEnv: Record<string, string> = {},
+): string {
+  const env = { ...process.env, ...extraEnv };
   if (quiet) {
     return execFileSync(command, args, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      env,
     }).trim();
   }
-  execFileSync(command, args, { stdio: "inherit" });
+  execFileSync(command, args, { stdio: "inherit", env });
   return "";
 }
 
@@ -71,9 +79,13 @@ function nvidiaVramGiB(): number | null {
 
 function detectedProfile(): ProfileName {
   const ram = totalmem() / 1024 ** 3;
+  const threads = cpus().length;
   const vram = nvidiaVramGiB();
+
   if ((vram ?? 0) >= 14 || (process.platform === "darwin" && ram >= 48)) return "power";
-  if ((vram ?? 0) >= 7 || ram >= 24) return "standard";
+  if ((vram ?? 0) >= 7) return "standard";
+  if (process.platform === "darwin" && ram >= 24) return "standard";
+  if (ram >= 24 && threads >= 8) return "standard";
   return "lite";
 }
 
@@ -183,6 +195,34 @@ if (existsSync(".env") && !process.argv.includes("--force")) {
 
 console.log("\n==> Abhängigkeiten");
 run("bun", ["install", "--frozen-lockfile"]);
+
+if (!skipPull) {
+  const whisperHome = resolve("data/whisper-api");
+  const whisperConfig = resolve(whisperHome, "config.json");
+  mkdirSync(whisperHome, { recursive: true });
+
+  if (!existsSync(whisperConfig) || process.argv.includes("--force")) {
+    writeFileSync(
+      whisperConfig,
+      JSON.stringify({ engine: "onnx", defaultModel: profile.sttModel }, null, 2) + "\n",
+      "utf8",
+    );
+  }
+
+  console.log(`==> Lade lokales Whisper-Modell ${profile.sttModel}`);
+  run(
+    "bun",
+    [
+      "packages/web/node_modules/whisper-api/bin/whisper-api.js",
+      "models",
+      "pull",
+      profile.sttModel,
+    ],
+    false,
+    { WHISPER_API_HOME: whisperHome },
+  );
+}
+
 console.log("==> Datenbank");
 run("bun", ["run", "db:push"]);
 console.log("==> Web-App bauen");

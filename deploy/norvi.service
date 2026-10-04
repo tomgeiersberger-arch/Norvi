@@ -1,17 +1,16 @@
-; systemd-Unit fuer den dauerhaften Betrieb von NORVI AI auf Ubuntu.
+; NORVI user service example.
 ;
-; Installation:
-;   sudo cp deploy/norvi.service /etc/systemd/system/norvi.service
-;   sudo nano /etc/systemd/system/norvi.service     # User + WorkingDirectory pruefen
-;   sudo systemctl daemon-reload
-;   sudo systemctl enable --now norvi
+; Default layout:
+;   repository: ~/norvi
+;   Bun:        ~/.bun/bin/bun
 ;
-; Status und Logs:
-;   systemctl status norvi
-;   journalctl -u norvi -f
+; Install:
+;   mkdir -p ~/.config/systemd/user
+;   cp deploy/norvi.service ~/.config/systemd/user/norvi.service
+;   systemctl --user daemon-reload
+;   systemctl --user enable --now norvi.service
 ;
-; Nach jeder Aenderung an der .env:
-;   sudo systemctl restart norvi
+; If NORVI is cloned elsewhere, edit WorkingDirectory/EnvironmentFile/ExecStart.
 
 [Unit]
 Description=NORVI AI (Web + API)
@@ -21,22 +20,11 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-
-; --- NORVI Homeserver --------------------------------------------------------
-User=norviadmin
-Group=norviadmin
-WorkingDirectory=/home/norviadmin/norvi
-
-; Der Port ist im Projekt fest hinterlegt (__ports.cjs -> 4200).
+WorkingDirectory=%h/norvi
 Environment=NODE_ENV=production
 Environment=PORT=4200
-
-; Alle uebrigen Variablen kommen aus der .env im Projektverzeichnis.
-EnvironmentFile=/home/norviadmin/norvi/.env
-
-; Vollstaendiger Pfad zu bun (pruefen mit: which bun).
-ExecStart=/home/norviadmin/.bun/bin/bun packages/web/src/__server.ts
-
+EnvironmentFile=%h/norvi/.env
+ExecStart=%h/.bun/bin/bun packages/web/src/__server.ts
 Restart=always
 RestartSec=3
 TimeoutStopSec=20
@@ -44,12 +32,8 @@ KillSignal=SIGTERM
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=norvi
-
-; --- Haertung ---------------------------------------------------------------
-; Diese beiden Optionen funktionieren auch auf Hosts, auf denen systemd
-; Mount-Namespaces (ProtectHome/ProtectSystem) nicht verfuegbar sind.
 NoNewPrivileges=true
 PrivateTmp=true
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

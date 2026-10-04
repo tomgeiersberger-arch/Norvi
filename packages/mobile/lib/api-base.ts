@@ -15,7 +15,7 @@ function trimSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-/** Host (without port) the Expo dev server was reached at, e.g. "192.168.1.42". */
+/** Host (without port) the Expo dev server was reached at, e.g. a private LAN address. */
 function devServerHost(): string | null {
   const hostUri =
     Constants.expoConfig?.hostUri ??

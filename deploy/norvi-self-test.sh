@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="${NORVI_PROJECT_DIR:-/home/norviadmin/norvi}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="${NORVI_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 BUN="${BUN_BIN:-$HOME/.bun/bin/bun}"
 MODE="${1:-}"
 
@@ -25,7 +26,7 @@ if [[ "$MODE" != "--runtime-only" ]]; then
   "$BUN" run build:web && ok "Web-Build" || bad "Web-Build"
 fi
 
-if systemctl is-active --quiet norvi.service; then
+if systemctl --user is-active --quiet norvi.service 2>/dev/null || systemctl is-active --quiet norvi.service 2>/dev/null; then
   ok "norvi.service aktiv"
 else
   bad "norvi.service nicht aktiv"

@@ -7,10 +7,10 @@ NORVI can run completely on a local Windows, Linux or macOS computer. The public
 | Profile | Typical machine | Text model | Fast vision | Precise vision |
 | --- | --- | --- | --- | --- |
 | Lite | 16 GB RAM / no strong GPU | `qwen3:4b` | `qwen3-vl:2b` | `qwen3-vl:4b` |
-| Standard | 24+ GB RAM or ~8 GB NVIDIA VRAM | `qwen3:8b` | `qwen3-vl:4b` | `qwen3-vl:8b` |
+| Standard | ~8 GB NVIDIA VRAM, or 24+ GB RAM with 8+ CPU threads | `qwen3:8b` | `qwen3-vl:4b` | `qwen3-vl:8b` |
 | Power | ~14+ GB NVIDIA VRAM or high-memory Apple Silicon | `qwen3:14b` | `qwen3-vl:8b` | `qwen3-vl:8b` |
 
-The installer detects system RAM, CPU threads and NVIDIA VRAM when available. A profile can always be selected manually.
+The installer detects system RAM, CPU threads and NVIDIA VRAM when available. GPU VRAM takes priority; CPU-only systems need both enough RAM and enough CPU threads before Standard is recommended. A profile can always be selected manually.
 
 ## Windows
 
@@ -55,7 +55,7 @@ Open `http://localhost:4200`. The first account becomes the local NORVI profile.
 
 ## What the installer changes
 
-The installer creates a local `.env` with random authentication/STT secrets, enables `LOCAL_ONLY_MODE=true` and `NORVI_PUBLIC_EDITION=true`, configures Ollama as the loopback AI endpoint, downloads the selected Qwen models, creates lightweight NORVI model aliases, initializes SQLite and builds the web app.
+The installer creates a local `.env` with random authentication/STT secrets, enables `LOCAL_ONLY_MODE=true` and `NORVI_PUBLIC_EDITION=true`, configures Ollama as the loopback AI endpoint, downloads the selected Qwen models, preloads the selected Whisper/ONNX speech model, creates lightweight NORVI model aliases, initializes SQLite and builds the web app.
 
 Existing `.env` files are not overwritten unless `--force` is supplied.
 

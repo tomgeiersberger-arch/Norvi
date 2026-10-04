@@ -50,13 +50,18 @@ function nvidiaVramGiB(): number | null {
 export function detectHardware(): HardwareProfile {
   const ramGiB = totalmem() / 1024 ** 3;
   const vram = nvidiaVramGiB();
+  const threads = cpus().length;
   const profile: ProfileName =
-    (vram ?? 0) >= 14 ? "power" : (vram ?? 0) >= 7 || ramGiB >= 24 ? "standard" : "lite";
+    (vram ?? 0) >= 14
+      ? "power"
+      : (vram ?? 0) >= 7 || (ramGiB >= 24 && threads >= 8)
+        ? "standard"
+        : "lite";
   const label = profile === "power" ? "Power · 14B" : profile === "standard" ? "Standard · 8B" : "Lite · 4B";
 
   return {
     cpu: cpus()[0]?.model ?? "Unknown CPU",
-    threads: cpus().length,
+    threads,
     ramGiB,
     nvidiaVramGiB: vram,
     profile,

@@ -11,7 +11,7 @@
 # Als täglicher Cronjob um 03:30 Uhr:
 #
 #   crontab -e
-#   30 3 * * * /home/ubuntu/norvi/deploy/backup.sh /mnt/nas/norvi >> /var/log/norvi-backup.log 2>&1
+#   30 3 * * * /path/to/norvi/deploy/backup.sh /mnt/nas/norvi >> /var/log/norvi-backup.log 2>&1
 #
 # Das Backup läuft im laufenden Betrieb: für SQLite wird `sqlite3 .backup`
 # benutzt, das einen konsistenten Stand zieht, ohne den Server zu stoppen.

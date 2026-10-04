@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="${NORVI_PROJECT_DIR:-/home/norviadmin/norvi}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="${NORVI_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 BUN="${BUN_BIN:-$HOME/.bun/bin/bun}"
 cd "$ROOT"
 
@@ -55,7 +56,7 @@ systemctl --user daemon-reload
 systemctl --user enable --now norvi-backup.timer
 
 echo "==> NORVI neu laden"
-pid="$(pgrep -f '^/home/norviadmin/.bun/bin/bun packages/web/src/__server.ts$' | head -1 || true)"
+pid="$(pgrep -u "$(id -u)" -f 'packages/web/src/__server.ts' | head -1 || true)"
 if [[ -n "$pid" ]]; then
   kill -TERM "$pid"
 fi

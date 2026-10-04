@@ -2,8 +2,9 @@
 set -euo pipefail
 umask 077
 
-PROJECT_DIR="${NORVI_PROJECT_DIR:-/home/norviadmin/norvi}"
-BACKUP_DIR="${NORVI_BACKUP_DIR:-/home/norviadmin/backups/norvi}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="${NORVI_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+BACKUP_DIR="${NORVI_BACKUP_DIR:-$HOME/.local/share/norvi/backups}"
 UPLOAD_DIR="${PROJECT_DIR}/data/uploads"
 
 DB_PATH="${PROJECT_DIR}/norvi.db"

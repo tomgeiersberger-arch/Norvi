@@ -1,17 +1,98 @@
 # NORVI AI
 
-**Private, local AI that runs on your own hardware.**
+**Your AI. Your hardware. Your data.**
 
-NORVI is a self-hosted AI interface for chat, vision and speech-to-text. The local setup uses Ollama and SQLite so normal AI requests, chats, images and speech can stay on the computer running NORVI.
+NORVI is a local-first AI assistant for Windows, Linux and macOS. It combines local chat, image understanding, speech-to-text and a Windows desktop assistant with Ollama-backed models.
 
-The repository contains the app, not multi-gigabyte model files. During setup, NORVI detects the machine and downloads an appropriate model locally through Ollama.
+The default public setup is designed to keep ordinary AI requests, chat history, uploaded images and speech processing on the computer running NORVI. Internet access is required for the initial installation and model downloads; after that, normal local use can continue without an internet connection.
 
-## Quick start
+> NORVI is currently an early public preview. The Windows installer pipeline exists and is being hardened before the first tagged public release.
+
+## Highlights
+
+- Local AI through Ollama — no hosted AI API key required.
+- Hardware-aware profiles: Lite 4B, Standard 8B and Power 14B.
+- Local vision with Qwen3-VL.
+- Local speech-to-text with Whisper.
+- Windows desktop app with system tray support and autostart.
+- Custom assistant name and custom wake phrase.
+- Local spoken replies using installed Windows voices.
+- Safe desktop actions through an explicit allowlist, currently Spotify and Counter-Strike 2.
+- Local SQLite chat history and local image storage.
+- Local-only guard that rejects cloud AI/STT/database endpoints when enabled.
+- Telemetry disabled by default.
+
+## Windows installer
+
+Tagged releases are built into a normal NSIS installer named:
+
+`NORVI-Setup-x.y.z.exe`
+
+The desktop installer:
+
+1. detects CPU, RAM and NVIDIA VRAM;
+2. recommends Lite, Standard or Power;
+3. installs missing local runtime dependencies;
+4. downloads the selected Ollama and Whisper models;
+5. creates a private local configuration;
+6. initializes NORVI and launches the desktop app.
+
+The installer creates normal Windows shortcuts and can keep NORVI running in the system tray.
+
+Until a tagged installer release is published, NORVI can be installed from source using the steps below.
+
+## Hardware profiles
+
+| Profile | Typical hardware | Text model | Vision |
+| --- | --- | --- | --- |
+| Lite | smaller PCs / around 16 GB RAM | `qwen3:4b` | `qwen3-vl:2b` / `qwen3-vl:4b` |
+| Standard | gaming PC / about 8 GB NVIDIA VRAM, or 24+ GB RAM with 8+ CPU threads | `qwen3:8b` | `qwen3-vl:4b` / `qwen3-vl:8b` |
+| Power | high-end GPU / about 14+ GB NVIDIA VRAM | `qwen3:14b` | `qwen3-vl:8b` |
+
+The automatic choice is a recommendation, not a hard requirement. Model speed depends heavily on GPU support, VRAM, system RAM, context size and quantization.
+
+## Offline use
+
+After the initial setup has downloaded NORVI, dependencies, Ollama models and the selected Whisper model, normal local features can work without internet:
+
+- text chat;
+- local chat history;
+- local image analysis;
+- local speech-to-text;
+- Windows text-to-speech;
+- local desktop actions.
+
+Features that inherently need live internet data, external websites or online services still require a connection.
+
+## Desktop assistant
+
+On Windows, NORVI can stay in the tray and act like a local voice assistant.
+
+Examples:
+
+- `Hey NORVI`
+- `Hey Dexter`
+- `Öffne Spotify`
+- `Starte CS2`
+
+The assistant name and wake phrase are configurable. Wake audio is processed through NORVI's local Whisper endpoint.
+
+Desktop actions are intentionally deny-by-default. The renderer and AI model do **not** receive a generic shell or terminal runner; only explicitly reviewed actions can be launched.
+
+## Quick start from source
 
 ### Windows
 
+Open PowerShell in the cloned or extracted NORVI folder:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\deploy\install-local.ps1
+```
+
+Force a profile when needed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\install-local.ps1 --profile=standard
 ```
 
 ### Linux / macOS
@@ -21,669 +102,77 @@ chmod +x deploy/install-local.sh
 ./deploy/install-local.sh
 ```
 
-The installers use Ollama's official install command when Ollama is missing. The Windows desktop app starts the local NORVI server automatically. Source installs can be started with `bun run serve` and opened at **http://localhost:4200**.
+Manual profile:
 
-## Automatic model profiles
+```bash
+./deploy/install-local.sh --profile=standard
+```
 
-| Profile | Typical hardware | Text | Vision |
-| --- | --- | --- | --- |
-| Lite | smaller PCs / about 16 GB RAM | Qwen3 4B | Qwen3-VL 2B/4B |
-| Standard | gaming PC / about 8 GB VRAM or 24+ GB RAM | **Qwen3 8B** | Qwen3-VL 4B/8B |
-| Power | high-end GPU / about 14+ GB VRAM | Qwen3 14B | Qwen3-VL 8B |
+After setup:
 
-Use `--profile=lite`, `--profile=standard` or `--profile=power` to override auto-detection.
+```bash
+bun run serve
+```
 
-## Local-first privacy
+Open `http://localhost:4200`.
 
-The generated local setup uses `LOCAL_ONLY_MODE=true` and `NORVI_PUBLIC_EDITION=true`, Ollama on `127.0.0.1:11434`, local SQLite under `data/`, local image storage and a local Whisper sidecar. In this mode NORVI refuses cloud AI/STT/database endpoints and hides private server-only Owner/Admin/Premium/Choke features. No hosted AI API key is required. Internet access is still needed during installation for packages and model downloads.
+## Privacy defaults
 
-Read [Self-hosting](docs/SELF_HOSTING.md) and [Privacy](docs/PRIVACY.md) for details.
+The generated public configuration enables:
+
+```text
+LOCAL_ONLY_MODE=true
+NORVI_PUBLIC_EDITION=true
+VITE_ENABLE_TELEMETRY=false
+EXPO_PUBLIC_ENABLE_TELEMETRY=false
+```
+
+Local-only mode requires loopback AI/STT endpoints and a local `file:` SQLite database. The public edition hides private server-only Owner/Admin/Premium/Choke controls while keeping Fast, Standard, Power and Deep available.
+
+See [docs/PRIVACY.md](docs/PRIVACY.md) for the exact local/external boundary.
+
+## Self-hosting documentation
+
+Detailed setup and desktop-assistant notes are in [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+
+The repository intentionally does **not** contain multi-gigabyte model files. Models are downloaded directly on the user's machine.
 
 ## Development
 
+Requirements:
+
+- Bun
+- Node-compatible build environment
+- Ollama for local AI testing
+
+Common commands:
+
 ```bash
-bun install
-bun run dev
+bun install --frozen-lockfile
 bun run typecheck
 bun run lint
 bun run build
 ```
 
-Secrets belong only in `.env`. Local databases and `data/` are intentionally ignored by Git.
-
----
-
-# NORVI AI — Mobile App über Expo Go im Heimnetz
-
-Die mobile NORVI-App läuft in **Expo Go** direkt auf dem Smartphone. Damit der QR-Code
-nicht auf `localhost` oder eine nicht erreichbare Cloud-Adresse zeigt, ist **LAN die
-Standard-Verbindung**.
-
-## 1. Voraussetzungen
-
-- Ubuntu-Server und Smartphone hängen im **selben WLAN / LAN** (kein Gäste-WLAN, keine
-  Client-Isolation im Router).
-- **Expo Go** aus dem Play Store bzw. App Store installiert (SDK 54 kompatibel).
-- Bun installiert, Abhängigkeiten via `bun install` im Projekt-Root.
-
-## 2. Ports in der Firewall öffnen
+Run the public-release safety check:
 
 ```bash
-ip addr show | grep "inet "        # LAN-IP des Servers ermitteln, z. B. 192.168.1.42
-sudo ufw allow 4200/tcp            # NORVI Web + API
-sudo ufw allow 4300/tcp            # Expo Dev-Server (Metro / Expo Go)
-sudo ufw reload
+bash deploy/public-release-check.sh
 ```
 
-## 3. Wichtig beim Selbst-Hosten: Proxy-Variable leeren
+## Security and secrets
 
-`packages/mobile/.env` enthält in der Runable-Sandbox `EXPO_PACKAGER_PROXY_URL` mit einer
-Cloud-Adresse. Zeigt der QR-Code auf eine nicht erreichbare URL, ist **genau das** die
-Ursache. Auf dem eigenen Server muss die Zeile leer sein:
+Never commit:
 
-```bash
-echo "EXPO_PACKAGER_PROXY_URL=" > packages/mobile/.env
-```
+- `.env`
+- local databases
+- files under `data/`
+- API keys or tokens
+- private keys
+- personal server addresses or private deployment notes
 
-Optional die LAN-IP fest verdrahten (nützlich bei mehreren Netzwerk-Interfaces, VPN oder Docker-Bridges):
+The repository ignores normal local runtime data. CI also runs a public-release check to catch common accidental leaks before they reach a release.
 
-```bash
-export REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.42
-```
+## Current release direction
 
-## 4. Starten
-
-```bash
-# Terminal 1 — Web + API (liefert Chats, Verlauf und KI-Antworten)
-bun run dev
-# oder produktiv: bun run build:web && bun run start
-
-# Terminal 2 — Expo Dev-Server, LAN ist Standard
-bun run dev:mobile
-```
-
-Im Terminal erscheint der QR-Code plus eine URL der Form `exp://192.168.1.42:4300`.
-
-- **Android:** QR-Code direkt in Expo Go scannen.
-- **iOS:** QR-Code mit der Kamera-App scannen, dann „In Expo Go öffnen“.
-- Alternativ die `exp://`-URL in Expo Go unter „Enter URL manually“ eintippen.
-
-Weitere Startvarianten:
-
-| Befehl | Verbindung | Einsatz |
-| --- | --- | --- |
-| `bun run dev:mobile` | **LAN (Standard)** | Smartphone im selben WLAN |
-| `bun run dev:mobile:tunnel` | Tunnel über Expo | anderes Netz, Mobilfunk, restriktive Firewall |
-| `bun run dev:mobile:localhost` | localhost | nur Emulator/Simulator auf dem Server selbst |
-
-## 5. API-Adresse der mobilen App
-
-Die App ermittelt die NORVI-API automatisch in dieser Reihenfolge
-(`packages/mobile/lib/api-base.ts`):
-
-1. `EXPO_PUBLIC_API_URL` — expliziter Override, gewinnt immer (z. B. hinter nginx:
-   `EXPO_PUBLIC_API_URL=http://192.168.1.42` oder `https://norvi.example.com`).
-2. **LAN-Erkennung:** wurde der Dev-Server von einer privaten IP geladen
-   (`10.x`, `192.168.x`, `172.16–31.x`), spricht die App `http://<diese-IP>:4200` an —
-   also NORVI auf demselben Rechner.
-3. `expo.extra.apiUrl` — plattform-verwaltete Vorschau-URL (Runable-Dashboard).
-
-## 6. Verbindung prüfen
-
-```bash
-curl http://<lan-ip>:4200/api/health      # NORVI Web/API vom Netzwerk aus
-curl http://<lan-ip>:4300                 # Expo Dev-Server vom Netzwerk aus
-npx expo-doctor                           # in packages/mobile: Expo-Konfiguration prüfen
-```
-
-Beide Aufrufe müssen **von einem anderen Gerät im WLAN** funktionieren. Schlägt es fehl:
-Firewall (Schritt 2), WLAN-Client-Isolation im Router oder falsches Interface
-(Schritt 3, `REACT_NATIVE_PACKAGER_HOSTNAME`).
-
-## 7. Bekannte, harmlose `expo-doctor`-Meldungen
-
-- **„watchFolders does not contain all entries from Expo's defaults"** —
-  `packages/mobile/metro.config.js` ist plattform-verwaltet und löst die Bun-Workspace-Pfade
-  auf. Nicht ändern.
-- **„duplicate native module dependencies"** — Artefakt der Bun-Workspace-Symlinks; es sind
-  jeweils identische Versionen, kein Konflikt.
-
-## 8. Bilder verstehen & Spracheingabe
-
-### 8.1 Überblick
-
-NORVI kann Bilder ansehen (beschreiben, Fragen beantworten, sichtbaren Text vorlesen) und
-gesprochene Eingaben in Text umwandeln. Beides läuft **ausschließlich serverseitig** — im
-Frontend liegt kein einziger Schlüssel.
-
-- Bilder werden lokal unter `UPLOAD_DIR` (Standard `data/uploads/`) gespeichert und über
-  `GET /api/files/:id` ausgeliefert.
-- An das Modell gehen die **echten Bilddaten** (inline als `data:`-URL), niemals nur ein Link.
-  Das ist Absicht: ein Home-Server hinter dem Router ist für einen gehosteten Modellanbieter
-  nicht erreichbar.
-- Die Spracherkennung spricht einen **eigenen Whisper-Server im Heimnetz** an. Ohne
-  `STT_BASE_URL` bleibt der Mikrofon-Knopf ausgeblendet — es gibt bewusst keinen Cloud-Fallback.
-
-### 8.2 Variablen in der root `.env`
-
-```bash
-UPLOAD_DIR=data/uploads                     # Ablage der hochgeladenen Bilder
-
-AI_VISION_FAST_MODEL=                       # optional: schnelles Modell fuer normale Fotos
-AI_VISION_MODEL=                            # praezises Modell / Fallback fuer Bildanalyse
-# Lokal mit Ollama z. B.:
-# AI_VISION_FAST_MODEL=qwen3.5:0.8b
-# AI_VISION_MODEL=qwen3-vl:2b-instruct
-
-STT_LOCAL_ENABLED=false                    # true = eingebauten lokalen Sidecar starten
-STT_LOCAL_MODEL=tiny                        # CPU-freundlicher NORVI-Standard
-STT_BASE_URL=                               # lokal: http://127.0.0.1:8000/v1
-STT_API_KEY=
-STT_MODEL=whisper-1
-```
-
-> **Wichtig:** Änderungen an der `.env` greifen erst nach einem **echten Neustart** des
-> Server-Prozesses (`bun run dev` beenden und neu starten). Ein reiner Vite-Reload übernimmt
-> sie nicht.
-
-### 8.3 Welches Vision-Modell wird benutzt?
-
-| Konfiguration | Verhalten |
-| --- | --- |
-| `AI_VISION_FAST_MODEL` + `AI_VISION_MODEL` gesetzt | Normale Fotos/Szenen nutzen in Choke Mode, Fast und Standard das schnelle Modell. OCR, Text, Zahlen, Zaehlen und Detailfragen gehen automatisch an das praezisere Modell. Power und Deep verwenden fuer Bilder immer das praezisere Modell. |
-| Nur `AI_VISION_MODEL` gesetzt | Alle Bildanfragen verwenden dieses Modell. |
-| Gateway, Variablen leer | Das aktuell gewählte Modell, falls es Bilder kann, sonst automatisch `anthropic/claude-sonnet-4.6`. |
-| `AI_PROVIDER=openai-compatible`, `AI_VISION_MODEL` leer | Klare Fehlermeldung statt Bildinhalte mit einem reinen Textmodell zu erraten. |
-
-Fuer den kleinen lokalen CPU-Server ist die Hybrid-Konfiguration vorgesehen:
-
-```bash
-ollama pull qwen3.5:0.8b
-ollama pull qwen3-vl:2b-instruct
-# .env:
-# AI_VISION_FAST_MODEL=qwen3.5:0.8b
-# AI_VISION_MODEL=qwen3-vl:2b-instruct
-```
-
-### 8.4 Lokale Spracheingabe auf dem NORVI-Server
-
-NORVI kann seinen eigenen OpenAI-kompatiblen Whisper-Sidecar automatisch mitstarten. Der
-Dienst lauscht ausschließlich auf `127.0.0.1`; Audiodaten verlassen den Server nicht. Für den
-kleinen CPU-Server ist das multilingual `tiny`-Modell der Standard.
-
-```env
-STT_LOCAL_ENABLED=true
-STT_LOCAL_PORT=8000
-STT_LOCAL_MODEL=tiny
-WHISPER_API_HOME=data/whisper-api
-
-STT_BASE_URL=http://127.0.0.1:8000/v1
-STT_API_KEY=norvi-loopback-only
-STT_MODEL=whisper-1
-```
-
-Der Sidecar wird zusammen mit NORVI gestartet und bei einem unerwarteten Absturz automatisch
-neu gestartet. Beim ersten Start werden die lokalen ONNX-Modellartefakte unter
-`data/whisper-api/` vorbereitet; spätere Starts verwenden den Cache.
-
-Prüfen:
-
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-Alternativ kann `STT_LOCAL_ENABLED=false` bleiben und `STT_BASE_URL` auf jeden anderen
-OpenAI-kompatiblen Transcriptions-Endpunkt zeigen. Damit funktionieren beispielsweise ein
-separater schnellerer Whisper-Rechner oder eine GPU-Instanz im eigenen Netz.
-
-**Browser-Hinweis:** Mikrofonzugriff benötigt einen sicheren Kontext. Auf einem anderen Gerät
-also NORVI über HTTPS öffnen; `http://localhost` ist die einzige übliche HTTP-Ausnahme.
-
-### 8.5 Bedienung
-
-- **Bilder:** per Bild-Knopf, Einfügen aus der Zwischenablage oder Drag & Drop; maximal vier
-  Bilder pro Nachricht.
-- **Mikrofon:** drücken zum Aufnehmen, erneut drücken zum Stoppen. Der erkannte Text landet
-  zuerst editierbar im Eingabefeld.
-- **Tastatur:** `Enter` sendet, `Shift+Enter` fügt eine Zeile ein und `Ctrl/⌘ K` fokussiert
-  den Composer.
-- **Antworten:** NORVI-Antworten lassen sich direkt kopieren. Wer im Verlauf nach oben scrollt,
-  wird beim Streaming nicht mehr automatisch nach unten gerissen; ein Button springt zurück
-  zur neuesten Nachricht.
-
-### 8.6 Backup
-
-Die Bilder liegen als Dateien auf der Platte, die Chats in der SQLite-Datei. Für ein
-vollständiges Backup **beides** sichern — `data/uploads/` und die Datenbank. Der Homeserver
-kann das mit `deploy/backup-norvi.sh` automatisch erledigen; die mitgelieferten
-`norvi-backup.service`/`.timer`-Units erzeugen täglich einen konsistenten Snapshot und
-behalten die letzten 14 Sicherungen.
-
-## 9. Chat über den lokalen Ollama-Server
-
-NORVI spricht im Chat ausschließlich mit deinem Ollama im Heimnetz — keine Cloud, kein API-Key.
-Die Anfragen laufen **serverseitig** über `POST /api/agent/messages`; der Browser spricht Ollama
-nie direkt an, damit gibt es auch kein CORS-Problem.
-
-### 9.1 Konfiguration (root `.env`)
-
-```bash
-AI_PROVIDER=openai-compatible
-AI_BASE_URL=http://100.114.15.10:11434/v1  # Tailscale-Adresse, /v1 ist Pflicht
-AI_MODEL=norvi-direct:latest               # 2B-Direct ohne verstecktes Thinking
-AI_MODELS=norvi-direct:latest              # Auswahl in den Einstellungen
-AI_API_KEY=                                # Ollama braucht keinen Schluessel
-```
-
-`AI_BASE_URL` ist der **einzige** Schalter für die Adresse. Möglich sind:
-
-| Situation | Wert |
-| --- | --- |
-| NORVI und Ollama auf demselben Rechner | `http://localhost:11434/v1` |
-| Über Tailscale (Tailnet-IP `100.x.y.z`) | `http://100.114.15.10:11434/v1` |
-| Über einen HTTPS-Tunnel (Funnel/cloudflared) | `https://<host>/v1` |
-
-Nicht verwenden: `172.17.0.1` (Docker-intern) und LAN-IPs wie `192.168.0.17`, wenn NORVI
-außerhalb dieses WLANs läuft.
-
-Die Cloud-Variablen `AI_GATEWAY_BASE_URL` / `AI_GATEWAY_API_KEY` sind auskommentiert. Zum
-Zurückschalten `AI_PROVIDER` entfernen und die beiden Zeilen wieder aktivieren.
-
-> **Nach jeder `.env`-Änderung den Server-Prozess wirklich neu starten** — ein Vite-Reload
-> übernimmt Umgebungsvariablen nicht.
-
-### 9.2 Ollama über Tailscale / im LAN erreichbar machen
-
-Läuft NORVI auf **demselben** Rechner wie Ollama, genügt `http://localhost:11434/v1`.
-
-Läuft NORVI auf einem **anderen** Rechner, muss Ollama auf allen Interfaces lauschen — per
-Voreinstellung hört es nur auf `127.0.0.1`:
-
-```bash
-sudo systemctl edit ollama
-# einfügen:
-#   [Service]
-#   Environment="OLLAMA_HOST=0.0.0.0"
-sudo systemctl restart ollama
-
-curl http://100.114.15.10:11434/api/tags    # von einem anderen Tailnet-Geraet pruefen
-```
-
-`OLLAMA_HOST=0.0.0.0` gilt auch für Tailscale: Die Tailnet-IP `100.114.15.10` ist ein eigenes
-Interface, auf das Ollama nur lauscht, wenn es nicht an `127.0.0.1` gebunden ist.
-
-Nicht `172.17.0.1` verwenden — das ist die Docker-interne Adresse, nicht deine echte Adresse.
-
-Wichtig: Eine Tailnet-IP ist nur für Geräte erreichbar, die **im selben Tailnet angemeldet**
-sind. Läuft NORVI auf einem Server außerhalb deines Tailnets, muss dieser Server entweder selbst
-dem Tailnet beitreten (`tailscale up`) oder Ollama über einen HTTPS-Tunnel angeboten werden
-(`tailscale funnel 11434` bzw. `cloudflared tunnel`); `AI_BASE_URL` zeigt dann auf diese
-HTTPS-URL mit `/v1` am Ende.
-
-### 9.3 Bildanalyse mit Ollama
-
-Beim lokalen Provider braucht NORVI mindestens ein explizit eingetragenes
-`AI_VISION_MODEL`; ein reines Textmodell soll Bildinhalte niemals erraten. Fuer den
-CPU-Server kann zusaetzlich ein schnelleres Modell fuer allgemeine Szenen gesetzt werden:
-
-```bash
-ollama pull qwen3.5:0.8b
-ollama pull qwen3-vl:2b-instruct
-# .env:
-AI_VISION_FAST_MODEL=qwen3.5:0.8b
-AI_VISION_MODEL=qwen3-vl:2b-instruct
-```
-
-NORVI routet normale Foto-/Szenenfragen zum schnellen Modell und anspruchsvollere
-OCR-, Zahlen-, Zaehlen- oder Detailfragen zum praeziseren Modell. Power und Deep verwenden
-bei Bildern ebenfalls das praezisere Modell. Der Textchat bleibt davon unabhaengig und laeuft
-weiter ueber `AI_MODEL`.
-
----
-
-## 10. Self-Hosting auf einem frischen Ubuntu-Server
-
-Vollständiger Weg von einem leeren Server bis zum dauerhaften Betrieb. Getestet gegen
-Ubuntu 22.04/24.04.
-
-### 10.1 Voraussetzungen installieren
-
-```bash
-sudo apt update && sudo apt install -y git curl unzip
-curl -fsSL https://bun.sh/install | bash     # Bun (Runtime + Paketmanager)
-exec $SHELL                                  # PATH neu laden, danach: bun --version
-```
-
-Ollama läuft bereits auf dem Server. Modell prüfen:
-
-```bash
-./deploy/install-direct-model.sh            # erzeugt norvi-direct:latest
-ollama list                                  # muss norvi-direct:latest enthalten
-curl http://localhost:11434/api/tags         # API-Check
-```
-
-### 10.2 Projekt klonen und konfigurieren
-
-```bash
-git clone git@github.com:tomgeiersberger-arch/Norvi.git norvi
-cd norvi
-
-cp .env.example .env
-nano .env
-```
-
-In der `.env` mindestens setzen:
-
-```bash
-WEBSITE_URL=http://100.114.15.10:4200        # oder https://norvi.example.com
-TRUSTED_ORIGINS=                              # optional: weitere erlaubte Browser-Origins
-DATABASE_URL=file:./data/norvi.db            # lokale SQLite-Datei, kein Cloud-Dienst
-DATABASE_AUTH_TOKEN=
-BETTER_AUTH_SECRET=                          # openssl rand -base64 32
-AI_PROVIDER=openai-compatible
-AI_BASE_URL=http://127.0.0.1:11434/v1         # gleicher Rechner: localhost bevorzugen
-AI_MODEL=norvi-direct:latest
-AI_MODELS=norvi-direct:latest
-AI_ULTRA_SERIOUS_MODEL=norvi-direct:latest      # 2B ohne verstecktes Thinking
-AI_FAST_MODEL=norvi-direct:latest
-AI_POWER_MODEL=norvi-power:latest               # direktes 4B-Instruct-Modell
-AI_DEEP_MODEL=norvi-deep:latest                 # 4B + Thinking via ./deploy/install-deep-model.sh
-AI_LOCAL_WARMUP=true                            # Hauptmodell nach Serverstart vorladen
-AI_LOCAL_WARM_VISION=true                       # Vision auf dem 16-GB-Server ebenfalls vorladen
-AI_LOCAL_KEEP_ALIVE=24h                         # Cold-Starts im Tagesbetrieb vermeiden
-AI_ULTRA_SERIOUS_MAX_TOKENS=160
-AI_FAST_MAX_TOKENS=256
-AI_BALANCED_MAX_TOKENS=512
-AI_POWER_MAX_TOKENS=768
-AI_DEEP_MAX_TOKENS=1024
-AI_VISION_MAX_TOKENS=128
-AI_API_KEY=
-REQUIRE_AUTH=true                              # bei externem Zugriff immer aktivieren
-UPLOAD_DIR=data/uploads
-```
-
-Die echte `.env` ist in `.gitignore` und wird **nie** committet. Genauso `data/` mit der
-SQLite-Datei und den Uploads.
-
-### 10.3 Bauen und starten
-
-Ein Befehl macht alles — installieren, Schema anlegen, bauen, starten:
-
-```bash
-./deploy/start-production.sh
-```
-
-Das Skript bricht mit einer klaren Meldung ab, wenn Bun fehlt, die `.env` fehlt oder eine
-Pflichtvariable leer ist. Varianten:
-
-```bash
-./deploy/start-production.sh --pm2         # im Hintergrund via pm2
-./deploy/start-production.sh --build-only  # nur bauen
-```
-
-Die einzelnen Schritte, falls du sie getrennt brauchst:
-
-```bash
-bun install
-bun run db:push        # Tabellen in der SQLite-Datei anlegen
-bun run build          # Frontend + Typecheck
-bun run serve          # Production-Server auf Port 4200
-# oder in einem Schritt:
-bun run start:prod
-```
-
-Erreichbar ist NORVI dann auf `http://<server>:4200`. Firewall:
-
-```bash
-sudo ufw allow 4200/tcp
-```
-
-### 10.4 Dauerhafter Betrieb (systemd, empfohlen)
-
-```bash
-sudo cp deploy/norvi.service /etc/systemd/system/norvi.service
-sudo nano /etc/systemd/system/norvi.service   # User, WorkingDirectory, bun-Pfad anpassen
-sudo systemctl daemon-reload
-sudo systemctl enable --now norvi
-
-systemctl status norvi
-journalctl -u norvi -f
-```
-
-Wichtig in der Unit: `WorkingDirectory` muss das Projektverzeichnis sein — `DATABASE_URL`
-und `UPLOAD_DIR` sind relative Pfade. `which bun` liefert den Pfad für `ExecStart`.
-
-Nach jeder `.env`-Änderung: `sudo systemctl restart norvi`. Ein Reload genügt nicht,
-Umgebungsvariablen werden nur beim Prozessstart gelesen.
-
-Alternative ohne systemd (pm2, Autostart nach Reboot):
-
-```bash
-bun run build && bun run start
-bunx pm2 save && bunx pm2 startup      # ausgegebenen sudo-Befehl ausfuehren
-```
-
-### 10.5 Optional: Remote-Zugriff nach SSH-Abbruch behalten
-
-Wenn Desktop Commander einmal interaktiv als Benutzer `norviadmin` autorisiert wurde, kann
-die Verbindung als eigener systemd-Dienst weiterlaufen. Dadurch darf die SSH-Sitzung bzw.
-der PC, von dem aus SSH geöffnet wurde, danach beendet werden.
-
-> **Sicherheit:** Dieser Dienst gibt dem verbundenen Desktop-Commander-Konto Terminal- und
-> Dateizugriff als `norviadmin`. Nur auf einem eigenen Server aktivieren und das verbundene
-> Konto mit starker Anmeldung schützen. Die Unit enthält selbst keine Tokens oder Secrets.
-
-Zuerst einmal interaktiv autorisieren:
-
-```bash
-npx --yes @wonderwhy-er/desktop-commander@0.2.51 remote
-```
-
-Nach erfolgreicher Gerätefreigabe die dauerhafte **User-Unit** installieren. Dafür ist kein
-sudo nötig:
-
-```bash
-cd ~/norvi
-bash deploy/install-desktop-commander-remote.sh
-systemctl --user status desktop-commander-remote --no-pager
-```
-
-Der Installer prüft außerdem `Linger`. Nur falls es auf dem Host noch deaktiviert ist, ist
-einmalig Root nötig, damit der User-Service auch nach Logout und Reboot weiterläuft:
-
-```bash
-sudo loginctl enable-linger $(id -un)
-```
-
-Logs:
-
-```bash
-journalctl --user -u desktop-commander-remote -f
-```
-
-### 10.6 Updates einspielen
-
-Auf dem NORVI-Homeserver kann das Update ohne Root-Zugriff auf den App-Prozess
-weitgehend automatisiert werden:
-
-```bash
-cd ~/norvi
-git pull --ff-only
-bash deploy/update-production.sh
-```
-
-Das Update-Skript erstellt zuerst ein Backup, installiert Abhängigkeiten, aktualisiert das
-Datenbankschema, führt Typecheck/Lint/Web-Build aus, installiert die User-Units für Backup
-und Quick Tunnel, lädt NORVI neu und führt anschließend einen Laufzeit-Selbsttest aus.
-Ein vorhandener getrackter lokaler Edit führt bewusst zum Abbruch statt überschrieben zu werden.
-
-Nur prüfen, ohne etwas zu ändern:
-
-```bash
-bash deploy/norvi-self-test.sh
-# nur Dienste/DB/Ollama/HTTPS:
-bash deploy/norvi-self-test.sh --runtime-only
-```
-
-### 10.7 Optional: HTTPS über nginx
-
-```nginx
-server {
-    listen 80;
-    server_name norvi.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:4200;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_buffering off;          # wichtig: sonst kommt das Streaming stockend an
-        proxy_read_timeout 300s;
-    }
-}
-```
-
-Danach `sudo certbot --nginx -d norvi.example.com` und `WEBSITE_URL` auf die HTTPS-Adresse
-setzen.
-
-### 10.7 Fehlersuche
-
-| Symptom | Ursache / Lösung |
-| --- | --- |
-| „Build output not found" | `bun run build` wurde nicht ausgeführt |
-| „Der KI-Dienst ist nicht erreichbar" | `AI_BASE_URL` falsch oder Ollama hört nur auf `127.0.0.1` → `OLLAMA_HOST=0.0.0.0` |
-| Antwort kommt nur am Stück statt streamend | `proxy_buffering off;` im nginx fehlt |
-| `.env`-Änderung wirkt nicht | Prozess wirklich neu starten (`systemctl restart norvi`) |
-| Uploads verschwinden nach Neustart | `WorkingDirectory` in der Unit zeigt nicht auf das Projekt |
-
-
-## 11. Empfohlenes Homeserver-Profil
-
-Für den kleinen CPU-only NORVI-Server ist folgende Aufteilung vorgesehen:
-
-| Modus | Zweck | Standard |
-| --- | --- | --- |
-| Choke Mode | ultrakurze Antworten, kleinste CPU-Last | `AI_ULTRA_SERIOUS_MODEL`, 160 Output-Tokens |
-| Fast | kurze Alltagsfragen, geringe CPU-Last | `AI_FAST_MODEL`, 256 Output-Tokens |
-| Standard | normaler Chat | Hauptmodell, 512 Output-Tokens |
-| Power | stärkere Antworten ohne extra Thinking | `AI_POWER_MODEL`, 768 Output-Tokens |
-| Deep | stärkste Analyse mit zusätzlicher Denkzeit | `AI_DEEP_MODEL`, 1024 Output-Tokens |
-
-Choke Mode ist ein admin-gesteuerter Spezialmodus: Owner- und Admin-Konten haben ihn automatisch,
-normale Benutzer sehen ihn erst, nachdem ein Owner oder Admin ihn in der Benutzerverwaltung freigeschaltet
-hat. Die Berechtigung wird serverseitig geprüft, nicht nur in der UI. Choke Mode, Fast und
-Standard nutzen `norvi-direct:latest`: ein leichtes Qwen-2B-Modell, dessen Template verstecktes
-Thinking fest deaktiviert. Dadurch beginnt es auf CPU wesentlich schneller mit der Antwort.
-Choke Mode und Fast nutzen zusätzlich automatisch Temperatur 0.20, damit der kleine Direct-Build
-bei kurzen Antworten stabil bleibt. Power schaltet auf das direkte 4B-Modell um; Deep nutzt 4B mit zusätzlichem Thinking und ist
-für schwierigere Aufgaben gedacht. Installieren:
-
-```bash
-./deploy/install-direct-model.sh
-./deploy/install-power-model.sh
-./deploy/install-deep-model.sh
-# .env:
-AI_MODEL=norvi-direct:latest
-AI_FAST_MODEL=norvi-direct:latest
-AI_ULTRA_SERIOUS_MODEL=norvi-direct:latest
-AI_POWER_MODEL=norvi-power:latest
-AI_DEEP_MODEL=norvi-deep:latest
-```
-
-„Deep“ ist für Premium-Konten sowie Owner/Admin-Konten freigeschaltet. Premium verdoppelt
-außerdem das Chat-Burst-Limit von 30 auf 60 Nachrichten pro 10 Minuten. Ein gesetztes
-`premiumUntil` wird bei jedem Request geprüft; abgelaufene Premium-Zugänge fallen automatisch
-auf den normalen Leistungsumfang zurück.
-
-### Externer Zugriff
-
-Für Tests ohne eigene Domain kann `deploy/norvi-quick-tunnel.service` als User-Service
-laufen. `deploy/start-quick-tunnel.sh` startet einen Cloudflare Quick Tunnel über HTTP/2,
-schreibt die aktuelle URL nach `data/public-url.txt`, aktualisiert `WEBSITE_URL` und
-lädt NORVI bei einer neuen Tunnel-Adresse automatisch neu. Mit aktiviertem User-Linger
-kommt der Tunnel damit auch nach einem Server-Neustart wieder hoch. Die URL kann sich
-bei jedem Tunnel-Neustart ändern; die Weboberfläche zeigt deshalb einen „Teilen“-Button,
-der die jeweils aktuelle öffentliche URL kopiert.
-
-Für echten Dauerbetrieb mit unveränderlicher Adresse weiterhin keinen zufälligen Quick
-Tunnel verwenden. Geeignet sind ein benannter Cloudflare Tunnel mit eigener Domain oder
-Tailscale Funnel. Bei Tailscale Funnel kann zum Beispiel
-`https://norvi.<tailnet>.ts.net` als `WEBSITE_URL` gesetzt werden. Sobald `WEBSITE_URL`
-auf eine feste HTTPS-Adresse zeigt, deaktiviert `deploy/update-production.sh` den
-Cloudflare Quick Tunnel und behält die feste Adresse auch nach Updates bei. Der Tunnel
-soll ausschließlich NORVI auf `http://127.0.0.1:4200` veröffentlichen; Ollama auf Port
-11434 bleibt lokal.
-
-Vor dem Freigeben ins Internet:
-
-```env
-REQUIRE_AUTH=true
-ALLOW_SIGNUP=false
-AI_BASE_URL=http://127.0.0.1:11434/v1
-```
-
-Der erste Account kann einen frischen Server weiterhin initialisieren und wird dabei Owner.
-Die Rollen sind hierarchisch: Owner > Admin > Benutzer. Nur der Owner darf Benutzer zu Admins
-machen oder Admins wieder zu Benutzern zurückstufen. Admins dürfen normale Benutzer aktivieren
-oder deaktivieren, Premium und Choke Mode verwalten, die Registrierung steuern und Systemstatus
-sehen; sie dürfen weder den Owner noch andere Admins verändern. Sobald bereits ein Nutzer existiert,
-blockiert NORVI weitere Registrierungen serverseitig. Owner und Admins können die Registrierung im
-Admin-Bereich temporär öffnen, um z. B. einen Freund anzulegen, und danach sofort wieder schließen. Diese Laufzeit-Freigabe wird bei jedem NORVI-Neustart automatisch
-zurückgesetzt. `ALLOW_SIGNUP=true` ist nur für eine bewusst dauerhaft offene Registrierung
-gedacht.
-
-Danach prüfen:
-
-```bash
-curl http://127.0.0.1:4200/api/health
-systemctl status norvi
-systemctl status cloudflared
-```
-
-### Lokale KI-Dienste
-
-Wenn Ollama und NORVI auf demselben Rechner laufen, sollte Ollama nur lokal erreichbar
-sein. Eine Freigabe über `OLLAMA_HOST=0.0.0.0` ist dafür nicht nötig.
-
-Speech-to-Text kann direkt mit NORVI als lokaler CPU-Sidecar laufen:
-
-```env
-STT_LOCAL_ENABLED=true
-STT_LOCAL_MODEL=tiny
-STT_BASE_URL=http://127.0.0.1:8000/v1
-STT_API_KEY=norvi-loopback-only
-STT_MODEL=whisper-1
-```
-
-Auf dem dedizierten CPU-only 16-GB-Homeserver werden das leichte Textmodell sowie
-das schnelle und das praezise Vision-Modell vorgewaermt. Mit
-`AI_LOCAL_WARM_VISION=true` und `AI_LOCAL_KEEP_ALIVE=24h` bleiben diese kleinen Modelle
-im RAM und der reine Model-Cold-Start entfaellt im Tagesbetrieb. Nach jeder erfolgreichen
-lokalen Modellantwort erneuert NORVI den Ollama-Keep-Alive ueber einen nahezu kostenlosen
-Load-Ping.
-
-Bei Bildern routet NORVI allgemeine Foto-/Szenenfragen an `qwen3.5:0.8b`; OCR, Zahlen,
-Zaehlen, feine Details sowie Power/Deep gehen an `qwen3-vl:2b-instruct`. Das reduziert die
-Wartezeit fuer normale Bilder deutlich, ohne die staerkere Bildanalyse fuer schwierige
-Aufgaben zu verlieren. Hochaufgeloeste Fotos werden unabhaengig von ihrer Dateigroesse vor
-dem Upload verkleinert, weil bei CPU-Vision vor allem die Pixelzahl zaehlt. Fuer kurze lokale
-Textantworten nutzt NORVI `norvi-direct:latest`; dessen Template schaltet verstecktes
-Qwen-Thinking fest aus, waehrend `NORVI Deep` weiterhin ein separates Thinking-Modell nutzt.
-
-```bash
-ollama pull qwen3.5:0.8b
-ollama pull qwen3-vl:2b-instruct
-```
-
-```env
-AI_VISION_FAST_MODEL=qwen3.5:0.8b
-AI_VISION_MODEL=qwen3-vl:2b-instruct
-```
-
-Nach jeder Änderung an `.env` NORVI vollständig neu starten:
-
-```bash
-sudo systemctl restart norvi
-```
+The next milestone is the first fully tested Windows installer release. Before that release, the project still needs a real clean-machine Windows end-to-end test of installation, model downloads, offline restart, wake-word mode, Spotify launch and CS2 launch.

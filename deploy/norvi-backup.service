@@ -4,5 +4,5 @@ After=default.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/norviadmin/norvi
-ExecStart=/home/norviadmin/norvi/deploy/backup-norvi.sh
+WorkingDirectory=%h/norvi
+ExecStart=/usr/bin/env bash %h/norvi/deploy/backup-norvi.sh

@@ -6,8 +6,8 @@
  * sent to a cloud service and no key lives in the frontend: everything is
  * configured through the root .env.
  *
- *   STT_BASE_URL=http://192.168.1.50:8000/v1
- *   STT_MODEL=Systran/faster-whisper-large-v3   # optional
+ *   STT_BASE_URL=http://<whisper-host>:8000/v1
+ *   STT_MODEL=whisper-1                         # optional
  *   STT_API_KEY=...                             # optional
  */
 
@@ -67,7 +67,7 @@ export async function transcribe(input: {
 }): Promise<string> {
   if (!sttConfigured()) {
     throw new SttError(
-      "Spracheingabe ist nicht eingerichtet. Bitte STT_BASE_URL in der .env auf den eigenen Whisper-Server setzen (z. B. http://192.168.1.50:8000/v1).",
+      "Spracheingabe ist nicht eingerichtet. Bitte STT_BASE_URL in der .env auf den eigenen lokalen Whisper-Server setzen (z. B. http://127.0.0.1:8000/v1).",
       503,
     );
   }
