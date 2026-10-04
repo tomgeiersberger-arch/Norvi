@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
 contextBridge.exposeInMainWorld("norviDesktop", {
   detectHardware: () => ipcRenderer.invoke("norvi:detect-hardware"),
+  checkForUpdates: () => ipcRenderer.invoke("norvi:check-for-updates"),
   install: (profile: "lite" | "standard" | "power") =>
     ipcRenderer.invoke("norvi:install", profile),
   launch: () => ipcRenderer.invoke("norvi:launch"),

@@ -53,3 +53,10 @@ If NORVI is deliberately exposed to another machine, a LAN, or the public intern
 ## First-run setup
 
 The Windows desktop app shows a local first-run wizard after installation. It does not create an online account. The wizard stores the assistant name, wake phrase, voice choice and desktop permission switches in local application/browser storage. Screen Mode remains opt-in.
+
+
+## Settings backup and update checks
+
+The desktop settings backup is a user-triggered local JSON export. It contains NORVI preferences such as assistant name, wake phrase, permissions, call-words and model/answer-style selection; it does not export authentication secrets.
+
+The update check is manual. Only when the user presses the update button does the desktop app request the latest public NORVI release metadata from GitHub. No background telemetry is added.
