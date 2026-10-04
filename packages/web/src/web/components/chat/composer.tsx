@@ -219,6 +219,15 @@ export function Composer({
     }
   };
 
+  useEffect(() => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    return api.onVoiceShortcut(() => {
+      if (!stt || !assistantSettings.microphoneEnabled || busy || transcribing) return;
+      void toggleRecording();
+    });
+  }, [assistantSettings.microphoneEnabled, busy, recording, stt, transcribing]);
+
   const micAllowed = !isDesktop() || assistantSettings.microphoneEnabled;
   const micDisabled = transcribing || busy || !micAllowed;
 

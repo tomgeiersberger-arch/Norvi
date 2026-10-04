@@ -44,10 +44,17 @@ contextBridge.exposeInMainWorld("norviDesktop", {
   openWebsite: (url: string) => ipcRenderer.invoke("norvi:open-website", url),
   capturePrimaryScreen: () => ipcRenderer.invoke("norvi:capture-primary-screen"),
   setQuickShortcut: (enabled: boolean) => ipcRenderer.invoke("norvi:set-quick-shortcut", enabled),
+  setVoiceShortcut: (accelerator: string | null) =>
+    ipcRenderer.invoke("norvi:set-voice-shortcut", accelerator),
   onFocusCommandInput: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("norvi:focus-command-input", listener);
     return () => ipcRenderer.removeListener("norvi:focus-command-input", listener);
+  },
+  onVoiceShortcut: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("norvi:voice-shortcut", listener);
+    return () => ipcRenderer.removeListener("norvi:voice-shortcut", listener);
   },
   setBackgroundMode: (enabled: boolean) =>
     ipcRenderer.invoke("norvi:set-background-mode", enabled),

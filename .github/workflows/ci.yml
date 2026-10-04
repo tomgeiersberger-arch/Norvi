@@ -43,6 +43,9 @@ jobs:
       - name: Custom program actions
         run: bun deploy/test-custom-program-actions.ts
 
+      - name: Voice shortcut
+        run: bun deploy/test-voice-shortcut.ts
+
       - name: Typecheck
         run: bun run typecheck
 

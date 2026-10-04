@@ -51,6 +51,7 @@ export function FirstRunWizard() {
     try {
       await Promise.all([
         api.setQuickShortcut(saved.quickShortcutEnabled),
+        api.setVoiceShortcut(saved.voiceShortcutEnabled ? saved.voiceShortcut : null),
         api.setBackgroundMode(
           (saved.microphoneEnabled && saved.wakeEnabled) || saved.startWithWindows,
         ),
@@ -205,6 +206,24 @@ export function FirstRunWizard() {
                     </span>
                   </label>
                 ))}
+
+                <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.018] px-4 py-3">
+                  <input
+                    type="checkbox"
+                    aria-label="Push-to-talk Hotkey"
+                    disabled={!assistant.microphoneEnabled}
+                    checked={assistant.voiceShortcutEnabled}
+                    onChange={(e) => setAssistant((c) => ({ ...c, voiceShortcutEnabled: e.target.checked }))}
+                    className="size-4 accent-[var(--primary)]"
+                  />
+                  <Mic className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12px] font-medium">Push-to-talk Hotkey</span>
+                    <span className="block text-[10px] leading-4 text-muted-foreground">
+                      {assistant.voiceShortcut} startet/stoppt die Spracheingabe.
+                    </span>
+                  </span>
+                </label>
 
                 <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.018] px-4 py-3">
                   <input
