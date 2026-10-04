@@ -84,3 +84,8 @@ Memory items are stored in the desktop/browser local settings. They are attached
 The desktop Model Manager talks only to the local Ollama API on `127.0.0.1:11434`. It is restricted to NORVI's curated Lite/Standard/Power text models and cannot pull arbitrary model names supplied by chat text. Deleting a model is a user-triggered action and the active model is protected from deletion.
 
 The recovery self-test checks local runtime files, Bun, Ollama, the NORVI server and local STT. “Repair” may start the local Ollama service and restart NORVI's locally owned server/STT process; it does not send diagnostics to a remote service.
+
+
+## Response presets
+
+Response presets are local presentation preferences such as Short, Coding, Gaming or Explain. The optional custom style text is stored with the other local desktop settings and is only attached to requests in `LOCAL_ONLY_MODE`. The server treats it as a style preference only; it cannot override safety, factuality or system instructions.
