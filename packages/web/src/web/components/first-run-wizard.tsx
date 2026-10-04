@@ -124,6 +124,7 @@ export function FirstRunWizard() {
                 <label>
                   <span className="mb-1.5 block text-[11px] text-muted-foreground">Assistentenname</span>
                   <input
+                    aria-label="Assistentenname"
                     value={assistant.assistantName}
                     maxLength={40}
                     onChange={(e) => setAssistant((c) => ({ ...c, assistantName: e.target.value }))}
@@ -134,6 +135,7 @@ export function FirstRunWizard() {
                 <label>
                   <span className="mb-1.5 block text-[11px] text-muted-foreground">Wake-Phrase</span>
                   <input
+                    aria-label="Wake-Phrase"
                     value={assistant.wakePhrase}
                     maxLength={40}
                     onChange={(e) => setAssistant((c) => ({ ...c, wakePhrase: e.target.value }))}
@@ -147,6 +149,7 @@ export function FirstRunWizard() {
                   <Volume2 className="size-3.5" /> Lokale Stimme
                 </span>
                 <select
+                  aria-label="Lokale Stimme"
                   value={assistant.voice}
                   onChange={(e) => setAssistant((c) => ({ ...c, voice: e.target.value }))}
                   className="w-full rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm outline-none focus:border-primary/60"
@@ -190,6 +193,7 @@ export function FirstRunWizard() {
                   <label key={key} className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.018] px-4 py-3">
                     <input
                       type="checkbox"
+                      aria-label={title}
                       checked={Boolean(assistant[key])}
                       onChange={(e) => setAssistant((c) => ({ ...c, [key]: e.target.checked }))}
                       className="size-4 accent-[var(--primary)]"
@@ -205,6 +209,7 @@ export function FirstRunWizard() {
                 <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.018] px-4 py-3">
                   <input
                     type="checkbox"
+                    aria-label="Wake-Phrase im Hintergrund"
                     disabled={!assistant.microphoneEnabled}
                     checked={assistant.wakeEnabled}
                     onChange={(e) => setAssistant((c) => ({ ...c, wakeEnabled: e.target.checked }))}
