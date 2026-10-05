@@ -13,6 +13,7 @@ const releaseNotes = existsSync(releaseNotesPath) ? readFileSync(releaseNotesPat
 assert.match(setup, /Automatische Empfehlung/);
 assert.match(setup, /advancedProfiles/);
 assert.match(setup, /Model Manager/);
+assert.match(setup, /This may take a while\. Go relax, grab a snack, or do some homework\./);
 assert.match(workflow, /packages\/desktop\/artifact\//);
 assert.match(workflow, /SHA256SUMS\.txt/);
 assert.match(workflow, /NORVI-Setup-\$version\.exe/);
