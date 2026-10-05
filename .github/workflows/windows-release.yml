@@ -2,6 +2,16 @@ name: Windows installer
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/windows-release.yml"
+      - "packages/desktop/**"
+      - "packages/web/src/web/components/first-run-wizard.tsx"
+      - "packages/web/src/web/components/desktop-*.tsx"
+      - "packages/web/src/web/lib/desktop*.ts"
+      - "deploy/**"
+      - "package.json"
+      - "bun.lock"
   push:
     tags:
       - "v*"
