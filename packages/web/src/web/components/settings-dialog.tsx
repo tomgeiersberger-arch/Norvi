@@ -25,6 +25,7 @@ import { DesktopMemoryPanel } from "./desktop-memory-panel";
 import { DesktopPrivacyPanel } from "./desktop-privacy-panel";
 import { DesktopModelManager } from "./desktop-model-manager";
 import { DesktopStylePanel } from "./desktop-style-panel";
+import { DesktopSkillsPanel } from "./desktop-skills-panel";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import { getDeviceId } from "../lib/device";
 import {
@@ -883,6 +884,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   werden nicht an einen Cloud-Sprachdienst geschickt.
                 </p>
               </div>
+            )}
+
+            {desktop && activeTab === "assistant" && (
+              <DesktopSkillsPanel assistant={assistant} setAssistant={setAssistant} />
             )}
 
             {desktop && activeTab === "ai" && (
