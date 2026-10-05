@@ -16,7 +16,13 @@ on:
     tags:
       - "v*"
     paths:
-      - "docs/RELEASE_0.1.0_READY"
+      - "packages/desktop/**"
+      - "packages/web/**"
+      - "deploy/**"
+      - "docs/RELEASE_NOTES_*.md"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/windows-release.yml"
 
 permissions:
   contents: write
@@ -85,9 +91,30 @@ jobs:
           $exe = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs") -Filter "NORVI.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { throw "NORVI.exe wurde nach der stillen Installation nicht gefunden." }
 
-          $app = Start-Process -FilePath $exe.FullName -ArgumentList "--disable-gpu", "--background" -PassThru
-          Start-Sleep -Seconds 8
-          if ($app.HasExited) { throw "NORVI.exe ist beim Start-Smoke-Test mit Exit $($app.ExitCode) beendet worden." }
+          $app = Start-Process -FilePath $exe.FullName -ArgumentList "--disable-gpu" -PassThru
+
+          $title = ""
+          for ($attempt = 0; $attempt -lt 20; $attempt++) {
+            Start-Sleep -Seconds 1
+            if ($app.HasExited) {
+              throw "NORVI.exe ist beim UI-Smoke-Test mit Exit $($app.ExitCode) beendet worden."
+            }
+            $process = Get-Process -Id $app.Id -ErrorAction SilentlyContinue
+            $title = $process.MainWindowTitle
+            if ($title) { break }
+          }
+
+          if (-not $title) {
+            throw "NORVI UI wurde nicht sichtbar; moeglicher schwarzer Renderer."
+          }
+          if ($title -eq "@template/desktop") {
+            throw "NORVI blieb im Template-/Black-Screen-Zustand."
+          }
+          if ($title -ne "NORVI Setup") {
+            throw "Unerwarteter NORVI Fenstertitel: '$title' statt 'NORVI Setup'."
+          }
+
+          Write-Host "Visible UI smoke OK: $title"
           Stop-Process -Id $app.Id -Force
 
       - name: Upload installer artifact
@@ -98,7 +125,7 @@ jobs:
           if-no-files-found: error
 
       - name: Attach installer to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -107,21 +134,13 @@ jobs:
           if (-not $installer) { throw "NORVI Setup.exe wurde nicht erzeugt." }
 
           $version = (Get-Content "packages/desktop/package.json" | ConvertFrom-Json).version
-          $isMainRelease = "${{ github.event_name }}" -eq "push" -and "${{ github.ref }}" -eq "refs/heads/main"
-          $releaseTag = if ($isMainRelease) { "v$version" } else { "${{ github.ref_name }}" }
-
-          if ($isMainRelease -and $releaseTag -ne "v0.1.0") {
-            throw "Der v0.1.0 Release-Marker darf nur Desktop-Version 0.1.0 veröffentlichen."
-          }
+          $releaseTag = "${{ github.ref_name }}"
+          $notesFile = "docs/RELEASE_NOTES_$version.md"
 
           gh release view "$releaseTag" 2>$null
           if ($LASTEXITCODE -ne 0) {
-            if ($releaseTag -eq "v0.1.0") {
-              if ($isMainRelease) {
-                gh release create "$releaseTag" --target "$env:GITHUB_SHA" --title "NORVI $releaseTag" --notes-file docs/RELEASE_NOTES_0.1.0.md
-              } else {
-                gh release create "$releaseTag" --title "NORVI $releaseTag" --notes-file docs/RELEASE_NOTES_0.1.0.md
-              }
+            if (Test-Path $notesFile) {
+              gh release create "$releaseTag" --title "NORVI $releaseTag" --notes-file $notesFile
             } else {
               gh release create "$releaseTag" --title "NORVI $releaseTag" --generate-notes
             }

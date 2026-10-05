@@ -3,7 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 
 const setup = readFileSync("packages/desktop/setup/index.html", "utf8");
 const workflow = readFileSync(".github/workflows/windows-release.yml", "utf8");
-const releaseNotesPath = "docs/RELEASE_NOTES_0.1.0.md";
+const desktopPackage = JSON.parse(readFileSync("packages/desktop/package.json", "utf8")) as {
+  version?: string;
+};
+const version = desktopPackage.version ?? "";
+const releaseNotesPath = `docs/RELEASE_NOTES_${version}.md`;
 const releaseNotes = existsSync(releaseNotesPath) ? readFileSync(releaseNotesPath, "utf8") : "";
 
 assert.match(setup, /Automatische Empfehlung/);
@@ -17,16 +21,18 @@ assert.match(workflow, /Silent install smoke/);
 assert.match(workflow, /\/S/);
 assert.match(workflow, /NORVI\.exe/);
 assert.match(workflow, /--disable-gpu/);
-assert.match(workflow, /--notes-file docs\/RELEASE_NOTES_0\.1\.0\.md/);
-assert.match(workflow, /branches:\s*\n\s*- main/);
-assert.match(workflow, /docs\/RELEASE_0\.1\.0_READY/);
-assert.match(workflow, /--target "\$env:GITHUB_SHA"/);
-assert.match(workflow, /github\.event_name == 'push'/);
-assert.equal(existsSync("docs/RELEASE_0.1.0_READY"), true, "v0.1.0 release marker is missing");
+assert.match(workflow, /tags:\s*\n\s*- "v\*"/);
+assert.match(workflow, /if: startsWith\(github\.ref, 'refs\/tags\/v'\)/);
+assert.doesNotMatch(workflow, /github\.event_name == 'push'/);
+assert.doesNotMatch(workflow, /RELEASE_0\.1\.0_READY/);
+assert.doesNotMatch(workflow, /releaseTag -ne "v0\.1\.0"/);
+assert.match(workflow, /RELEASE_NOTES_\$version\.md/);
+assert.match(workflow, /--notes-file/);
 
-assert.equal(existsSync(releaseNotesPath), true, "v0.1.0 release notes are missing");
-assert.match(releaseNotes, /first setup requires an Internet connection/i);
-assert.match(releaseNotes, /model downloads/i);
-assert.match(releaseNotes, /offline/i);
+assert.equal(version, "0.1.1");
+assert.equal(existsSync(releaseNotesPath), true, `${releaseNotesPath} is missing`);
+assert.match(releaseNotes, /black screen/i);
+assert.match(releaseNotes, /security/i);
+assert.match(releaseNotes, /windows/i);
 
-console.log("installer recommendation, install smoke, release trigger and release notes wiring: OK");
+console.log("installer recommendation, UI smoke and tag-only release wiring: OK");
