@@ -12,6 +12,7 @@ import {
   MonitorUp,
   Plus,
   Rocket,
+  Search,
   ShieldCheck,
   Trash2,
   Volume2,
@@ -26,7 +27,11 @@ import { DesktopPrivacyPanel } from "./desktop-privacy-panel";
 import { DesktopModelManager } from "./desktop-model-manager";
 import { DesktopStylePanel } from "./desktop-style-panel";
 import { DesktopSkillsPanel } from "./desktop-skills-panel";
-import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
+import {
+  getNorviDesktopAPI,
+  isDesktop,
+  type ScannedDesktopActionDescriptor,
+} from "../lib/desktop";
 import { getDeviceId } from "../lib/device";
 import {
   getAssistantSettings,
@@ -69,9 +74,76 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [performanceMode, setPerformanceMode] = useState<"serious" | "fast" | "balanced" | "power" | "deep">("balanced");
   const [assistant, setAssistant] = useState<DesktopAssistantSettings>(getAssistantSettings);
   const [voices, setVoices] = useState<string[]>([]);
+  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [previewingVoice, setPreviewingVoice] = useState(false);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scannedActions, setScannedActions] = useState<ScannedDesktopActionDescriptor[]>([]);
+  const [selectedScanIds, setSelectedScanIds] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<"ai" | "assistant" | "data" | "system">("ai");
   const desktop = isDesktop();
+
+  const refreshMicrophones = async (requestPermission = false) => {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      setMicrophones([]);
+      return;
+    }
+    if (requestPermission) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      for (const track of stream.getTracks()) track.stop();
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    setMicrophones(devices.filter((device) => device.kind === "audioinput"));
+  };
+
+  const previewVoice = async () => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    if (previewingVoice) {
+      await api.stopSpeech().catch(() => undefined);
+      setPreviewingVoice(false);
+      return;
+    }
+    setPreviewingVoice(true);
+    try {
+      await api.speak(
+        "Hallo, ich bin NORVI. So klingt meine ausgewählte Stimme.",
+        assistant.voice || undefined,
+      );
+    } finally {
+      setPreviewingVoice(false);
+    }
+  };
+
+  const scanComputer = async () => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    setScanBusy(true);
+    setSelectedScanIds([]);
+    try {
+      setScannedActions(await api.scanInstalledDesktopActions());
+    } finally {
+      setScanBusy(false);
+    }
+  };
+
+  const addSelectedScanned = async () => {
+    const api = getNorviDesktopAPI();
+    if (!api || selectedScanIds.length === 0) return;
+    const added = await api.addScannedDesktopActions(selectedScanIds);
+    setAssistant((current) => ({
+      ...current,
+      customDesktopActions: [
+        ...current.customDesktopActions,
+        ...added
+          .filter((action) => !current.customDesktopActions.some((item) => item.id === action.id))
+          .map((action) => ({ id: action.id, label: action.label, aliases: [action.label] })),
+      ],
+    }));
+    const chosen = new Set(selectedScanIds);
+    setScannedActions((current) => current.filter((item) => !chosen.has(item.scanId)));
+    setSelectedScanIds([]);
+  };
 
   useEffect(() => {
     if (!settings.data) return;
@@ -85,6 +157,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     const api = getNorviDesktopAPI();
     if (!api) return;
     void api.listVoices().then(setVoices).catch(() => setVoices([]));
+    void refreshMicrophones(false).catch(() => setMicrophones([]));
     void api
       .listDesktopActions()
       .then((actions) => {
@@ -417,6 +490,45 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     </span>
                   </label>
 
+                  <div className="rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <Mic className="size-4 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[12px]">Mikrofon auswählen</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          NORVI nutzt dieses Gerät für Spracheingabe und Wakeword.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!assistant.microphoneEnabled}
+                        onClick={() => void refreshMicrophones(true).catch(() => setMicrophones([]))}
+                        className="icon-action rounded-lg px-2.5 py-1.5 text-[10px] disabled:opacity-40"
+                      >
+                        Aktualisieren
+                      </button>
+                    </div>
+                    <select
+                      aria-label="Mikrofon auswählen"
+                      disabled={!assistant.microphoneEnabled}
+                      value={assistant.microphoneDeviceId}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          microphoneDeviceId: event.target.value,
+                        }))
+                      }
+                      className="mt-2 w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60 disabled:opacity-50"
+                    >
+                      <option value="">Systemstandard</option>
+                      {microphones.map((microphone, index) => (
+                        <option key={microphone.deviceId} value={microphone.deviceId}>
+                          {microphone.label || "Mikrofon " + (index + 1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <label htmlFor="norvi-screen-capture" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
                     <input
                       id="norvi-screen-capture"
@@ -435,7 +547,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12px]">Screen Mode erlauben</span>
                       <span className="block text-[10px] text-muted-foreground">
-                        Fügt auf Knopfdruck einen Screenshot deines aktuellen Bildschirms zum Chat hinzu.
+                        Erlaubt Live Screen und einmalige Bildschirmaufnahmen für die Bildanalyse.
                       </span>
                     </span>
                   </label>
@@ -523,7 +635,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <span className="block text-[10px] text-muted-foreground">
                         {assistant.gamingMode
                           ? "Im Gaming Mode pausiert. Deine Einstellung bleibt gespeichert."
-                          : "NORVI bleibt im Tray und reagiert, wenn die App nicht im Vordergrund ist."}
+                          : "NORVI reagiert auf die Wake-Phrase auch bei geöffneter App und im Hintergrund."}
                       </span>
                     </span>
                   </label>
@@ -623,7 +735,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12px]">Lokale App-Befehle erlauben</span>
                       <span className="block text-[10px] text-muted-foreground">
-                        Zum Beispiel „Öffne Spotify“, „Starte Steam“ oder „Öffne Downloads“. Nur freigegebene Ziele können gestartet werden.
+                        Zum Beispiel „Öffne Spotify“, „Starte Steam“ oder „Öffne Browser“. Nur freigegebene Ziele können gestartet werden.
                       </span>
                     </span>
                   </label>
@@ -636,7 +748,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <div>
                         <div className="text-[12px] font-medium">Call-Wörter & Websites</div>
                         <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
-                          Mehrere Call-Wörter mit Komma trennen. NORVI reagiert z. B. auf „Starte cs2“ oder „Starte winkelhof“.
+                          Mehrere Call-Wörter mit Komma trennen. NORVI reagiert z. B. auf „Starte Steam“ oder „Starte winkelhof“.
                         </p>
                       </div>
                     </div>
@@ -644,11 +756,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <div className="grid gap-2 sm:grid-cols-2">
                       {([
                         ["spotify", "Spotify"],
-                        ["cs2", "Counter-Strike 2"],
                         ["steam", "Steam"],
                         ["discord", "Discord"],
-                        ["downloads", "Downloads"],
-                        ["explorer", "Explorer"],
                         ["browser", "Browser"],
                       ] as const).map(([id, label]) => (
                         <label key={id} className="block">
@@ -678,36 +787,105 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <div>
                         <div className="text-[11px] font-medium">Eigene Games & Programme</div>
                         <div className="text-[9.5px] text-muted-foreground">
-                          Wähle eine .exe oder .lnk selbst aus. Danach kannst du beliebige Call-Wörter vergeben.
+                          Lass NORVI deinen PC scannen oder wähle eine .exe/.lnk selbst aus.
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const api = getNorviDesktopAPI();
-                          if (!api) return;
-                          void api.addCustomDesktopAction().then((action) => {
-                            if (!action) return;
-                            setAssistant((current) => {
-                              if (current.customDesktopActions.some((item) => item.id === action.id)) {
-                                return current;
-                              }
-                              return {
-                                ...current,
-                                customDesktopActions: [
-                                  ...current.customDesktopActions,
-                                  { id: action.id, label: action.label, aliases: [action.label] },
-                                ],
-                              };
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          type="button"
+                          disabled={scanBusy}
+                          onClick={() => void scanComputer()}
+                          className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground disabled:opacity-50"
+                        >
+                          {scanBusy ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Search className="size-3.5" />
+                          )}
+                          PC scannen
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const api = getNorviDesktopAPI();
+                            if (!api) return;
+                            void api.addCustomDesktopAction().then((action) => {
+                              if (!action) return;
+                              setAssistant((current) => {
+                                if (current.customDesktopActions.some((item) => item.id === action.id)) {
+                                  return current;
+                                }
+                                return {
+                                  ...current,
+                                  customDesktopActions: [
+                                    ...current.customDesktopActions,
+                                    { id: action.id, label: action.label, aliases: [action.label] },
+                                  ],
+                                };
+                              });
                             });
-                          });
-                        }}
-                        className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground"
-                      >
-                        <Plus className="size-3.5" />
-                        Programm
-                      </button>
+                          }}
+                          className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground"
+                        >
+                          <Plus className="size-3.5" />
+                          Programm
+                        </button>
+                      </div>
                     </div>
+
+                    {scannedActions.length > 0 && (
+                      <div className="mt-2 rounded-xl border border-primary/15 bg-primary/[0.035] p-2.5">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[10.5px] font-medium">
+                              Gefundene Programme & Games
+                            </div>
+                            <div className="text-[9px] text-muted-foreground">
+                              Wähle nur das aus, was NORVI später starten darf.
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={selectedScanIds.length === 0}
+                            onClick={() => void addSelectedScanned()}
+                            className="rounded-lg bg-primary/15 px-2.5 py-1.5 text-[10px] font-medium text-primary disabled:opacity-40"
+                          >
+                            {selectedScanIds.length} hinzufügen
+                          </button>
+                        </div>
+                        <div className="scroll-slim max-h-44 space-y-1 overflow-y-auto pr-1">
+                          {scannedActions.map((action) => {
+                            const checked = selectedScanIds.includes(action.scanId);
+                            return (
+                              <label
+                                key={action.scanId}
+                                className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/[0.045] bg-black/10 px-2.5 py-2"
+                              >
+                                <input
+                                  type="checkbox"
+                                  aria-label={action.label + " zum Hinzufügen auswählen"}
+                                  checked={checked}
+                                  onChange={(event) =>
+                                    setSelectedScanIds((current) =>
+                                      event.target.checked
+                                        ? [...current, action.scanId]
+                                        : current.filter((id) => id !== action.scanId),
+                                    )
+                                  }
+                                  className="size-3.5 accent-[var(--primary)]"
+                                />
+                                <span className="min-w-0 flex-1 truncate text-[10.5px]">
+                                  {action.label}
+                                </span>
+                                <span className="shrink-0 text-[9px] text-muted-foreground">
+                                  {action.source}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-2 grid gap-2">
                       {assistant.customDesktopActions.length === 0 ? (
@@ -858,25 +1036,35 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 )}
 
                 {voices.length > 0 && (
-                  <label className="mt-3 block">
+                  <div className="mt-3">
                     <span className="mb-1.5 block text-[11px] text-muted-foreground">
                       Lokale Windows-Stimme
                     </span>
-                    <select
-                      value={assistant.voice}
-                      onChange={(event) =>
-                        setAssistant((current) => ({ ...current, voice: event.target.value }))
-                      }
-                      className="w-full rounded-xl border border-border bg-background/60 px-3 py-2 text-[12px] outline-none transition focus:border-primary/60"
-                    >
-                      <option value="">Windows-Standardstimme</option>
-                      {voices.map((voice) => (
-                        <option key={voice} value={voice}>
-                          {voice}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={assistant.voice}
+                        onChange={(event) =>
+                          setAssistant((current) => ({ ...current, voice: event.target.value }))
+                        }
+                        className="min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-3 py-2 text-[12px] outline-none transition focus:border-primary/60"
+                      >
+                        <option value="">Windows-Standardstimme</option>
+                        {voices.map((voice) => (
+                          <option key={voice} value={voice}>
+                            {voice}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void previewVoice()}
+                        className="icon-action flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[11px]"
+                      >
+                        <Volume2 className="size-4" />
+                        {previewingVoice ? "Stopp" : "Vorschau"}
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 <p className="mt-3 text-[10px] leading-4 text-muted-foreground">

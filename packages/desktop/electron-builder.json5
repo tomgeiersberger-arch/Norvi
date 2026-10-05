@@ -1,10 +1,11 @@
 {
   $schema: "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   appId: "ai.norvi.desktop",
-  productName: "NORVI",
+  productName: "Norvi AI",
   asar: true,
   directories: {
     output: "release/${version}",
+    buildResources: "build",
   },
   files: [
     "dist/**/*",
@@ -13,11 +14,12 @@
   ],
   protocols: [
     {
-      name: "NORVI",
+      name: "Norvi AI",
       schemes: ["norvi"],
     },
   ],
   win: {
+    icon: "build/icon.svg",
     target: [
       {
         target: "nsis",
@@ -32,7 +34,7 @@
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: "NORVI",
+    shortcutName: "Norvi AI",
     deleteAppDataOnUninstall: false,
   },
 }

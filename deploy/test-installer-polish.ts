@@ -13,6 +13,7 @@ const releaseNotes = existsSync(releaseNotesPath) ? readFileSync(releaseNotesPat
 assert.match(setup, /Automatische Empfehlung/);
 assert.match(setup, /advancedProfiles/);
 assert.match(setup, /Model Manager/);
+assert.match(setup, /This may take a while\. Go relax, grab a snack, or do some homework\./);
 assert.match(workflow, /packages\/desktop\/artifact\//);
 assert.match(workflow, /SHA256SUMS\.txt/);
 assert.match(workflow, /NORVI-Setup-\$version\.exe/);
@@ -21,6 +22,7 @@ assert.match(workflow, /Silent install smoke/);
 assert.match(workflow, /\/S/);
 assert.match(workflow, /NORVI\.exe/);
 assert.match(workflow, /--disable-gpu/);
+assert.match(setup, /Norvi AI Setup/);
 assert.match(workflow, /tags:\s*\n\s*- "v\*"/);
 assert.match(workflow, /if: startsWith\(github\.ref, 'refs\/tags\/v'\)/);
 assert.doesNotMatch(workflow, /github\.event_name == 'push'/);
@@ -29,10 +31,10 @@ assert.doesNotMatch(workflow, /releaseTag -ne "v0\.1\.0"/);
 assert.match(workflow, /RELEASE_NOTES_\$version\.md/);
 assert.match(workflow, /--notes-file/);
 
-assert.equal(version, "0.1.1");
+assert.match(version, /^\d+\.\d+\.\d+$/);
 assert.equal(existsSync(releaseNotesPath), true, `${releaseNotesPath} is missing`);
-assert.match(releaseNotes, /black screen/i);
-assert.match(releaseNotes, /security/i);
-assert.match(releaseNotes, /windows/i);
+assert.match(releaseNotes, new RegExp(version.replace(/\./g, "\\.")));
+assert.match(releaseNotes, /Windows/i);
+assert.match(releaseNotes, /update|fix|verbesser/i);
 
 console.log("installer recommendation, UI smoke and tag-only release wiring: OK");

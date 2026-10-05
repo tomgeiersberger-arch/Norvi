@@ -14,7 +14,7 @@ import {
   MODEL_LABEL,
   type ReasoningEffort,
 } from "./agent";
-import { visionModelId } from "./agent/gateway";
+import { visionAvailable, visionModelId } from "./agent/gateway";
 import { db } from "./database";
 import * as schema from "./database/schema";
 import { auth, trustedOrigins } from "./auth";
@@ -24,7 +24,7 @@ import { recordAiRequest } from "./lib/ai-metrics";
 import { assertLocalOnlyConfiguration, localOnlyModeEnabled } from "./lib/privacy";
 import { refreshLocalModelKeepAlive, warmLocalAi } from "./lib/local-ai";
 import { startLocalStt } from "./lib/local-stt";
-import { SttError, transcribe } from "./lib/stt";
+import { SttError, sttConfigured, transcribe } from "./lib/stt";
 import {
   absoluteFileUrl,
   imageAsDataUrl,
@@ -456,6 +456,14 @@ app.post("/api/agent/messages", async (c) => {
     const responseStyle = localOnlyModeEnabled()
       ? { preset: responsePreset, custom: customResponseStyle }
       : undefined;
+    const clientCapabilities = {
+      desktop: body?.clientCapabilities?.desktop === true,
+      screenCapture: body?.clientCapabilities?.screenCapture === true,
+      desktopActions: body?.clientCapabilities?.desktopActions === true,
+      vision: body?.clientCapabilities?.vision === true,
+      stt: body?.clientCapabilities?.stt === true,
+      localOnly: body?.clientCapabilities?.localOnly === true,
+    };
 
     const localMemory: string[] = [];
     let localMemoryChars = 0;
@@ -614,6 +622,14 @@ app.post("/api/agent/messages", async (c) => {
       assistantName: assistantName || undefined,
       localMemory,
       responseStyle,
+      capabilities: {
+        localOnly: localOnlyModeEnabled() && clientCapabilities.localOnly,
+        vision: visionAvailable() && clientCapabilities.vision,
+        stt: sttConfigured() && clientCapabilities.stt,
+        desktop: clientCapabilities.desktop,
+        screenCapture: clientCapabilities.desktop && clientCapabilities.screenCapture,
+        desktopActions: clientCapabilities.desktop && clientCapabilities.desktopActions,
+      },
     });
 
     const persistAssistant = async (messageId: string, answer: string) => {

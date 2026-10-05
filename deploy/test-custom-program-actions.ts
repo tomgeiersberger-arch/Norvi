@@ -10,9 +10,15 @@ assert.match(actions, /extensions: \["exe", "lnk"\]/);
 assert.match(actions, /custom-/);
 assert.match(actions, /steam:\/\/open\/main/);
 assert.match(actions, /discord:\/\//);
-assert.match(actions, /getPath\(action\.target\)/);
+assert.match(actions, /scanInstalledDesktopActions/);
+assert.match(actions, /Start Menu/);
+assert.match(actions, /appmanifest_/);
+assert.match(actions, /steam:\/\/rungameid\//);
+assert.doesNotMatch(actions, /getPath\(action\.target\)/);
 assert.doesNotMatch(actions, /execFile\(/);
 assert.match(preload, /norvi:add-custom-desktop-action/);
+assert.match(preload, /norvi:scan-installed-desktop-actions/);
 assert.match(settings, /Eigene Games & Programme/);
+assert.match(settings, /PC scannen/);
 
-console.log("custom program action wiring: OK");
+console.log("custom program action and PC scan wiring: OK");

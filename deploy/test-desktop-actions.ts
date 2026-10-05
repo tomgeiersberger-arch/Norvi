@@ -17,27 +17,23 @@ const defaults: DesktopAssistantSettings = {
   websiteActions: [],
 };
 
-assert.deepEqual(matchDesktopAction("Starte cs2", defaults), {
-  kind: "desktop",
-  id: "cs2",
-  label: "Counter-Strike 2",
-});
-assert.equal(matchDesktopAction("Was ist cs2?", defaults), null);
 assert.deepEqual(matchDesktopAction("Starte steam", defaults), {
   kind: "desktop",
   id: "steam",
   label: "Steam",
-});
-assert.deepEqual(matchDesktopAction("Öffne downloads", defaults), {
-  kind: "desktop",
-  id: "downloads",
-  label: "Downloads",
 });
 assert.deepEqual(matchDesktopAction("Starte dc", defaults), {
   kind: "desktop",
   id: "discord",
   label: "Discord",
 });
+assert.deepEqual(matchDesktopAction("Öffne browser", defaults), {
+  kind: "desktop",
+  id: "browser",
+  label: "Browser",
+});
+assert.equal(matchDesktopAction("Was ist Steam?", defaults), null);
+
 assert.deepEqual(matchDesktopAction("Mach lauter", defaults), {
   kind: "system",
   id: "volume-up",
@@ -59,7 +55,7 @@ const custom: DesktopAssistantSettings = {
   desktopActionAliases: {
     ...defaults.desktopActionAliases,
     spotify: ["musik"],
-    cs2: ["shooter"],
+    browser: ["web"],
   },
   customDesktopActions: [
     {
@@ -78,10 +74,10 @@ const custom: DesktopAssistantSettings = {
   ],
 };
 
-assert.deepEqual(matchDesktopAction("Mach shooter auf", custom), {
+assert.deepEqual(matchDesktopAction("Mach web auf", custom), {
   kind: "desktop",
-  id: "cs2",
-  label: "Counter-Strike 2",
+  id: "browser",
+  label: "Browser",
 });
 
 assert.deepEqual(matchDesktopAction("Starte dg", custom), {

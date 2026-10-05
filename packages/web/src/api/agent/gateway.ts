@@ -101,27 +101,36 @@ const gatewayProvider = () =>
   });
 
 /**
- * Ollama's OpenAI-compatible endpoint keeps Qwen thinking enabled unless the
- * non-standard `think: false` flag is present. The SDK's reasoning hint alone
- * is not enough, so inject that flag for every local profile except Deep.
+ * Maps NORVI's local modes to Ollama's OpenAI-compatible reasoning controls.
+ * Current Ollama releases honor reasoning_effort more reliably than the
+ * non-standard top-level think flag for Qwen models.
  */
+export function localReasoningBody(rawBody: string): string {
+  try {
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
+    const model = typeof body.model === "string" ? body.model : "";
+    const deepModel = process.env.AI_DEEP_MODEL?.trim() ?? "";
+    const deep = Boolean(deepModel && model === deepModel);
+
+    // Ollama's OpenAI-compatible endpoint maps reasoning_effort reliably on
+    // current releases, while the non-standard top-level think flag can be
+    // ignored by Qwen. Keep think:false as a compatibility hint for older
+    // versions, but reasoning_effort is the authoritative switch here.
+    body.reasoning_effort = deep ? "high" : "none";
+    if (deep) delete body.think;
+    else body.think = false;
+    return JSON.stringify(body);
+  } catch {
+    return rawBody;
+  }
+}
+
 const localProviderFetch = (
   input: string | URL | Request,
   init?: RequestInit,
 ): Promise<Response> => {
   if (init && typeof init.body === "string") {
-    try {
-      const body = JSON.parse(init.body) as Record<string, unknown>;
-      const model = typeof body.model === "string" ? body.model : "";
-      const deepModel = process.env.AI_DEEP_MODEL?.trim() ?? "";
-
-      if (!deepModel || model !== deepModel) {
-        body.think = false;
-        return fetch(input, { ...init, body: JSON.stringify(body) });
-      }
-    } catch {
-      // Leave non-JSON or unexpected requests untouched.
-    }
+    return fetch(input, { ...init, body: localReasoningBody(init.body) });
   }
   return fetch(input, init);
 };

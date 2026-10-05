@@ -73,6 +73,18 @@ jobs:
       - name: Installer polish
         run: bun deploy/test-installer-polish.ts
 
+      - name: v0.1.2 capability awareness
+        run: bun deploy/test-agent-capability-awareness.ts
+
+      - name: v0.1.2 local reasoning modes
+        run: bun deploy/test-ollama-reasoning-mode.ts
+
+      - name: v0.1.2 assistant polish
+        run: bun deploy/test-v012-assistant-polish.ts
+
+      - name: v0.1.2 Norvi AI branding
+        run: bun deploy/test-v012-branding.ts
+
       - name: Final desktop polish
         run: bun deploy/test-final-desktop-polish.ts
 

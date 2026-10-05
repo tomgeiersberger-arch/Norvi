@@ -13,13 +13,20 @@
 
 export type SttLanguage = "de" | "en";
 
-/** True when a Whisper endpoint is configured — the UI hides the mic otherwise. */
+function localSttEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.STT_LOCAL_ENABLED ?? "").trim());
+}
+
+/** True when a Whisper endpoint is configured or NORVI owns the local sidecar. */
 export function sttConfigured(): boolean {
-  return Boolean(process.env.STT_BASE_URL?.trim());
+  return Boolean(process.env.STT_BASE_URL?.trim()) || localSttEnabled();
 }
 
 function baseUrl(): string {
-  return (process.env.STT_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  const configured = (process.env.STT_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  if (configured) return configured;
+  const port = (process.env.STT_LOCAL_PORT ?? "8000").trim() || "8000";
+  return `http://127.0.0.1:${port}/v1`;
 }
 
 function sttModel(): string {
@@ -41,6 +48,10 @@ export class SttError extends Error {
 /** Lightweight readiness probe used by the capability endpoint. */
 export async function sttAvailable(timeoutMs = 1200): Promise<boolean> {
   if (!sttConfigured()) return false;
+  // NORVI owns this sidecar and starts it during server boot. Report the
+  // capability immediately so the microphone button does not flicker away
+  // while Whisper is still warming up for a moment.
+  if (localSttEnabled()) return true;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

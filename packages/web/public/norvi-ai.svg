@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Norvi AI">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#20242a"/>
+      <stop offset="1" stop-color="#090b0e"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0.15" y1="0.1" x2="0.85" y2="0.9">
+      <stop offset="0" stop-color="#ffd9b5"/>
+      <stop offset="0.34" stop-color="#ffad55"/>
+      <stop offset="0.7" stop-color="#ff7b1f"/>
+      <stop offset="1" stop-color="#ff5717"/>
+    </linearGradient>
+    <linearGradient id="graphite" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#676b72"/>
+      <stop offset="0.45" stop-color="#343840"/>
+      <stop offset="1" stop-color="#191c22"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="22" y="22" width="468" height="468" rx="105" fill="url(#bg)" stroke="#ff6b1b" stroke-width="3"/>
+
+  <!-- left graphite stem -->
+  <path d="M121 352V171c0-37 25-66 61-66 18 0 35 7 48 20l31 31-55 55-24-24v165c0 34-25 58-56 58h-5z"
+        fill="url(#graphite)"/>
+
+  <!-- right graphite stem / assistant head cradle -->
+  <path d="M310 170c0-33 25-59 58-59h9v61c0 12 9 21 21 21h8v158c0 35-26 59-58 59h-38z"
+        fill="url(#graphite)"/>
+
+  <!-- orange N ribbon -->
+  <path d="M145 172c0-25 19-44 44-44 13 0 25 5 34 14l145 145v-70c0-20 16-36 36-36s36 16 36 36v137c0 31-24 55-55 55-15 0-29-6-40-17L218 265v87c0 32-24 56-55 56s-55-24-55-56V176c0-2 0-3 1-5 1-1 1-2 2-3 8-22 27-36 50-36 14 0 27 5 37 15l170 170"
+        fill="none" stroke="url(#orange)" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- signal dot -->
+  <circle cx="375" cy="156" r="20" fill="url(#orange)"/>
+  <path d="M402 140c14 8 23 23 23 40" fill="none" stroke="#ff8127" stroke-width="14" stroke-linecap="round"/>
+  <path d="M410 113c31 16 51 48 51 83" fill="none" stroke="#ff8127" stroke-width="14" stroke-linecap="round"/>
+</svg>

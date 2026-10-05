@@ -17,6 +17,7 @@ export function FirstRunWizard() {
   const [assistant, setAssistant] = useState<DesktopAssistantSettings>(getAssistantSettings);
   const [hardware, setHardware] = useState<DesktopHardwareProfile | null>(null);
   const [voices, setVoices] = useState<string[]>([]);
+  const [previewingVoice, setPreviewingVoice] = useState(false);
   const [step, setStep] = useState(0);
   const [finishing, setFinishing] = useState(false);
 
@@ -69,7 +70,7 @@ export function FirstRunWizard() {
         <div className="border-b border-white/[0.06] px-5 py-4 sm:px-7">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             <Sparkles className="size-3.5 text-primary" />
-            NORVI Einrichtung
+            Norvi AI Einrichtung
           </div>
           <div className="mt-3 flex gap-1.5">
             {STEPS.map((label, index) => (
@@ -88,9 +89,9 @@ export function FirstRunWizard() {
               <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                 <Sparkles className="size-6" />
               </div>
-              <h2 className="text-2xl font-semibold tracking-[-0.035em]">Willkommen bei NORVI</h2>
+              <h2 className="text-2xl font-semibold tracking-[-0.035em]">Willkommen bei Norvi AI</h2>
               <p className="mt-2 max-w-xl text-[13px] leading-6 text-muted-foreground">
-                Kein Account nötig. NORVI läuft auf deinem PC und wurde für deine Hardware lokal eingerichtet.
+                Kein Account nötig. Norvi AI läuft auf deinem PC und wurde für deine Hardware lokal eingerichtet.
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -108,7 +109,7 @@ export function FirstRunWizard() {
                     <ShieldCheck className="size-4" /> Aktives Modell
                   </div>
                   <div className="mt-2 text-[14px] font-semibold">
-                    {model.data?.label ?? model.data?.id ?? "Lokales NORVI-Modell"}
+                    {model.data?.label ?? model.data?.id ?? "Lokales Norvi-AI-Modell"}
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">LOCAL · OFFLINE READY</div>
                 </div>
@@ -146,22 +147,46 @@ export function FirstRunWizard() {
                   />
                 </label>
               </div>
-              <label className="mt-4 block">
+              <div className="mt-4">
                 <span className="mb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <Volume2 className="size-3.5" /> Lokale Stimme
                 </span>
-                <select
-                  aria-label="Lokale Stimme"
-                  value={assistant.voice}
-                  onChange={(e) => setAssistant((c) => ({ ...c, voice: e.target.value }))}
-                  className="w-full rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm outline-none focus:border-primary/60"
-                >
-                  <option value="">Windows-Standardstimme</option>
-                  {voices.map((voice) => (
-                    <option key={voice} value={voice}>{voice}</option>
-                  ))}
-                </select>
-              </label>
+                <div className="flex gap-2">
+                  <select
+                    aria-label="Lokale Stimme"
+                    value={assistant.voice}
+                    onChange={(e) => setAssistant((c) => ({ ...c, voice: e.target.value }))}
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm outline-none focus:border-primary/60"
+                  >
+                    <option value="">Windows-Standardstimme</option>
+                    {voices.map((voice) => (
+                      <option key={voice} value={voice}>{voice}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const api = getNorviDesktopAPI();
+                      if (!api) return;
+                      if (previewingVoice) {
+                        void api.stopSpeech().finally(() => setPreviewingVoice(false));
+                        return;
+                      }
+                      setPreviewingVoice(true);
+                      void api
+                        .speak(
+                          "Hallo, ich bin NORVI. So klingt meine ausgewählte Stimme.",
+                          assistant.voice || undefined,
+                        )
+                        .finally(() => setPreviewingVoice(false));
+                    }}
+                    className="icon-action flex shrink-0 items-center gap-1.5 rounded-xl px-3 text-[11px]"
+                  >
+                    <Volume2 className="size-4" />
+                    {previewingVoice ? "Stopp" : "Vorschau"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -183,7 +208,7 @@ export function FirstRunWizard() {
                     key: "screenCaptureEnabled" as const,
                     icon: MonitorUp,
                     title: "Screen Mode",
-                    text: "Nur auf Knopfdruck einen Screenshot für lokale Bildanalyse aufnehmen.",
+                    text: "Live Screen oder einzelne Bildschirmaufnahmen für lokale Bildanalyse erlauben.",
                   },
                   {
                     key: "desktopActionsEnabled" as const,

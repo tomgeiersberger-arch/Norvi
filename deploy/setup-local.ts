@@ -149,8 +149,22 @@ if (!skipPull) {
 }
 
 if (existsSync(".env") && !process.argv.includes("--force")) {
-  console.log("\n.env existiert bereits — nicht überschrieben.");
-  console.log("Nutze --force nur auf einer frischen Installation, wenn du sie ersetzen willst.");
+  const current = readFileSync(".env", "utf8");
+  const missing = (key: string) => !new RegExp(`^${key}=`, "m").test(current);
+  const sttDefaults: Record<string, string> = {};
+  if (missing("STT_LOCAL_ENABLED")) sttDefaults.STT_LOCAL_ENABLED = "true";
+  if (missing("STT_LOCAL_MODEL")) sttDefaults.STT_LOCAL_MODEL = profile.sttModel;
+  if (missing("STT_LOCAL_PORT")) sttDefaults.STT_LOCAL_PORT = "8000";
+  if (missing("STT_BASE_URL")) sttDefaults.STT_BASE_URL = "http://127.0.0.1:8000/v1";
+  if (missing("STT_API_KEY")) sttDefaults.STT_API_KEY = randomBytes(24).toString("base64url");
+  if (missing("STT_MODEL")) sttDefaults.STT_MODEL = "whisper-1";
+
+  if (Object.keys(sttDefaults).length) {
+    writeFileSync(".env", replaceEnv(current, sttDefaults), { mode: 0o600 });
+    console.log("==> Fehlende lokale Speech-to-Text-Einstellungen ergänzt");
+  } else {
+    console.log("\n.env existiert bereits — vorhandene Einstellungen bleiben erhalten.");
+  }
 } else {
   const template = readFileSync(".env.example", "utf8");
   const secret = randomBytes(32).toString("base64url");
