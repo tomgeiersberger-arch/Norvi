@@ -70,7 +70,7 @@ jobs:
         with:
           name: NORVI-Windows-Setup
           path: |
-            packages/desktop/release/**/*.exe
+            packages/desktop/release/NORVI-Setup-*.exe
             packages/desktop/release/SHA256SUMS.txt
           if-no-files-found: error
 
@@ -80,7 +80,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $installer = Get-ChildItem -Path "packages/desktop/release" -Filter "*.exe" -Recurse | Select-Object -First 1
+          $installer = Get-ChildItem -Path "packages/desktop/release" -Filter "NORVI-Setup-*.exe" | Select-Object -First 1
           if (-not $installer) { throw "NORVI Setup.exe wurde nicht erzeugt." }
           gh release view "${{ github.ref_name }}" 2>$null
           if ($LASTEXITCODE -ne 0) {
