@@ -10,6 +10,7 @@ import {
   screen,
   Tray,
 } from "electron";
+import { execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createManagedDeepLinks } from "@runablehq/managed-auth/desktop/main";
@@ -152,6 +153,39 @@ function setVoiceShortcut(rawAccelerator: string | null): boolean {
   } catch {
     return false;
   }
+}
+
+async function runSystemAction(
+  rawActionId: string,
+): Promise<{ ok: true; label: string }> {
+  if (process.platform !== "win32") {
+    throw new Error("Diese System-Aktion ist aktuell für Windows vorgesehen.");
+  }
+
+  const actions = {
+    "volume-up": { code: "0xAF", label: "Lautstärke erhöht" },
+    "volume-down": { code: "0xAE", label: "Lautstärke verringert" },
+    "volume-mute": { code: "0xAD", label: "Stummschaltung umgeschaltet" },
+  } as const;
+  const action = actions[rawActionId as keyof typeof actions];
+  if (!action) throw new Error("Diese System-Aktion ist nicht freigegeben.");
+
+  const script = [
+    "$sig='[DllImport(\"user32.dll\")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);'",
+    "$t=Add-Type -MemberDefinition $sig -Name NorviKeySender -Namespace Norvi -PassThru",
+    "$t::keybd_event(" + action.code + ",0,0,[UIntPtr]::Zero)",
+    "$t::keybd_event(" + action.code + ",0,2,[UIntPtr]::Zero)",
+  ].join(";");
+
+  await new Promise<void>((resolve, reject) => {
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      { windowsHide: true },
+      (error) => (error ? reject(error) : resolve()),
+    );
+  });
+  return { ok: true, label: action.label };
 }
 
 async function capturePrimaryScreen(): Promise<{ dataUrl: string; name: string }> {
@@ -310,6 +344,9 @@ function registerNorviHandlers() {
   );
   ipcMain.handle("norvi:launch-desktop-action", async (_event, actionId: string) =>
     launchDesktopAction(String(actionId ?? "")),
+  );
+  ipcMain.handle("norvi:run-system-action", async (_event, actionId: string) =>
+    runSystemAction(String(actionId ?? "")),
   );
   ipcMain.handle("norvi:open-website", async (_event, url: string) =>
     openDesktopWebsite(String(url ?? "")),
