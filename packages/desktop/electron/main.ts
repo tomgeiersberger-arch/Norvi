@@ -15,7 +15,7 @@ import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createManagedDeepLinks } from "@runablehq/managed-auth/desktop/main";
 import { registerIpcHandlers } from "./ipc";
 import {
@@ -45,7 +45,7 @@ import {
 } from "./models";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isDev = process.env.NODE_ENV !== "production";
+const isDev = !app.isPackaged;
 const WEB_DEV_URL = process.env.WEBSITE_URL ?? "http://localhost:4200";
 const LOCAL_NORVI_URL = "http://localhost:4200";
 const SETUP_PAGE = path.join(__dirname, "../dist/setup/index.html");
@@ -99,6 +99,31 @@ function showWindow() {
   if (window.isMinimized()) window.restore();
   window.show();
   window.focus();
+}
+
+function allowedRendererNavigation(rawUrl: string): boolean {
+  try {
+    const target = new URL(rawUrl);
+    if (target.protocol === "file:") {
+      return target.href === pathToFileURL(SETUP_PAGE).href;
+    }
+    if (target.protocol !== "http:" && target.protocol !== "https:") return false;
+    const allowedOrigins = new Set(
+      [WEB_DEV_URL, LOCAL_NORVI_URL].map((value) => new URL(value).origin),
+    );
+    return allowedOrigins.has(target.origin);
+  } catch {
+    return false;
+  }
+}
+
+function externalHttpUrl(rawUrl: string): string | null {
+  try {
+    const target = new URL(rawUrl);
+    return target.protocol === "http:" || target.protocol === "https:" ? target.href : null;
+  } catch {
+    return null;
+  }
 }
 
 function destroyTray() {
@@ -589,15 +614,29 @@ function createWindow() {
     minWidth: 860,
     minHeight: 620,
     backgroundColor: "#090909",
+    title: "NORVI Setup",
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       backgroundThrottling: false,
     },
+  });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    const external = externalHttpUrl(url);
+    if (external) void shell.openExternal(external, { activate: true });
+    return { action: "deny" };
+  });
+
+  win.webContents.on("will-navigate", (event, url) => {
+    if (allowedRendererNavigation(url)) return;
+    event.preventDefault();
+    const external = externalHttpUrl(url);
+    if (external) void shell.openExternal(external, { activate: true });
   });
 
   win.webContents.on("did-finish-load", () => deliverExternalFile());
