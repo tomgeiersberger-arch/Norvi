@@ -20,6 +20,12 @@
       .tile span { display:block; color:#7f7f7f; font-size:10px; text-transform:uppercase; letter-spacing:.12em; margin-bottom:5px; }
       .tile strong { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .label { font-size:12px; color:#aaa; margin:0 0 10px; }
+      .recommendation { display:flex; align-items:center; justify-content:space-between; gap:14px; border:1px solid rgba(255,111,78,.25); background:rgba(255,111,78,.065); border-radius:18px; padding:14px 15px; margin-bottom:12px; }
+      .recommendation strong { display:block; font-size:13px; }
+      .recommendation small { display:block; margin-top:3px; color:#8d8d8d; font-size:10.5px; }
+      .advanced-toggle { border:1px solid rgba(255,255,255,.08); background:#111; color:#aaa; border-radius:12px; padding:8px 10px; cursor:pointer; white-space:nowrap; }
+      .advanced { display:none; }
+      .advanced.open { display:block; }
       .profiles { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
       .profile { appearance:none; border:1px solid rgba(255,255,255,.08); background:#111; color:#ddd; border-radius:18px; padding:15px; text-align:left; cursor:pointer; transition:.18s ease; }
       .profile:hover { border-color:rgba(255,255,255,.16); transform:translateY(-1px); }
@@ -51,11 +57,21 @@
           <div class="tile"><span>NVIDIA VRAM</span><strong id="vram">—</strong></div>
         </div>
 
-        <p class="label">NORVI empfiehlt automatisch das passende lokale Modell:</p>
-        <div class="profiles">
-          <button class="profile" data-profile="lite"><b>Lite · 4B</b><small>Für kleinere PCs</small></button>
-          <button class="profile" data-profile="standard"><b>Standard · 8B</b><small>Empfohlen für Gaming-PCs</small></button>
-          <button class="profile" data-profile="power"><b>Power · 14B</b><small>Für starke GPUs</small></button>
+        <p class="label">Automatische Empfehlung</p>
+        <div class="recommendation">
+          <div>
+            <strong id="recommendedProfile">Hardware wird geprüft…</strong>
+            <small>NORVI nimmt standardmäßig das passende Profil. Du kannst es später im Model Manager ändern.</small>
+          </div>
+          <button class="advanced-toggle" id="advancedToggle" type="button">Erweitert</button>
+        </div>
+        <div class="advanced" id="advancedProfiles">
+          <p class="label">Profil manuell ändern:</p>
+          <div class="profiles">
+            <button class="profile" data-profile="lite"><b>Lite · 4B</b><small>Für kleinere PCs</small></button>
+            <button class="profile" data-profile="standard"><b>Standard · 8B</b><small>Empfohlen für Gaming-PCs</small></button>
+            <button class="profile" data-profile="power"><b>Power · 14B</b><small>Für starke GPUs</small></button>
+          </div>
         </div>
 
         <div class="note">🔒 Local-Only ist standardmäßig aktiv. Keine Cloud-KI ist nötig. Internet wird beim ersten Setup nur für NORVI, Ollama, Abhängigkeiten und die Modelle gebraucht.</div>
@@ -82,6 +98,9 @@
       const progressText = document.querySelector("#progressText");
       const errorBox = document.querySelector("#error");
       const profileButtons = [...document.querySelectorAll(".profile")];
+      const recommendedProfile = document.querySelector("#recommendedProfile");
+      const advancedToggle = document.querySelector("#advancedToggle");
+      const advancedProfiles = document.querySelector("#advancedProfiles");
       let selected = "standard";
 
       function select(profile) {
@@ -89,6 +108,10 @@
         for (const button of profileButtons) button.classList.toggle("active", button.dataset.profile === profile);
       }
       for (const button of profileButtons) button.addEventListener("click", () => select(button.dataset.profile));
+      advancedToggle.addEventListener("click", () => {
+        const open = advancedProfiles.classList.toggle("open");
+        advancedToggle.textContent = open ? "Weniger" : "Erweitert";
+      });
 
       window.norviDesktop.onProgress((progress) => {
         progressWrap.style.display = "block";
@@ -103,9 +126,11 @@
           ram.textContent = hardware.ramGiB.toFixed(1) + " GB";
           vram.textContent = hardware.nvidiaVramGiB == null ? "nicht erkannt" : hardware.nvidiaVramGiB.toFixed(1) + " GB";
           select(hardware.profile);
+          recommendedProfile.textContent = "Empfohlen: " + hardware.label;
         } catch {
           cpu.textContent = "Hardware-Erkennung fehlgeschlagen";
           select("lite");
+          recommendedProfile.textContent = "Fallback: Lite · 4B";
         }
       }
 
