@@ -109,3 +109,8 @@ The optional “Mit NORVI öffnen” Explorer context-menu entry is disabled unt
 ## Skills
 
 The Skills panel is a local permission layer over NORVI's built-in Voice, Screen, Actions, Memory and Quick Access capabilities. It does not install or execute third-party skill code.
+
+## Local renderer error log
+
+The Windows desktop UI keeps up to 50 recent renderer errors or rejected promises in local browser storage so they can be included in a user-triggered diagnostics report. The log is never uploaded automatically and can be cleared from Settings > System. A diagnostics report may contain technical error messages and stack traces, so users should review it before sharing it.
+\n
