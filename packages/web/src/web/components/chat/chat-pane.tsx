@@ -156,6 +156,9 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         if (action.kind === "website") {
           await api.openWebsite(action.url);
           reply = action.label + " wird geöffnet.";
+        } else if (action.kind === "system") {
+          const result = await api.runSystemAction(action.id);
+          reply = result.label + ".";
         } else {
           const result = await api.launchDesktopAction(action.id);
           reply = result.label + " wird geöffnet.";
