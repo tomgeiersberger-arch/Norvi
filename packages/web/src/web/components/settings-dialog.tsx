@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BrainCircuit,
+  Database,
   Gamepad2,
   Gauge,
   Keyboard,
@@ -14,6 +15,7 @@ import {
   ShieldCheck,
   Trash2,
   Volume2,
+  Wrench,
   X,
   Zap,
 } from "lucide-react";
@@ -66,6 +68,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [assistant, setAssistant] = useState<DesktopAssistantSettings>(getAssistantSettings);
   const [voices, setVoices] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<"ai" | "assistant" | "data" | "system">("ai");
   const desktop = isDesktop();
 
   useEffect(() => {
@@ -187,6 +190,39 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </p>
         ) : (
           <div className="space-y-5">
+            {desktop && (
+              <div
+                role="tablist"
+                aria-label="Einstellungsbereiche"
+                className="grid grid-cols-4 gap-1 rounded-2xl border border-white/[0.055] bg-black/10 p-1"
+              >
+                {([
+                  ["ai", "KI", BrainCircuit],
+                  ["assistant", "Assistent", Mic],
+                  ["data", "Daten", Database],
+                  ["system", "System", Wrench],
+                ] as const).map(([value, label, Icon]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === value}
+                    onClick={() => setActiveTab(value)}
+                    className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-[10.5px] font-medium transition sm:text-[11px] ${
+                      activeTab === value
+                        ? "bg-white/[0.07] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                        : "text-muted-foreground hover:bg-white/[0.035] hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="size-3.5" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {(!desktop || activeTab === "ai") && (
+              <>
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[12px] text-muted-foreground">NORVI-Version</span>
@@ -264,7 +300,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </p>
             )}
 
-            {desktop && (
+              </>
+            )}
+
+            {desktop && activeTab === "assistant" && (
               <div className="rounded-2xl border border-white/[0.065] bg-white/[0.018] p-4">
                 <div className="mb-3 flex items-start gap-3">
                   <div className="icon-action flex size-9 shrink-0 items-center justify-center rounded-xl text-primary">
@@ -840,14 +879,18 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </div>
             )}
 
-            {desktop && (
+            {desktop && activeTab === "ai" && (
               <>
                 <DesktopStylePanel assistant={assistant} setAssistant={setAssistant} />
-                <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
                 <DesktopModelManager />
-                <DesktopMaintenancePanel />
               </>
             )}
+
+            {desktop && activeTab === "data" && (
+              <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
+            )}
+
+            {desktop && activeTab === "system" && <DesktopMaintenancePanel />}
 
             <div className="flex items-center justify-end gap-3 pt-1">
               {saved && !update.isPending && (
