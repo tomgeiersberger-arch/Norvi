@@ -61,7 +61,11 @@ jobs:
             throw "Unerwarteter Installer-Name: $($installer.Name), erwartet: $expected"
           }
           $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLower()
-          "$hash  $($installer.Name)" | Set-Content -Path "packages/desktop/release/SHA256SUMS.txt" -Encoding ascii
+          $artifactDir = "packages/desktop/artifact"
+          Remove-Item $artifactDir -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $artifactDir | Out-Null
+          Copy-Item $installer.FullName (Join-Path $artifactDir $installer.Name)
+          "$hash  $($installer.Name)" | Set-Content -Path (Join-Path $artifactDir "SHA256SUMS.txt") -Encoding ascii
           Write-Host "Installer OK: $($installer.Name) ($([math]::Round($installer.Length / 1MB, 1)) MB)"
           Write-Host "SHA256: $hash"
 
@@ -69,9 +73,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: NORVI-Windows-Setup
-          path: |
-            packages/desktop/release/**/*.exe
-            packages/desktop/release/SHA256SUMS.txt
+          path: packages/desktop/artifact/
           if-no-files-found: error
 
       - name: Attach installer to GitHub Release
@@ -80,7 +82,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $installer = Get-ChildItem -Path "packages/desktop/release" -Filter "*.exe" -Recurse | Select-Object -First 1
+          $installer = Get-ChildItem -Path "packages/desktop/artifact" -Filter "NORVI-Setup-*.exe" | Select-Object -First 1
           if (-not $installer) { throw "NORVI Setup.exe wurde nicht erzeugt." }
           gh release view "${{ github.ref_name }}" 2>$null
           if ($LASTEXITCODE -ne 0) {

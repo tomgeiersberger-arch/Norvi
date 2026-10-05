@@ -64,6 +64,9 @@ jobs:
       - name: Local diagnostics report
         run: bun deploy/test-local-diagnostics-report.ts
 
+      - name: Final desktop polish
+        run: bun deploy/test-final-desktop-polish.ts
+
       - name: Typecheck
         run: bun run typecheck
 

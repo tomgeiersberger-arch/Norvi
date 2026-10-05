@@ -33,3 +33,10 @@ The Git tag must match the desktop package version. Example: `packages/desktop/p
 ## Local data
 
 The desktop launcher keeps the runtime under Electron's per-user NORVI data directory. A reinstall preserves the existing `.env` and `data/` directory before refreshing application source files. Uninstalling the desktop shell does not automatically delete local user data.
+
+
+## Setup recommendation UX
+
+The installer shows NORVI's detected hardware recommendation first. Manual Lite/Standard/Power selection is behind **Erweitert**, so most users do not need to understand model sizes during installation. The profile can be changed later in the in-app Model Manager.
+
+The Windows workflow stages only the verified `NORVI-Setup-x.y.z.exe` and its `SHA256SUMS.txt` into the release artifact directory before upload.

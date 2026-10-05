@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { LogIn, LogOut, Settings, Shield, User } from "lucide-react";
 import { authClient, clearAuthToken } from "../lib/auth";
 import { useCapabilities } from "../queries/capabilities";
+import { OPEN_SETTINGS_EVENT } from "../lib/desktop-assistant";
 import { useMe, useResetSession } from "../queries/me";
 import { SettingsDialog } from "./settings-dialog";
 
@@ -29,6 +30,15 @@ export function AccountMenu() {
     publicEdition &&
     capabilities.data?.localOnly === true &&
     capabilities.data?.requireAuth !== true;
+
+  useEffect(() => {
+    const openSettings = () => {
+      setSettingsOpen(true);
+      setOpen(false);
+    };
+    window.addEventListener(OPEN_SETTINGS_EVENT, openSettings);
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, openSettings);
+  }, []);
 
   // Klick außerhalb und Escape schließen das Menü.
   useEffect(() => {

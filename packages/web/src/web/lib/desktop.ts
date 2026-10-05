@@ -91,6 +91,9 @@ export interface NorviDesktopAPI {
   addCustomDesktopAction: () => Promise<DesktopActionDescriptor | null>;
   removeCustomDesktopAction: (actionId: string) => Promise<boolean>;
   launchDesktopAction: (actionId: string) => Promise<DesktopActionResult>;
+  runSystemAction: (
+    actionId: "volume-up" | "volume-down" | "volume-mute",
+  ) => Promise<{ ok: true; label: string }>;
   openWebsite: (url: string) => Promise<{ ok: true; url: string }>;
   capturePrimaryScreen: () => Promise<{ dataUrl: string; name: string }>;
   setQuickShortcut: (enabled: boolean) => Promise<boolean>;

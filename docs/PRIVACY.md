@@ -96,3 +96,8 @@ Response presets are local presentation preferences such as Short, Coding, Gamin
 The desktop maintenance page can export a user-triggered local diagnostics JSON file. It contains only coarse device/runtime information such as hardware profile, feature availability, active model label and the results of NORVI's local self-test.
 
 The diagnostics export intentionally excludes chat content, Local Memory items, custom program paths, authentication secrets, API keys and environment-variable values. NORVI does not upload the report automatically.
+
+
+## Local renderer error log
+
+The Windows desktop UI keeps up to 50 recent renderer errors or rejected promises in local browser storage so they can be included in a user-triggered diagnostics report. The log is never uploaded automatically and can be cleared from Settings > System. A diagnostics report may contain technical error messages and stack traces, so users should review it before sharing it.
