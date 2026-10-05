@@ -67,6 +67,9 @@ jobs:
       - name: Skills, verified update and Explorer integration
         run: bun deploy/test-desktop-integration-v3.ts
 
+      - name: Installer polish
+        run: bun deploy/test-installer-polish.ts
+
       - name: Typecheck
         run: bun run typecheck
 
