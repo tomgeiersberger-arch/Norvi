@@ -357,13 +357,16 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-async function checkForUpdates(): Promise<{
-  currentVersion: string;
-  latestVersion: string;
-  available: boolean;
-  releaseUrl: string | null;
-}> {
-  const currentVersion = app.getVersion();
+type LatestRelease = {
+  tag_name?: string;
+  html_url?: string;
+  assets?: Array<{
+    name?: string;
+    browser_download_url?: string;
+  }>;
+};
+
+async function latestRelease(): Promise<LatestRelease> {
   const response = await net.fetch(
     "https://api.github.com/repos/tomgeiersberger-arch/Norvi/releases/latest",
     {
@@ -376,10 +379,17 @@ async function checkForUpdates(): Promise<{
   if (!response.ok) {
     throw new Error("Update-Informationen konnten nicht geladen werden.");
   }
-  const payload = (await response.json()) as {
-    tag_name?: string;
-    html_url?: string;
-  };
+  return (await response.json()) as LatestRelease;
+}
+
+async function checkForUpdates(): Promise<{
+  currentVersion: string;
+  latestVersion: string;
+  available: boolean;
+  releaseUrl: string | null;
+}> {
+  const currentVersion = app.getVersion();
+  const payload = await latestRelease();
   const latestVersion = (payload.tag_name ?? "").replace(/^v/i, "") || currentVersion;
   return {
     currentVersion,
@@ -389,9 +399,72 @@ async function checkForUpdates(): Promise<{
   };
 }
 
+async function installLatestUpdate(): Promise<{ ok: true; version: string }> {
+  if (process.platform !== "win32") {
+    throw new Error("Die direkte Update-Installation ist aktuell für Windows vorgesehen.");
+  }
+
+  const currentVersion = app.getVersion();
+  const release = await latestRelease();
+  const version = (release.tag_name ?? "").replace(/^v/i, "");
+  if (!version || compareVersions(version, currentVersion) <= 0) {
+    throw new Error("Es ist kein neueres NORVI-Update verfügbar.");
+  }
+
+  const installerName = "NORVI-Setup-" + version + ".exe";
+  const installerAsset = release.assets?.find(
+    (asset) => asset.name === installerName && typeof asset.browser_download_url === "string",
+  );
+  const checksumAsset = release.assets?.find(
+    (asset) => asset.name === "SHA256SUMS.txt" && typeof asset.browser_download_url === "string",
+  );
+
+  if (!installerAsset?.browser_download_url || !checksumAsset?.browser_download_url) {
+    throw new Error("Der Release enthält keinen verifizierbaren NORVI-Installer.");
+  }
+
+  const [installerResponse, checksumResponse] = await Promise.all([
+    net.fetch(installerAsset.browser_download_url, { redirect: "follow" }),
+    net.fetch(checksumAsset.browser_download_url, { redirect: "follow" }),
+  ]);
+
+  if (!installerResponse.ok || !checksumResponse.ok) {
+    throw new Error("Das Update konnte nicht vollständig heruntergeladen werden.");
+  }
+
+  const manifest = await checksumResponse.text();
+  const line = manifest
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .find((entry) => entry.endsWith("  " + installerName));
+  const expectedHash = line?.split(/\s+/)[0]?.toLowerCase();
+
+  if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash)) {
+    throw new Error("Die Update-Prüfsumme fehlt oder ist ungültig.");
+  }
+
+  const bytes = Buffer.from(await installerResponse.arrayBuffer());
+  const actualHash = createHash("sha256").update(bytes).digest("hex");
+  if (actualHash !== expectedHash) {
+    throw new Error("Die SHA-256-Prüfung des Updates ist fehlgeschlagen.");
+  }
+
+  const destination = path.join(app.getPath("temp"), installerName);
+  await fs.writeFile(destination, bytes);
+  const launchError = await shell.openPath(destination);
+  if (launchError) throw new Error(launchError);
+
+  return { ok: true, version };
+}
+
 function registerNorviHandlers() {
   ipcMain.handle("norvi:detect-hardware", () => detectHardware());
   ipcMain.handle("norvi:check-for-updates", () => checkForUpdates());
+  ipcMain.handle("norvi:install-update", () => installLatestUpdate());
+  ipcMain.handle("norvi:get-explorer-context-menu", () => explorerContextMenuEnabled());
+  ipcMain.handle("norvi:set-explorer-context-menu", (_event, enabled: boolean) =>
+    setExplorerContextMenu(Boolean(enabled)),
+  );
   ipcMain.handle("norvi:runtime-self-test", () => runRuntimeSelfTest());
   ipcMain.handle("norvi:repair-runtime", () => repairLocalRuntime());
   ipcMain.handle("norvi:list-managed-models", () => listManagedModels());
@@ -491,6 +564,8 @@ function createWindow() {
     },
   });
 
+  win.webContents.on("did-finish-load", () => deliverExternalFile());
+
   win.on("close", (event) => {
     if (!quitting && backgroundMode) {
       event.preventDefault();
@@ -539,12 +614,14 @@ app.on("activate", () => {
 if (app.requestSingleInstanceLock()) {
   app.on("second-instance", (_event, argv) => {
     deepLinks.handleArgv(argv);
+    void queueExternalFile(argv);
     showWindow();
   });
 
   app.whenReady().then(() => {
     createWindow();
     deepLinks.handleArgv(process.argv);
+    void queueExternalFile(process.argv);
   });
 } else {
   app.quit();
