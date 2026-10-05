@@ -4,7 +4,7 @@ import {
   Mic,
   MonitorUp,
   Sparkles,
-  WandSparkles,
+  Zap,
 } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import type { DesktopAssistantSettings } from "../lib/desktop-assistant";
@@ -43,7 +43,7 @@ export function DesktopSkillsPanel({ assistant, setAssistant }: DesktopSkillsPan
       id: "actions",
       label: "Actions",
       hint: "Freigegebene Apps, Programme und Websites starten",
-      icon: WandSparkles,
+      icon: Zap,
       enabled: assistant.desktopActionsEnabled,
       toggle: (enabled: boolean) =>
         setAssistant((current) => ({ ...current, desktopActionsEnabled: enabled })),
