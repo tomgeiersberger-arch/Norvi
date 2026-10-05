@@ -69,6 +69,23 @@ jobs:
           Write-Host "Installer OK: $($installer.Name) ($([math]::Round($installer.Length / 1MB, 1)) MB)"
           Write-Host "SHA256: $hash"
 
+      - name: Silent install smoke
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path "packages/desktop/artifact" -Filter "NORVI-Setup-*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "NORVI Setup.exe fehlt fuer den Installations-Smoke-Test." }
+
+          $install = Start-Process -FilePath $installer.FullName -ArgumentList "/S" -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Stille Installation fehlgeschlagen: Exit $($install.ExitCode)" }
+
+          $exe = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs") -Filter "NORVI.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "NORVI.exe wurde nach der stillen Installation nicht gefunden." }
+
+          $app = Start-Process -FilePath $exe.FullName -ArgumentList "--disable-gpu", "--background" -PassThru
+          Start-Sleep -Seconds 8
+          if ($app.HasExited) { throw "NORVI.exe ist beim Start-Smoke-Test mit Exit $($app.ExitCode) beendet worden." }
+          Stop-Process -Id $app.Id -Force
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
@@ -86,7 +103,11 @@ jobs:
           if (-not $installer) { throw "NORVI Setup.exe wurde nicht erzeugt." }
           gh release view "${{ github.ref_name }}" 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create "${{ github.ref_name }}" --title "NORVI ${{ github.ref_name }}" --generate-notes
+            if ("${{ github.ref_name }}" -eq "v0.1.0") {
+              gh release create "${{ github.ref_name }}" --title "NORVI ${{ github.ref_name }}" --notes-file docs/RELEASE_NOTES_0.1.0.md
+            } else {
+              gh release create "${{ github.ref_name }}" --title "NORVI ${{ github.ref_name }}" --generate-notes
+            }
           }
           gh release upload "${{ github.ref_name }}" $installer.FullName --clobber
           $hashFile = Join-Path $installer.Directory.FullName "SHA256SUMS.txt"
