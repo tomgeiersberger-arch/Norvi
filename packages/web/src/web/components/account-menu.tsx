@@ -25,6 +25,7 @@ export function AccountMenu() {
 
   const user = me.data ?? null;
   const publicEdition = capabilities.data?.publicEdition === true;
+  const authOptional = capabilities.data?.requireAuth === false;
 
   // Klick außerhalb und Escape schließen das Menü.
   useEffect(() => {
@@ -54,7 +55,7 @@ export function AccountMenu() {
       resetSession();
       setBusy(false);
       setOpen(false);
-      navigate("/sign-in", { replace: true });
+      navigate(authOptional ? "/" : "/sign-in", { replace: true });
     }
   };
 
@@ -82,10 +83,18 @@ export function AccountMenu() {
           >
             <div className="px-3 py-2.5">
               <div className="truncate text-[13px] font-semibold tracking-tight">
-                {user ? (user.name || user.email) : "Nicht angemeldet"}
+                {user
+                  ? (user.name || user.email)
+                  : publicEdition && authOptional
+                    ? "Lokales Profil"
+                    : "Nicht angemeldet"}
               </div>
               <div className="truncate text-[11px] text-muted-foreground">
-                {user ? user.email : "Chats bleiben nur auf diesem Gerät"}
+                {user
+                  ? user.email
+                  : publicEdition && authOptional
+                    ? "Kein Konto nötig · Daten bleiben auf diesem Gerät"
+                    : "Chats bleiben nur auf diesem Gerät"}
               </div>
               {!publicEdition && user && (user.role === "owner" || user.role === "admin" || user.premiumAccess) && (
                 <span className="mt-2 inline-flex rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-0.5 text-[9px] font-semibold tracking-[0.1em] text-primary uppercase">
@@ -99,20 +108,18 @@ export function AccountMenu() {
             </div>
             <div className="my-1 h-px bg-border/70" />
 
-            {user && (
-              <button
-                type="button"
-                role="menuitem"
-                className={itemClass}
-                onClick={() => {
-                  setSettingsOpen(true);
-                  setOpen(false);
-                }}
-              >
-                <Settings className="size-4 text-muted-foreground" />
-                Einstellungen
-              </button>
-            )}
+            <button
+              type="button"
+              role="menuitem"
+              className={itemClass}
+              onClick={() => {
+                setSettingsOpen(true);
+                setOpen(false);
+              }}
+            >
+              <Settings className="size-4 text-muted-foreground" />
+              Einstellungen
+            </button>
 
             {!publicEdition && (user?.role === "owner" || user?.role === "admin") && (
               <button
@@ -140,7 +147,7 @@ export function AccountMenu() {
                 <LogOut className="size-4 text-muted-foreground" />
                 Abmelden
               </button>
-            ) : (
+            ) : publicEdition && authOptional ? null : (
               <button
                 type="button"
                 role="menuitem"
