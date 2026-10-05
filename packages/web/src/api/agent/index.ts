@@ -1,6 +1,7 @@
 import { stepCountIs, ToolLoopAgent } from "ai";
 import dedent from "dedent";
 import { defaultModelId, providerKind, resolveModel } from "./gateway";
+import { capabilityInstruction, type AgentRuntimeCapabilities } from "./capabilities";
 
 export const AGENT_NAME = "NORVI";
 export const MODEL_LABEL = "NORVI AI";
@@ -29,6 +30,7 @@ export function createAgent(options?: {
     preset: ResponseStylePreset;
     custom?: string;
   };
+  capabilities?: AgentRuntimeCapabilities;
 }) {
   const assistantName = options?.assistantName?.trim() || AGENT_NAME;
   const responseStyleInstruction = (() => {
@@ -111,6 +113,12 @@ export function createAgent(options?: {
         If the user asks about something the image does not show, say so directly.
       `,
     },
+    ...(options?.capabilities
+      ? [{
+          role: "system" as const,
+          content: capabilityInstruction(options.capabilities),
+        }]
+      : []),
     ...(responseStyleInstruction
       ? [{
           role: "system" as const,

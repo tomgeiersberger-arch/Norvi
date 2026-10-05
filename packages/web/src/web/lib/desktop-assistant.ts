@@ -1,10 +1,7 @@
 export type DesktopActionId =
   | "spotify"
-  | "cs2"
   | "steam"
   | "discord"
-  | "downloads"
-  | "explorer"
   | "browser";
 
 export interface WebsiteAction {
@@ -41,6 +38,7 @@ export interface DesktopAssistantSettings {
   startWithWindows: boolean;
   gamingMode: boolean;
   microphoneEnabled: boolean;
+  microphoneDeviceId: string;
   screenCaptureEnabled: boolean;
   quickShortcutEnabled: boolean;
   voiceShortcutEnabled: boolean;
@@ -70,15 +68,13 @@ const STORAGE_KEY = "norvi.desktop-assistant.v1";
 export const ASSISTANT_SETTINGS_EVENT = "norvi:assistant-settings";
 export const VOICE_COMMAND_EVENT = "norvi:voice-command";
 export const VOICE_TURN_COMPLETE_EVENT = "norvi:voice-turn-complete";
+export const FOREGROUND_MICROPHONE_EVENT = "norvi:foreground-microphone";
 export const OPEN_SETTINGS_EVENT = "norvi:open-settings";
 
 export const DEFAULT_DESKTOP_ACTION_ALIASES: Record<DesktopActionId, string[]> = {
   spotify: ["spotify", "musik"],
-  cs2: ["cs2", "counter strike 2", "counterstrike 2"],
   steam: ["steam"],
   discord: ["discord", "dc"],
-  downloads: ["downloads", "download ordner"],
-  explorer: ["explorer", "datei explorer", "dateien"],
   browser: ["browser", "internet"],
 };
 
@@ -90,6 +86,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   startWithWindows: false,
   gamingMode: false,
   microphoneEnabled: true,
+  microphoneDeviceId: "",
   screenCaptureEnabled: false,
   quickShortcutEnabled: true,
   voiceShortcutEnabled: false,
@@ -228,6 +225,10 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     startWithWindows: value.startWithWindows === true,
     gamingMode: value.gamingMode === true,
     microphoneEnabled: value.microphoneEnabled !== false,
+    microphoneDeviceId:
+      typeof value.microphoneDeviceId === "string"
+        ? value.microphoneDeviceId.trim().slice(0, 240)
+        : "",
     screenCaptureEnabled: value.screenCaptureEnabled === true,
     quickShortcutEnabled: value.quickShortcutEnabled !== false,
     voiceShortcutEnabled: value.voiceShortcutEnabled === true,
@@ -249,11 +250,8 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     desktopActionsEnabled: value.desktopActionsEnabled !== false,
     desktopActionAliases: {
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),
-      cs2: cleanAliases(rawAliases?.cs2, DEFAULT_DESKTOP_ACTION_ALIASES.cs2),
       steam: cleanAliases(rawAliases?.steam, DEFAULT_DESKTOP_ACTION_ALIASES.steam),
       discord: cleanAliases(rawAliases?.discord, DEFAULT_DESKTOP_ACTION_ALIASES.discord),
-      downloads: cleanAliases(rawAliases?.downloads, DEFAULT_DESKTOP_ACTION_ALIASES.downloads),
-      explorer: cleanAliases(rawAliases?.explorer, DEFAULT_DESKTOP_ACTION_ALIASES.explorer),
       browser: cleanAliases(rawAliases?.browser, DEFAULT_DESKTOP_ACTION_ALIASES.browser),
     },
     customDesktopActions,
@@ -335,13 +333,17 @@ export function dispatchVoiceTurnComplete(): void {
   window.dispatchEvent(new CustomEvent(VOICE_TURN_COMPLETE_EVENT));
 }
 
+export function setForegroundMicrophoneActive(active: boolean): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(FOREGROUND_MICROPHONE_EVENT, { detail: { active } }),
+  );
+}
+
 const DESKTOP_LABELS: Record<DesktopActionId, string> = {
   spotify: "Spotify",
-  cs2: "Counter-Strike 2",
   steam: "Steam",
   discord: "Discord",
-  downloads: "Downloads",
-  explorer: "Explorer",
   browser: "Browser",
 };
 
