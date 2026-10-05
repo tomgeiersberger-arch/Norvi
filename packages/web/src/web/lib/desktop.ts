@@ -11,8 +11,6 @@ export interface ElectronAPI {
     defaultPath?: string;
     filters?: { name: string; extensions: string[] }[];
   }) => Promise<string | null>;
-  readFile: (path: string) => Promise<string>;
-  writeFile: (path: string, data: string) => Promise<void>;
   openExternal: (url: string) => Promise<void>;
   showNotification: (title: string, body: string) => Promise<void>;
   minimize: () => Promise<void>;
@@ -23,17 +21,20 @@ export interface ElectronAPI {
 
 export type DesktopActionId =
   | "spotify"
-  | "cs2"
   | "steam"
   | "discord"
-  | "downloads"
-  | "explorer"
   | "browser";
 
 export interface DesktopActionDescriptor {
   id: string;
   label: string;
   builtin: boolean;
+}
+
+export interface ScannedDesktopActionDescriptor {
+  scanId: string;
+  label: string;
+  source: string;
 }
 
 export interface DesktopActionResult {
@@ -98,6 +99,8 @@ export interface NorviDesktopAPI {
   stopSpeech: () => Promise<boolean>;
   listDesktopActions: () => Promise<DesktopActionDescriptor[]>;
   addCustomDesktopAction: () => Promise<DesktopActionDescriptor | null>;
+  scanInstalledDesktopActions: () => Promise<ScannedDesktopActionDescriptor[]>;
+  addScannedDesktopActions: (scanIds: string[]) => Promise<DesktopActionDescriptor[]>;
   removeCustomDesktopAction: (actionId: string) => Promise<boolean>;
   launchDesktopAction: (actionId: string) => Promise<DesktopActionResult>;
   runSystemAction: (

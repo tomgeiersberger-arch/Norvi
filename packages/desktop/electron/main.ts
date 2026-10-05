@@ -32,10 +32,12 @@ import {
 import { listLocalVoices, speakLocal, stopSpeech } from "./voice";
 import {
   addCustomDesktopAction,
+  addScannedDesktopActions,
   launchDesktopAction,
   listDesktopActions,
   openDesktopWebsite,
   removeCustomDesktopAction,
+  scanInstalledDesktopActions,
 } from "./actions";
 import {
   activateManagedModel,
@@ -572,6 +574,10 @@ function registerNorviHandlers() {
 
   ipcMain.handle("norvi:list-desktop-actions", () => listDesktopActions());
   ipcMain.handle("norvi:add-custom-desktop-action", () => addCustomDesktopAction());
+  ipcMain.handle("norvi:scan-installed-desktop-actions", () => scanInstalledDesktopActions());
+  ipcMain.handle("norvi:add-scanned-desktop-actions", (_event, scanIds: unknown) =>
+    addScannedDesktopActions(scanIds),
+  );
   ipcMain.handle("norvi:remove-custom-desktop-action", (_event, actionId: string) =>
     removeCustomDesktopAction(String(actionId ?? "")),
   );
