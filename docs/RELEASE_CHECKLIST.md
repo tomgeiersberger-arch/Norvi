@@ -30,6 +30,21 @@ Use this before creating a public Windows release tag.
 - [ ] Disabling local app commands blocks those launches
 - [ ] Closing the window to tray works
 - [ ] Windows login autostart works
+- [ ] First-run wizard completes without creating an online account
+- [ ] Local default starts without a mandatory login
+- [ ] Alt + Space focuses NORVI
+- [ ] Configurable push-to-talk shortcut starts/stops local recording
+- [ ] Screen Mode captures only after the user presses the Screen control
+- [ ] Conversation Mode accepts a follow-up without another wake phrase
+- [ ] Custom website call-word opens the configured http/https site
+- [ ] User-selected custom program action launches only the selected local target
+- [ ] Gaming Mode pauses background wake/conversation listening
+- [ ] Model Manager can list/pull/activate curated models and protects the active model
+- [ ] Settings backup exports/imports successfully
+- [ ] Local Memory can be disabled, edited and cleared
+- [ ] Text/code file drag-and-drop inserts local text without a cloud file upload
+- [ ] Privacy Dashboard reflects local permissions and LOCAL_ONLY state
+- [ ] Local diagnostics report exports without secrets or chat content
 
 ## Privacy/security review
 
@@ -45,6 +60,7 @@ Use this before creating a public Windows release tag.
 - [ ] Choose and add an explicit project license before calling the project open source
 - [ ] Release notes explain model download size and that first setup requires internet
 - [ ] Windows installer artifact is attached to the GitHub Release
+- [ ] Pull-request Windows smoke build produced `NORVI-Setup-<version>.exe` and `SHA256SUMS.txt`
 
 
 ## Desktop assistant smoke checks

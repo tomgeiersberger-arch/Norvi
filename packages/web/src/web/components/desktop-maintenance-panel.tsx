@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import {
+  getDesktopAPI,
   getNorviDesktopAPI,
   type DesktopHardwareProfile,
   type DesktopUpdateInfo,
@@ -25,6 +26,25 @@ import { getDeviceId } from "../lib/device";
 import { useCapabilities } from "../queries/capabilities";
 import { useModel } from "../queries/model";
 import { useSettings, useUpdateSettings } from "../queries/settings";
+
+type DiagnosticsReport = {
+  version: 1;
+  generatedAt: string;
+  platform: string;
+  hardware: DesktopHardwareProfile | null;
+  capabilities: {
+    localOnly: boolean;
+    aiOnline: boolean;
+    vision: boolean;
+    stt: boolean;
+    requireAuth: boolean;
+  };
+  model: {
+    id: string | null;
+    label: string | null;
+  };
+  runtimeChecks: RuntimeCheck[];
+};
 
 type BackupFile = {
   version: 1;
@@ -55,6 +75,51 @@ export function DesktopMaintenancePanel() {
     if (!api) return;
     void api.detectHardware().then(setHardware).catch(() => setHardware(null));
   }, []);
+
+  const exportDiagnostics = async () => {
+    const desktopApi = getDesktopAPI();
+    const api = getNorviDesktopAPI();
+    if (!desktopApi || !api) return;
+
+    setNotice(null);
+    try {
+      const runtimeChecks = checks.length ? checks : await api.runRuntimeSelfTest();
+      if (!checks.length) setChecks(runtimeChecks);
+
+      const report: DiagnosticsReport = {
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        platform: desktopApi.platform,
+        hardware,
+        capabilities: {
+          localOnly: capabilities.data?.localOnly === true,
+          aiOnline: capabilities.data?.aiOnline !== false,
+          vision: capabilities.data?.vision === true,
+          stt: capabilities.data?.stt === true,
+          requireAuth: capabilities.data?.requireAuth === true,
+        },
+        model: {
+          id: model.data?.id ?? null,
+          label: model.data?.label ?? null,
+        },
+        runtimeChecks,
+      };
+
+      const safeDate = report.generatedAt.slice(0, 10);
+      const path = await desktopApi.showSaveDialog({
+        title: "NORVI Diagnosebericht speichern",
+        defaultPath: "NORVI-Diagnose-" + safeDate + ".json",
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!path) return;
+      await desktopApi.writeFile(path, JSON.stringify(report, null, 2) + "\n");
+      setNotice("Lokaler Diagnosebericht gespeichert. Er enthält keine API-Keys oder Chat-Inhalte.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Diagnosebericht konnte nicht gespeichert werden.",
+      );
+    }
+  };
 
   const exportBackup = () => {
     const assistant = getAssistantSettings();
@@ -231,6 +296,13 @@ export function DesktopMaintenancePanel() {
           className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] disabled:opacity-50"
         >
           <Stethoscope className="size-4" /> Selbsttest
+        </button>
+        <button
+          type="button"
+          onClick={() => void exportDiagnostics()}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px]"
+        >
+          <Download className="size-4" /> Diagnosebericht speichern
         </button>
         <button
           type="button"
