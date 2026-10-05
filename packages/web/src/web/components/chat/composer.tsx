@@ -7,7 +7,6 @@ import {
   Mic,
   MonitorUp,
   Settings2,
-  Sparkles,
   Square,
   TriangleAlert,
   X,
@@ -30,8 +29,15 @@ import {
   getAssistantSettings,
   OPEN_SETTINGS_EVENT,
   saveAssistantSettings,
+  setForegroundMicrophoneActive,
   subscribeAssistantSettings,
 } from "../../lib/desktop-assistant";
+import {
+  isLiveScreenActive,
+  pushLiveScreenFrame,
+  setLiveScreenActive,
+  subscribeLiveScreen,
+} from "../../lib/live-screen";
 
 interface ComposerProps {
   agentName: string;
@@ -76,6 +82,7 @@ export function Composer({
   const [transcribing, setTranscribing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [assistantSettings, setAssistantSettings] = useState(getAssistantSettings);
+  const [liveScreenActive, setLiveScreenState] = useState(isLiveScreenActive);
 
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -84,6 +91,11 @@ export function Composer({
   const toggleRecordingRef = useRef<() => void>(() => undefined);
 
   useEffect(() => subscribeAssistantSettings(setAssistantSettings), []);
+
+  useEffect(
+    () => subscribeLiveScreen((state) => setLiveScreenState(state.active)),
+    [],
+  );
 
   useEffect(() => {
     const api = getNorviDesktopAPI();
@@ -124,7 +136,54 @@ export function Composer({
   }, [recording]);
 
   // Never leave the microphone open when the composer unmounts.
-  useEffect(() => () => handleRef.current?.cancel(), []);
+  useEffect(
+    () => () => {
+      handleRef.current?.cancel();
+      setForegroundMicrophoneActive(false);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!liveScreenActive) return;
+    const api = getNorviDesktopAPI();
+    if (!api || !vision || !assistantSettings.screenCaptureEnabled) {
+      setLiveScreenActive(false);
+      return;
+    }
+
+    let cancelled = false;
+    let capturing = false;
+    const capture = async () => {
+      if (cancelled || capturing) return;
+      capturing = true;
+      try {
+        const frame = await api.capturePrimaryScreen();
+        if (!cancelled) {
+          pushLiveScreenFrame({
+            ...frame,
+            capturedAt: Date.now(),
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setNotice(
+            error instanceof Error ? error.message : "Live Screen konnte nicht aktualisiert werden.",
+          );
+          setLiveScreenActive(false);
+        }
+      } finally {
+        capturing = false;
+      }
+    };
+
+    void capture();
+    const timer = window.setInterval(() => void capture(), 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [assistantSettings.screenCaptureEnabled, liveScreenActive, vision]);
 
   const uploading = images.some((image) => !image.uploaded && !image.failed);
   const ready = images.filter((image) => image.uploaded).map((image) => image.uploaded!);
@@ -270,6 +329,7 @@ export function Composer({
       const handle = handleRef.current;
       handleRef.current = null;
       setRecording(false);
+      setForegroundMicrophoneActive(false);
       if (!handle) return;
       setTranscribing(true);
       try {
@@ -294,10 +354,14 @@ export function Composer({
     }
 
     try {
-      handleRef.current = await startRecording();
+      setForegroundMicrophoneActive(true);
+      handleRef.current = await startRecording(
+        assistantSettings.microphoneDeviceId || undefined,
+      );
       setSeconds(0);
       setRecording(true);
     } catch (error) {
+      setForegroundMicrophoneActive(false);
       setNotice(error instanceof Error ? error.message : "Aufnahme nicht möglich.");
     }
   };
@@ -442,15 +506,24 @@ export function Composer({
           <button
             type="button"
             disabled={busy || uploading}
-            onClick={() =>
-              void captureScreen(
-                "Erkläre mir kurz und verständlich, was auf diesem Screenshot zu sehen ist.",
-              )
+            onClick={() => {
+              const next = !liveScreenActive;
+              setLiveScreenActive(next);
+              setNotice(
+                next
+                  ? "Live Screen aktiv. NORVI hält die letzten Bildschirmzustände für deine nächste Frage bereit."
+                  : "Live Screen beendet.",
+              );
+            }}
+            className={
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] transition disabled:opacity-40 " +
+              (liveScreenActive
+                ? "border-primary/35 bg-primary/[0.10] text-primary"
+                : "icon-action border-transparent text-muted-foreground")
             }
-            className="icon-action flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground disabled:opacity-40"
           >
-            <Sparkles className="size-3.5" />
-            Screen erklären
+            <MonitorUp className="size-3.5" />
+            {liveScreenActive ? "Live Screen · Stop" : "Screen erklären"}
           </button>
           <button
             type="button"
@@ -546,20 +619,6 @@ export function Composer({
           >
             <ImagePlus className="size-4.5 shrink-0" />
             <span className="hidden text-[11px] font-medium sm:inline">Bild</span>
-          </button>
-        )}
-
-        {vision && isDesktop() && assistantSettings.screenCaptureEnabled && (
-          <button
-            type="button"
-            onClick={() => void captureScreen()}
-            disabled={busy || uploading}
-            aria-label="Bildschirm aufnehmen"
-            title="Aktuellen Bildschirm als Bild an NORVI anhängen"
-            className="icon-action mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] px-0 text-muted-foreground transition duration-200 disabled:opacity-40 sm:px-3"
-          >
-            <MonitorUp className="size-4.5 shrink-0" />
-            <span className="hidden text-[11px] font-medium sm:inline">Screen</span>
           </button>
         )}
 

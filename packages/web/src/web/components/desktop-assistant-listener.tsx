@@ -6,6 +6,7 @@ import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import {
   commandAfterWakePhrase,
   dispatchVoiceCommand,
+  FOREGROUND_MICROPHONE_EVENT,
   getAssistantSettings,
   subscribeAssistantSettings,
   VOICE_TURN_COMPLETE_EVENT,
@@ -30,8 +31,18 @@ export function DesktopAssistantListener() {
   const capabilities = useCapabilities();
   const [settings, setSettings] = useState(getAssistantSettings);
   const conversationUntilRef = useRef(0);
+  const foregroundMicRef = useRef(false);
 
   useEffect(() => subscribeAssistantSettings(setSettings), []);
+
+  useEffect(() => {
+    const onForegroundMic = (event: Event) => {
+      foregroundMicRef.current =
+        (event as CustomEvent<{ active?: boolean }>).detail?.active === true;
+    };
+    window.addEventListener(FOREGROUND_MICROPHONE_EVENT, onForegroundMic);
+    return () => window.removeEventListener(FOREGROUND_MICROPHONE_EVENT, onForegroundMic);
+  }, []);
 
   useEffect(() => {
     const api = getNorviDesktopAPI();
@@ -90,7 +101,7 @@ export function DesktopAssistantListener() {
     let activeHandle: Awaited<ReturnType<typeof startRecording>> | null = null;
 
     const recordFor = async (duration: number) => {
-      activeHandle = await startRecording();
+      activeHandle = await startRecording(settings.microphoneDeviceId || undefined);
       await sleep(duration);
       if (cancelled) {
         activeHandle.cancel();
@@ -116,17 +127,15 @@ export function DesktopAssistantListener() {
     };
 
     const loop = async () => {
+      let wakeTranscriptTail = "";
       while (!cancelled) {
         const conversationActive =
           settings.conversationMode && Date.now() < conversationUntilRef.current;
 
-        // Outside conversation mode, the foreground composer owns the microphone.
-        if (
-          !conversationActive &&
-          document.visibilityState === "visible" &&
-          document.hasFocus()
-        ) {
-          await sleep(900);
+        // A manual push-to-talk recording temporarily owns the selected microphone.
+        if (foregroundMicRef.current) {
+          wakeTranscriptTail = "";
+          await sleep(250);
           continue;
         }
 
@@ -151,11 +160,14 @@ export function DesktopAssistantListener() {
           }
 
           const transcript = await transcribeAudio(recording.blob, "de", recording.filename);
-          const command = commandAfterWakePhrase(transcript, settings.wakePhrase);
+          const combinedTranscript = (wakeTranscriptTail + " " + transcript).trim();
+          const command = commandAfterWakePhrase(combinedTranscript, settings.wakePhrase);
+          wakeTranscriptTail = transcript.split(/\s+/).slice(-5).join(" ");
           if (command === null || cancelled) {
             await sleep(180);
             continue;
           }
+          wakeTranscriptTail = "";
 
           const api = getNorviDesktopAPI();
           await api?.showWindow();
@@ -185,6 +197,7 @@ export function DesktopAssistantListener() {
     settings.conversationMode,
     settings.gamingMode,
     settings.microphoneEnabled,
+    settings.microphoneDeviceId,
     settings.speakReplies,
     settings.voice,
     settings.wakeEnabled,

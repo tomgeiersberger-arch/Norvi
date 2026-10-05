@@ -7,7 +7,8 @@ import { orpc } from "../../lib/api";
 import { getDeviceId } from "../../lib/device";
 import { useChatMessages, useCreateChat } from "../../queries/chats";
 import { useCapabilities } from "../../queries/capabilities";
-import type { UploadedImage } from "../../lib/uploads";
+import { uploadImage, type UploadedImage } from "../../lib/uploads";
+import { getLiveScreenFrames } from "../../lib/live-screen";
 import { getNorviDesktopAPI } from "../../lib/desktop";
 import {
   dispatchVoiceTurnComplete,
@@ -65,6 +66,19 @@ function toUIMessages(rows: StoredMessage[] | undefined): UIMessage[] {
       { type: "text" as const, text: row.content },
     ],
   })) as UIMessage[];
+}
+
+
+async function uploadLiveScreenFrames(maxFrames: number): Promise<UploadedImage[]> {
+  if (maxFrames <= 0) return [];
+  const frames = getLiveScreenFrames().slice(-Math.min(2, maxFrames));
+  return Promise.all(
+    frames.map(async (frame) => {
+      const response = await fetch(frame.dataUrl);
+      const blob = await response.blob();
+      return uploadImage(new File([blob], frame.name, { type: "image/png" }));
+    }),
+  );
 }
 
 interface ChatPaneProps {
@@ -214,8 +228,17 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
 
   const requestLocalContext = () => {
     const assistant = getAssistantSettings();
+    const desktop = getNorviDesktopAPI() !== null;
+    const clientCapabilities = {
+      localOnly: capabilities.data?.localOnly === true,
+      vision: capabilities.data?.vision === true,
+      stt: capabilities.data?.stt === true,
+      desktop,
+      screenCapture: desktop && assistant.screenCaptureEnabled,
+      desktopActions: desktop && assistant.desktopActionsEnabled,
+    };
     if (!capabilities.data?.localOnly) {
-      return { localMemory: [] as string[], responseStyle: undefined };
+      return { localMemory: [] as string[], responseStyle: undefined, clientCapabilities };
     }
     const localMemory = assistant.memoryEnabled
       ? assistant.memoryItems.map((item) => item.text).filter(Boolean)
@@ -226,14 +249,31 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         ? { custom: assistant.customResponseStyle.trim() }
         : {}),
     };
-    return { localMemory, responseStyle };
+    return { localMemory, responseStyle, clientCapabilities };
   };
 
   const send = async (text: string, images: UploadedImage[] = []) => {
     if (images.length === 0 && (await executeDesktopAction(text, false))) return;
 
+    let effectiveImages = images;
+    let liveFramesAdded = 0;
+    if (capabilities.data?.vision === true && images.length < 4) {
+      try {
+        const liveFrames = await uploadLiveScreenFrames(4 - images.length);
+        effectiveImages = [...images, ...liveFrames];
+        liveFramesAdded = liveFrames.length;
+      } catch {
+        // A live-screen refresh failure must never block a normal text message.
+      }
+    }
+    const effectiveText =
+      liveFramesAdded > 0
+        ? text +
+          "\n\n[Live-Screen: Die angehängten Bilder sind die letzten Bildschirmzustände; das letzte Bild ist am aktuellsten.]"
+        : text;
+
     const deviceId = getDeviceId();
-    const { localMemory, responseStyle } = requestLocalContext();
+    const { localMemory, responseStyle, clientCapabilities } = requestLocalContext();
     let target = idRef.current;
 
     if (!target) {
@@ -244,9 +284,9 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
       onCreated(chat.id);
     }
 
-    if (images.length === 0) {
+    if (effectiveImages.length === 0) {
       await sendMessage(
-        { text },
+        { text: effectiveText },
         {
           body: {
             chatId: target,
@@ -254,6 +294,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
             assistantName: agentName,
             ...(localMemory.length ? { localMemory } : {}),
             ...(responseStyle ? { responseStyle } : {}),
+            clientCapabilities,
           },
         },
       );
@@ -265,12 +306,12 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
       {
         role: "user",
         parts: [
-          ...images.map((image) => ({
+          ...effectiveImages.map((image) => ({
             type: "file" as const,
             url: image.url,
             mediaType: image.mediaType,
           })),
-          { type: "text" as const, text },
+          { type: "text" as const, text: effectiveText },
         ],
       },
       {
@@ -279,6 +320,8 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
           deviceId,
           assistantName: agentName,
           ...(localMemory.length ? { localMemory } : {}),
+          ...(responseStyle ? { responseStyle } : {}),
+          clientCapabilities,
         },
       },
     );
@@ -333,7 +376,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
 
   const retry = () => {
     const deviceId = getDeviceId();
-    const { localMemory, responseStyle } = requestLocalContext();
+    const { localMemory, responseStyle, clientCapabilities } = requestLocalContext();
     void regenerate({
       body: {
         chatId: idRef.current,
@@ -341,6 +384,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
         assistantName: agentName,
         ...(localMemory.length ? { localMemory } : {}),
         ...(responseStyle ? { responseStyle } : {}),
+        clientCapabilities,
       },
     });
   };
