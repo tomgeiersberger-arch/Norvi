@@ -11,7 +11,7 @@ import {
   shell,
   Tray,
 } from "electron";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -174,6 +174,39 @@ function setVoiceShortcut(rawAccelerator: string | null): boolean {
   } catch {
     return false;
   }
+}
+
+async function runSystemAction(
+  rawActionId: string,
+): Promise<{ ok: true; label: string }> {
+  if (process.platform !== "win32") {
+    throw new Error("Diese System-Aktion ist aktuell für Windows vorgesehen.");
+  }
+
+  const actions = {
+    "volume-up": { code: "0xAF", label: "Lautstärke erhöht" },
+    "volume-down": { code: "0xAE", label: "Lautstärke verringert" },
+    "volume-mute": { code: "0xAD", label: "Stummschaltung umgeschaltet" },
+  } as const;
+  const action = actions[rawActionId as keyof typeof actions];
+  if (!action) throw new Error("Diese System-Aktion ist nicht freigegeben.");
+
+  const script = [
+    "$sig='[DllImport(\"user32.dll\")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);'",
+    "$t=Add-Type -MemberDefinition $sig -Name NorviKeySender -Namespace Norvi -PassThru",
+    "$t::keybd_event(" + action.code + ",0,0,[UIntPtr]::Zero)",
+    "$t::keybd_event(" + action.code + ",0,2,[UIntPtr]::Zero)",
+  ].join(";");
+
+  await new Promise<void>((resolve, reject) => {
+    execFile(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      { windowsHide: true },
+      (error) => (error ? reject(error) : resolve()),
+    );
+  });
+  return { ok: true, label: action.label };
 }
 
 function explorerContextMenuEnabled(): boolean {
