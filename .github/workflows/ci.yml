@@ -64,6 +64,20 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Diagnose new lint files
+        shell: bash
+        run: |
+          for file in \
+            packages/web/src/web/lib/text-attachments.ts \
+            packages/web/src/web/components/desktop-privacy-panel.tsx \
+            packages/web/src/web/components/settings-dialog.tsx \
+            packages/web/src/web/components/chat/composer.tsx \
+            deploy/test-text-attachments.ts \
+            deploy/test-privacy-dashboard.ts; do
+            echo "=== $file ==="
+            bunx oxlint@1.86.0 "$file" || true
+          done
+
       - name: Lint
         run: bun run lint
 
