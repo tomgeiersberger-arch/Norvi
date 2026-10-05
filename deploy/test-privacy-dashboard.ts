@@ -10,11 +10,11 @@ const settings = fs.readFileSync(
   "utf8",
 );
 
-assert.match(panel, /Privacy Dashboard/);
-assert.match(panel, /localOnly/);
-assert.match(panel, /requireAuth/);
-assert.match(panel, /screenCaptureEnabled/);
-assert.match(panel, /memoryItems/);
-assert.match(settings, /DesktopPrivacyPanel/);
+assert.equal(panel.includes("Privacy Dashboard"), true);
+assert.equal(panel.includes("localOnly"), true);
+assert.equal(panel.includes("requireAuth"), true);
+assert.equal(panel.includes("screenCaptureEnabled"), true);
+assert.equal(panel.includes("memoryItems"), true);
+assert.equal(settings.includes("DesktopPrivacyPanel"), true);
 
 console.log("privacy dashboard wiring: OK");
