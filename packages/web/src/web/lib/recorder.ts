@@ -43,7 +43,7 @@ function micErrorMessage(error: unknown): string {
 }
 
 /** Starts a recording; the returned handle stops it and yields the audio blob. */
-export async function startRecording(): Promise<{
+export async function startRecording(deviceId?: string): Promise<{
   stop: () => Promise<Recording>;
   cancel: () => void;
 }> {
@@ -60,7 +60,10 @@ export async function startRecording(): Promise<{
 
   let stream: MediaStream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const selectedDevice = deviceId?.trim();
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: selectedDevice ? { deviceId: { exact: selectedDevice } } : true,
+    });
   } catch (error) {
     throw new Error(micErrorMessage(error));
   }

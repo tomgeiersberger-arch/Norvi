@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Eye, Menu, Mic2, Share2, X } from "lucide-react";
+import { Check, Menu, Mic2, Share2, X } from "lucide-react";
 import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
@@ -201,11 +201,6 @@ function Index() {
             </div>
 
             <div className="ml-auto flex items-center gap-1.5">
-              {capabilities.data?.vision && (
-                <span title="Bilder verfügbar" className="icon-action hidden size-9 items-center justify-center rounded-xl text-muted-foreground sm:flex">
-                  <Eye className="size-4" />
-                </span>
-              )}
               {capabilities.data?.stt && (
                 <span title="Spracheingabe verfügbar" className="icon-action hidden size-9 items-center justify-center rounded-xl text-muted-foreground sm:flex">
                   <Mic2 className="size-4" />
