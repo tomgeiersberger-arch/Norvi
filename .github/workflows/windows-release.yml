@@ -2,6 +2,14 @@ name: Windows installer
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "packages/desktop/**"
+      - "packages/web/**"
+      - "deploy/**"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/windows-release.yml"
   push:
     tags:
       - "v*"
@@ -12,6 +20,7 @@ permissions:
 jobs:
   build-windows-installer:
     runs-on: windows-latest
+    timeout-minutes: 35
     steps:
       - name: Check out NORVI
         uses: actions/checkout@v4
