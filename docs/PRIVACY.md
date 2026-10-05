@@ -96,3 +96,16 @@ Response presets are local presentation preferences such as Short, Coding, Gamin
 The desktop maintenance page can export a user-triggered local diagnostics JSON file. It contains only coarse device/runtime information such as hardware profile, feature availability, active model label and the results of NORVI's local self-test.
 
 The diagnostics export intentionally excludes chat content, Local Memory items, custom program paths, authentication secrets, API keys and environment-variable values. NORVI does not upload the report automatically.
+
+
+## Verified user-triggered updates
+
+NORVI never silently installs updates in the background. When the user explicitly chooses “Update installieren”, the desktop app downloads the published Windows installer and SHA256SUMS.txt from the latest GitHub Release, verifies the installer SHA-256 digest, and only then opens the installer.
+
+## Windows Explorer integration
+
+The optional “Mit NORVI öffnen” Explorer context-menu entry is disabled until the user enables it in System settings. It registers only a current-user Windows registry entry. The context-menu passes one user-selected file to NORVI; the desktop process accepts only supported text/code files up to 1 MB and PNG/JPEG/WebP images up to 8 MB. It does not execute the selected file.
+
+## Skills
+
+The Skills panel is a local permission layer over NORVI's built-in Voice, Screen, Actions, Memory and Quick Access capabilities. It does not install or execute third-party skill code.
