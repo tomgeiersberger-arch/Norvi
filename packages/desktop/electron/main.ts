@@ -47,7 +47,9 @@ import {
 } from "./models";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isDev = !app.isPackaged;\napp.setName("Norvi AI");\nif (process.platform === "win32") app.setAppUserModelId("ai.norvi.desktop");
+const isDev = !app.isPackaged;
+app.setName("Norvi AI");
+if (process.platform === "win32") app.setAppUserModelId("ai.norvi.desktop");
 const WEB_DEV_URL = process.env.WEBSITE_URL ?? "http://localhost:4200";
 const LOCAL_NORVI_URL = "http://localhost:4200";
 const SETUP_PAGE = path.join(__dirname, "../dist/setup/index.html");
