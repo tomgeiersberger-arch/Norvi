@@ -43,7 +43,10 @@ export function formatTextAttachments(
       break;
     }
     const name = file.name.replace(/[\r\n\t]/g, " ").trim().slice(0, 160) || "Datei";
-    const normalized = file.text.replace(/\r\n?/g, "\n").replace(/\u0000/g, "");
+    const normalized = file.text
+      .replace(/\r\n?/g, "\n")
+      .split(String.fromCharCode(0))
+      .join("");
     const limit = Math.min(maxFileChars, remaining);
     const excerpt = normalized.slice(0, limit);
     if (excerpt.length < normalized.length) truncated = true;
