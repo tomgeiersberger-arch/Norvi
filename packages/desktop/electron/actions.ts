@@ -3,7 +3,14 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-export type BuiltinDesktopActionId = "spotify" | "cs2";
+export type BuiltinDesktopActionId =
+  | "spotify"
+  | "cs2"
+  | "steam"
+  | "discord"
+  | "downloads"
+  | "explorer"
+  | "browser";
 
 export interface DesktopActionDescriptor {
   id: string;
@@ -11,11 +18,19 @@ export interface DesktopActionDescriptor {
   builtin: boolean;
 }
 
-interface BuiltinDesktopAction {
-  id: BuiltinDesktopActionId;
-  label: string;
-  uri: string;
-}
+type BuiltinDesktopAction =
+  | {
+      id: BuiltinDesktopActionId;
+      label: string;
+      kind: "uri";
+      target: string;
+    }
+  | {
+      id: BuiltinDesktopActionId;
+      label: string;
+      kind: "folder";
+      target: "downloads" | "home";
+    };
 
 interface StoredDesktopAction {
   id: string;
@@ -27,12 +42,44 @@ const ACTIONS: Record<BuiltinDesktopActionId, BuiltinDesktopAction> = {
   spotify: {
     id: "spotify",
     label: "Spotify",
-    uri: "spotify:",
+    kind: "uri",
+    target: "spotify:",
   },
   cs2: {
     id: "cs2",
     label: "Counter-Strike 2",
-    uri: "steam://rungameid/730",
+    kind: "uri",
+    target: "steam://rungameid/730",
+  },
+  steam: {
+    id: "steam",
+    label: "Steam",
+    kind: "uri",
+    target: "steam://open/main",
+  },
+  discord: {
+    id: "discord",
+    label: "Discord",
+    kind: "uri",
+    target: "discord://",
+  },
+  downloads: {
+    id: "downloads",
+    label: "Downloads",
+    kind: "folder",
+    target: "downloads",
+  },
+  explorer: {
+    id: "explorer",
+    label: "Explorer",
+    kind: "folder",
+    target: "home",
+  },
+  browser: {
+    id: "browser",
+    label: "Browser",
+    kind: "uri",
+    target: "https://www.google.com/",
   },
 };
 
@@ -181,7 +228,12 @@ export async function launchDesktopAction(rawId: string): Promise<{
 
   if (isBuiltinDesktopActionId(id)) {
     const action = ACTIONS[id];
-    await shell.openExternal(action.uri, { activate: true });
+    if (action.kind === "folder") {
+      const error = await shell.openPath(app.getPath(action.target));
+      if (error) throw new Error(error);
+    } else {
+      await shell.openExternal(action.target, { activate: true });
+    }
     return { ok: true, id: action.id, label: action.label };
   }
 

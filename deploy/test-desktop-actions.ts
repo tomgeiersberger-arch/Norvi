@@ -7,10 +7,12 @@ import {
 
 const defaults: DesktopAssistantSettings = {
   ...DEFAULT_ASSISTANT_SETTINGS,
-  desktopActionAliases: {
-    spotify: [...DEFAULT_ASSISTANT_SETTINGS.desktopActionAliases.spotify],
-    cs2: [...DEFAULT_ASSISTANT_SETTINGS.desktopActionAliases.cs2],
-  },
+  desktopActionAliases: Object.fromEntries(
+    Object.entries(DEFAULT_ASSISTANT_SETTINGS.desktopActionAliases).map(([id, aliases]) => [
+      id,
+      [...aliases],
+    ]),
+  ) as DesktopAssistantSettings["desktopActionAliases"],
   customDesktopActions: [],
   websiteActions: [],
 };
@@ -21,10 +23,26 @@ assert.deepEqual(matchDesktopAction("Starte cs2", defaults), {
   label: "Counter-Strike 2",
 });
 assert.equal(matchDesktopAction("Was ist cs2?", defaults), null);
+assert.deepEqual(matchDesktopAction("Starte steam", defaults), {
+  kind: "desktop",
+  id: "steam",
+  label: "Steam",
+});
+assert.deepEqual(matchDesktopAction("Öffne downloads", defaults), {
+  kind: "desktop",
+  id: "downloads",
+  label: "Downloads",
+});
+assert.deepEqual(matchDesktopAction("Starte dc", defaults), {
+  kind: "desktop",
+  id: "discord",
+  label: "Discord",
+});
 
 const custom: DesktopAssistantSettings = {
   ...defaults,
   desktopActionAliases: {
+    ...defaults.desktopActionAliases,
     spotify: ["musik"],
     cs2: ["shooter"],
   },

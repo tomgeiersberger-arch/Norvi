@@ -21,7 +21,14 @@ export interface ElectronAPI {
   onDeepLink: (cb: (url: string) => void) => () => void;
 }
 
-export type DesktopActionId = "spotify" | "cs2";
+export type DesktopActionId =
+  | "spotify"
+  | "cs2"
+  | "steam"
+  | "discord"
+  | "downloads"
+  | "explorer"
+  | "browser";
 
 export interface DesktopActionDescriptor {
   id: string;

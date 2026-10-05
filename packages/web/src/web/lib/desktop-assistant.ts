@@ -1,4 +1,11 @@
-export type DesktopActionId = "spotify" | "cs2";
+export type DesktopActionId =
+  | "spotify"
+  | "cs2"
+  | "steam"
+  | "discord"
+  | "downloads"
+  | "explorer"
+  | "browser";
 
 export interface WebsiteAction {
   id: string;
@@ -62,8 +69,13 @@ export const VOICE_COMMAND_EVENT = "norvi:voice-command";
 export const VOICE_TURN_COMPLETE_EVENT = "norvi:voice-turn-complete";
 
 export const DEFAULT_DESKTOP_ACTION_ALIASES: Record<DesktopActionId, string[]> = {
-  spotify: ["spotify"],
+  spotify: ["spotify", "musik"],
   cs2: ["cs2", "counter strike 2", "counterstrike 2"],
+  steam: ["steam"],
+  discord: ["discord", "dc"],
+  downloads: ["downloads", "download ordner"],
+  explorer: ["explorer", "datei explorer", "dateien"],
+  browser: ["browser", "internet"],
 };
 
 export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
@@ -234,6 +246,11 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     desktopActionAliases: {
       spotify: cleanAliases(rawAliases?.spotify, DEFAULT_DESKTOP_ACTION_ALIASES.spotify),
       cs2: cleanAliases(rawAliases?.cs2, DEFAULT_DESKTOP_ACTION_ALIASES.cs2),
+      steam: cleanAliases(rawAliases?.steam, DEFAULT_DESKTOP_ACTION_ALIASES.steam),
+      discord: cleanAliases(rawAliases?.discord, DEFAULT_DESKTOP_ACTION_ALIASES.discord),
+      downloads: cleanAliases(rawAliases?.downloads, DEFAULT_DESKTOP_ACTION_ALIASES.downloads),
+      explorer: cleanAliases(rawAliases?.explorer, DEFAULT_DESKTOP_ACTION_ALIASES.explorer),
+      browser: cleanAliases(rawAliases?.browser, DEFAULT_DESKTOP_ACTION_ALIASES.browser),
     },
     customDesktopActions,
     websiteActions,
@@ -317,6 +334,11 @@ export function dispatchVoiceTurnComplete(): void {
 const DESKTOP_LABELS: Record<DesktopActionId, string> = {
   spotify: "Spotify",
   cs2: "Counter-Strike 2",
+  steam: "Steam",
+  discord: "Discord",
+  downloads: "Downloads",
+  explorer: "Explorer",
+  browser: "Browser",
 };
 
 /**
@@ -340,7 +362,7 @@ export function matchDesktopAction(
 
   const candidates: { alias: string; action: MatchedDesktopAction }[] = [];
 
-  for (const id of ["spotify", "cs2"] as const) {
+  for (const id of Object.keys(DESKTOP_LABELS) as DesktopActionId[]) {
     for (const alias of settings.desktopActionAliases[id] ?? DEFAULT_DESKTOP_ACTION_ALIASES[id]) {
       const key = normalise(alias);
       if (key && containsAlias(clean, key)) {
