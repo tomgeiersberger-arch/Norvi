@@ -88,8 +88,8 @@ jobs:
           $install = Start-Process -FilePath $installer.FullName -ArgumentList "/S" -PassThru -Wait
           if ($install.ExitCode -ne 0) { throw "Stille Installation fehlgeschlagen: Exit $($install.ExitCode)" }
 
-          $exe = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs") -Filter "NORVI.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) { throw "NORVI.exe wurde nach der stillen Installation nicht gefunden." }
+          $exe = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs") -Filter "Norvi AI.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "Norvi AI.exe wurde nach der stillen Installation nicht gefunden." }
 
           $app = Start-Process -FilePath $exe.FullName -ArgumentList "--disable-gpu" -PassThru
 
@@ -110,8 +110,8 @@ jobs:
           if ($title -eq "@template/desktop") {
             throw "NORVI blieb im Template-/Black-Screen-Zustand."
           }
-          if ($title -ne "NORVI Setup") {
-            throw "Unerwarteter NORVI Fenstertitel: '$title' statt 'NORVI Setup'."
+          if ($title -ne "Norvi AI Setup") {
+            throw "Unerwarteter NORVI Fenstertitel: '$title' statt 'Norvi AI Setup'."
           }
 
           Write-Host "Visible UI smoke OK: $title"
