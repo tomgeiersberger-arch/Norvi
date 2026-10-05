@@ -18,10 +18,15 @@ assert.match(workflow, /\/S/);
 assert.match(workflow, /NORVI\.exe/);
 assert.match(workflow, /--disable-gpu/);
 assert.match(workflow, /--notes-file docs\/RELEASE_NOTES_0\.1\.0\.md/);
+assert.match(workflow, /branches:\s*\n\s*- main/);
+assert.match(workflow, /docs\/RELEASE_0\.1\.0_READY/);
+assert.match(workflow, /--target "\$env:GITHUB_SHA"/);
+assert.match(workflow, /github\.event_name == 'push'/);
+assert.equal(existsSync("docs/RELEASE_0.1.0_READY"), true, "v0.1.0 release marker is missing");
 
 assert.equal(existsSync(releaseNotesPath), true, "v0.1.0 release notes are missing");
 assert.match(releaseNotes, /first setup requires an Internet connection/i);
 assert.match(releaseNotes, /model downloads/i);
 assert.match(releaseNotes, /offline/i);
 
-console.log("installer recommendation, install smoke and release notes wiring: OK");
+console.log("installer recommendation, install smoke, release trigger and release notes wiring: OK");
