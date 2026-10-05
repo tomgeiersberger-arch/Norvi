@@ -1,0 +1,61 @@
+name: Release NORVI v0.1.1
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/RELEASE_0.1.1_READY"
+      - ".github/workflows/release-v0.1.1.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tested-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merged NORVI
+        uses: actions/checkout@v4
+
+      - name: Verify release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/desktop/package.json').version")"
+          test "$version" = "0.1.1"
+
+      - name: Download already-tested Windows artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifact
+          gh run download 37343697601 -n NORVI-Windows-Setup -D release-artifact
+
+      - name: Verify exact installer checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-artifact
+          test -f NORVI-Setup-0.1.1.exe
+          test -f SHA256SUMS.txt
+          expected="d1092a3900fb97f2f77ca136c3aa2f27d90ca6cbd930da4b3d26b8487e6cdef2"
+          manifest="$(awk '$2 == "NORVI-Setup-0.1.1.exe" { print $1 }' SHA256SUMS.txt)"
+          actual="$(sha256sum NORVI-Setup-0.1.1.exe | awk '{ print $1 }')"
+          test "$manifest" = "$expected"
+          test "$actual" = "$expected"
+
+      - name: Publish NORVI v0.1.1
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v0.1.1"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --title "NORVI $tag" --notes-file docs/RELEASE_NOTES_0.1.1.md
+          fi
+          gh release upload "$tag" release-artifact/NORVI-Setup-0.1.1.exe --clobber
+          gh release upload "$tag" release-artifact/SHA256SUMS.txt --clobber
