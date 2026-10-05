@@ -6,10 +6,12 @@ import {
   Loader2,
   Mic,
   MonitorUp,
+  Settings2,
   Sparkles,
   Square,
   TriangleAlert,
   X,
+  Zap,
 } from "lucide-react";
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -26,6 +28,8 @@ import {
 import { getNorviDesktopAPI, isDesktop, type DesktopExternalFile } from "../../lib/desktop";
 import {
   getAssistantSettings,
+  OPEN_SETTINGS_EVENT,
+  saveAssistantSettings,
   subscribeAssistantSettings,
 } from "../../lib/desktop-assistant";
 
@@ -460,6 +464,34 @@ export function Composer({
           >
             <TriangleAlert className="size-3.5" />
             Fehler prüfen
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const next = saveAssistantSettings({
+                ...assistantSettings,
+                responsePreset:
+                  assistantSettings.responsePreset === "short" ? "normal" : "short",
+              });
+              setAssistantSettings(next);
+            }}
+            className={
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] transition " +
+              (assistantSettings.responsePreset === "short"
+                ? "border-primary/35 bg-primary/[0.10] text-primary"
+                : "icon-action border-transparent text-muted-foreground")
+            }
+          >
+            <Zap className="size-3.5" />
+            Kurzmodus
+          </button>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_SETTINGS_EVENT))}
+            className="icon-action flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground"
+          >
+            <Settings2 className="size-3.5" />
+            Einstellungen
           </button>
         </div>
       )}
