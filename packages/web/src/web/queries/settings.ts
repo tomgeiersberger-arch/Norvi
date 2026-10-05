@@ -1,9 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "../lib/api";
+import { getDeviceId } from "../lib/device";
 
-/** Personal NORVI AI settings (model + answer style). */
+/** Personal NORVI AI settings (account-scoped or local-device-scoped). */
 export function useSettings(enabled: boolean) {
-  return useQuery(orpc.settings.get.queryOptions({ enabled, retry: false }));
+  return useQuery(
+    orpc.settings.get.queryOptions({
+      input: { deviceId: getDeviceId() },
+      enabled,
+      retry: false,
+    }),
+  );
 }
 
 export function useUpdateSettings() {
