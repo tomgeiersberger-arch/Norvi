@@ -67,6 +67,7 @@ const STORAGE_KEY = "norvi.desktop-assistant.v1";
 export const ASSISTANT_SETTINGS_EVENT = "norvi:assistant-settings";
 export const VOICE_COMMAND_EVENT = "norvi:voice-command";
 export const VOICE_TURN_COMPLETE_EVENT = "norvi:voice-turn-complete";
+export const OPEN_SETTINGS_EVENT = "norvi:open-settings";
 
 export const DEFAULT_DESKTOP_ACTION_ALIASES: Record<DesktopActionId, string[]> = {
   spotify: ["spotify", "musik"],

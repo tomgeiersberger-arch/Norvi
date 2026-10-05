@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Bug,
   CheckCircle2,
   Download,
+  FileDown,
   FileUp,
   RefreshCw,
   RotateCcw,
@@ -22,6 +24,11 @@ import {
   type DesktopAssistantSettings,
 } from "../lib/desktop-assistant";
 import { getDeviceId } from "../lib/device";
+import {
+  clearLocalErrorLog,
+  exportLocalErrorLog,
+  getLocalErrorLog,
+} from "../lib/local-error-log";
 import { useCapabilities } from "../queries/capabilities";
 import { useModel } from "../queries/model";
 import { useSettings, useUpdateSettings } from "../queries/settings";
@@ -49,6 +56,7 @@ export function DesktopMaintenancePanel() {
   const [busyRecovery, setBusyRecovery] = useState(false);
   const [checks, setChecks] = useState<RuntimeCheck[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [errorCount, setErrorCount] = useState(() => getLocalErrorLog().length);
 
   useEffect(() => {
     const api = getNorviDesktopAPI();
@@ -255,6 +263,37 @@ export function DesktopMaintenancePanel() {
           className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px]"
         >
           <RotateCcw className="size-4" /> Einrichtung erneut öffnen
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            exportLocalErrorLog({
+              hardware,
+              capabilities: {
+                localOnly: capabilities.data?.localOnly ?? null,
+                aiOnline: capabilities.data?.aiOnline ?? null,
+                vision: capabilities.data?.vision ?? null,
+                stt: capabilities.data?.stt ?? null,
+              },
+              model: model.data ?? null,
+            });
+            setNotice("Lokalen Fehlerbericht exportiert.");
+          }}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px]"
+        >
+          <FileDown className="size-4" /> Fehlerbericht ({errorCount})
+        </button>
+        <button
+          type="button"
+          disabled={errorCount === 0}
+          onClick={() => {
+            clearLocalErrorLog();
+            setErrorCount(0);
+            setNotice("Lokales Fehlerlog geleert.");
+          }}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] disabled:opacity-40"
+        >
+          <Bug className="size-4" /> Fehlerlog leeren
         </button>
       </div>
 

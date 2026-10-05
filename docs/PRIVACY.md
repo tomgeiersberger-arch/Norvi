@@ -89,3 +89,8 @@ The recovery self-test checks local runtime files, Bun, Ollama, the NORVI server
 ## Response presets
 
 Response presets are local presentation preferences such as Short, Coding, Gaming or Explain. The optional custom style text is stored with the other local desktop settings and is only attached to requests in `LOCAL_ONLY_MODE`. The server treats it as a style preference only; it cannot override safety, factuality or system instructions.
+
+
+## Local error log
+
+The desktop UI keeps up to 50 recent renderer errors locally in browser storage so the user can export a diagnostic JSON file when troubleshooting. The log is never uploaded automatically. It can be cleared from Settings > System at any time.

@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ImagePlus, Loader2, Mic, MonitorUp, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  ImagePlus,
+  Loader2,
+  Mic,
+  MonitorUp,
+  Settings2,
+  Square,
+  WandSparkles,
+  X,
+  Zap,
+} from "lucide-react";
 import {
   ACCEPTED_IMAGE_TYPES,
   transcribeAudio,
@@ -10,6 +21,8 @@ import { startRecording } from "../../lib/recorder";
 import { getNorviDesktopAPI, isDesktop } from "../../lib/desktop";
 import {
   getAssistantSettings,
+  OPEN_SETTINGS_EVENT,
+  saveAssistantSettings,
   subscribeAssistantSettings,
 } from "../../lib/desktop-assistant";
 
@@ -206,7 +219,7 @@ export function Composer({
     void toggleRecording();
   };
 
-  const captureScreen = async () => {
+  const captureScreen = async (prompt?: string) => {
     if (!vision || !assistantSettings.screenCaptureEnabled) return;
     const api = getNorviDesktopAPI();
     if (!api) return;
@@ -218,7 +231,8 @@ export function Composer({
       const blob = await response.blob();
       const file = new File([blob], screenshot.name, { type: "image/png" });
       await addFiles([file]);
-      setNotice("Screenshot angehängt. Schreib jetzt, was NORVI darauf prüfen soll.");
+      if (prompt) setValue(prompt);
+      setNotice("Screenshot angehängt. Du kannst die Frage noch ändern oder direkt senden.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Screenshot konnte nicht erstellt werden.");
     }
@@ -262,6 +276,57 @@ export function Composer({
         void addFiles(Array.from(event.dataTransfer.files));
       }}
     >
+      {isDesktop() && (
+        <div className="flex flex-wrap items-center gap-1.5 px-1 pb-2">
+          <span className="mr-0.5 text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground/55">
+            Quick
+          </span>
+          {vision && assistantSettings.screenCaptureEnabled && (
+            <button
+              type="button"
+              disabled={busy || uploading}
+              onClick={() =>
+                void captureScreen(
+                  "Erkläre mir kurz, was auf meinem Bildschirm zu sehen ist und was wichtig ist.",
+                )
+              }
+              className="icon-action flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[9.5px] text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+            >
+              <WandSparkles className="size-3.5" />
+              Screen erklären
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              const next = saveAssistantSettings({
+                ...assistantSettings,
+                responsePreset:
+                  assistantSettings.responsePreset === "short" ? "normal" : "short",
+              });
+              setAssistantSettings(next);
+            }}
+            className={
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[9.5px] transition " +
+              (assistantSettings.responsePreset === "short"
+                ? "border-primary/35 bg-primary/[0.10] text-primary"
+                : "icon-action border-transparent text-muted-foreground hover:text-foreground")
+            }
+          >
+            <Zap className="size-3.5" />
+            Kurzmodus
+          </button>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_SETTINGS_EVENT))}
+            className="icon-action flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[9.5px] text-muted-foreground transition hover:text-foreground"
+          >
+            <Settings2 className="size-3.5" />
+            Einstellungen
+          </button>
+        </div>
+      )}
+
       {dragging && (
         <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.25rem] border border-dashed border-primary/50 bg-background/92 text-sm font-medium text-primary backdrop-blur-xl">
           <ImagePlus className="mr-2 size-4.5" />
