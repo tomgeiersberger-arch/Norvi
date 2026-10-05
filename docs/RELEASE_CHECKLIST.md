@@ -10,6 +10,13 @@ Use this before creating a public Windows release tag.
 - [ ] `bun run build`
 - [ ] Git working tree is clean
 
+## Windows packaging smoke
+
+- [ ] Windows smoke workflow builds `NORVI-Setup-x.y.z.exe`
+- [ ] Installer filename matches the desktop package version
+- [ ] Installer is larger than 5 MB
+- [ ] `SHA256SUMS.txt` is generated next to the smoke artifact
+
 ## Clean Windows machine test
 
 - [ ] Download and run `NORVI-Setup-x.y.z.exe`

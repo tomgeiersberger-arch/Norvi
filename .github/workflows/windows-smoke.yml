@@ -1,0 +1,70 @@
+name: Windows installer smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "packages/desktop/**"
+      - "packages/web/**"
+      - "deploy/**"
+      - ".github/workflows/windows-smoke.yml"
+      - ".github/workflows/windows-release.yml"
+      - "package.json"
+      - "bun.lock"
+
+permissions:
+  contents: read
+
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Public release safety
+        shell: bash
+        run: bash deploy/public-release-check.sh
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Build Windows installer
+        run: bun run dist:windows
+
+      - name: Verify Setup.exe
+        shell: pwsh
+        run: |
+          $version = (Get-Content "packages/desktop/package.json" | ConvertFrom-Json).version
+          $expected = "NORVI-Setup-$version.exe"
+          $installer = Get-ChildItem -Path "packages/desktop/release" -Filter "NORVI-Setup-*.exe" -Recurse | Select-Object -First 1
+          if (-not $installer) { throw "NORVI Setup.exe wurde nicht erzeugt." }
+          if ($installer.Name -ne $expected) {
+            throw "Unerwarteter Installer-Name: $($installer.Name), erwartet: $expected"
+          }
+          if ($installer.Length -lt 5MB) {
+            throw "NORVI Setup.exe ist unerwartet klein: $($installer.Length) Bytes."
+          }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($installer.Name)" | Set-Content -Path "packages/desktop/release/SHA256SUMS.txt" -Encoding ascii
+          Write-Host "Installer smoke OK: $($installer.Name) ($([math]::Round($installer.Length / 1MB, 1)) MB)"
+          Write-Host "SHA256: $hash"
+
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NORVI-Windows-Smoke
+          path: |
+            packages/desktop/release/NORVI-Setup-*.exe
+            packages/desktop/release/SHA256SUMS.txt
+          retention-days: 3
+          if-no-files-found: error
