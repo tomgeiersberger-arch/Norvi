@@ -6,7 +6,7 @@ import ports from "../../__ports.cjs";
 export default defineConfig({
   build: {
     rollupOptions: {
-      input: path.join(__dirname, "setup/index.html"),
+      input: path.join(import.meta.dirname, "setup/index.html"),
     },
   },
   plugins: [
@@ -15,7 +15,7 @@ export default defineConfig({
         entry: "electron/main.ts",
       },
       preload: {
-        input: path.join(__dirname, "electron/preload.ts"),
+        input: path.join(import.meta.dirname, "electron/preload.ts"),
       },
     }),
   ],
