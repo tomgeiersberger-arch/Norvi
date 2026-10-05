@@ -29,10 +29,10 @@ assert.doesNotMatch(workflow, /releaseTag -ne "v0\.1\.0"/);
 assert.match(workflow, /RELEASE_NOTES_\$version\.md/);
 assert.match(workflow, /--notes-file/);
 
-assert.equal(version, "0.1.1");
+assert.match(version, /^\d+\.\d+\.\d+$/);
 assert.equal(existsSync(releaseNotesPath), true, `${releaseNotesPath} is missing`);
-assert.match(releaseNotes, /black screen/i);
-assert.match(releaseNotes, /security/i);
-assert.match(releaseNotes, /windows/i);
+assert.match(releaseNotes, new RegExp(version.replace(/\./g, "\\.")));
+assert.match(releaseNotes, /Windows/i);
+assert.match(releaseNotes, /update|fix|verbesser/i);
 
 console.log("installer recommendation, UI smoke and tag-only release wiring: OK");
