@@ -465,6 +465,7 @@ export function Composer({
         </button>
 
         {vision && (
+          <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
