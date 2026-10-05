@@ -64,8 +64,8 @@ function Index() {
       if (typeof navigator.share === "function") {
         try {
           await navigator.share({
-            title: "NORVI",
-            text: "NORVI öffnen",
+            title: "Norvi AI",
+            text: "Norvi AI öffnen",
             url: publicUrl,
           });
           setShareState("shared");
