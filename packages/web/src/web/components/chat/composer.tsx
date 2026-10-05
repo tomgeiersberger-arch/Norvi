@@ -622,30 +622,6 @@ export function Composer({
           </button>
         )}
 
-        {stt && micAllowed && (
-          <button
-            type="button"
-            onClick={() => void toggleRecording()}
-            disabled={micDisabled}
-            aria-label={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
-            title={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
-            className={`mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] border px-0 transition duration-200 disabled:opacity-40 sm:px-3 ${
-              recording
-                ? "border-primary/35 bg-primary/15 text-primary"
-                : "icon-action text-muted-foreground "
-            }`}
-          >
-            {transcribing ? (
-              <Loader2 className="size-4.5 animate-spin" />
-            ) : (
-              <Mic className="size-4.5 shrink-0" />
-            )}
-            <span className="hidden text-[11px] font-medium sm:inline">
-              {recording ? "Stopp" : transcribing ? "Text…" : "Sprache"}
-            </span>
-          </button>
-        )}
-
         <textarea
           ref={ref}
           rows={1}
@@ -670,6 +646,30 @@ export function Composer({
           aria-label={`Nachricht an ${agentName}`}
           className="composer-scrollbar min-h-10 max-h-52 flex-1 resize-none overflow-y-auto bg-transparent px-3.5 py-2.5 text-[0.98rem] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/42"
         />
+
+        {stt && micAllowed && (
+          <button
+            type="button"
+            onClick={() => void toggleRecording()}
+            disabled={micDisabled}
+            aria-label={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
+            title={recording ? "Aufnahme beenden" : "Spracheingabe starten"}
+            className={`mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] border px-0 transition duration-200 disabled:opacity-40 sm:px-3 ${
+              recording
+                ? "border-primary/35 bg-primary/15 text-primary"
+                : "icon-action text-muted-foreground "
+            }`}
+          >
+            {transcribing ? (
+              <Loader2 className="size-4.5 animate-spin" />
+            ) : (
+              <Mic className="size-4.5 shrink-0" />
+            )}
+            <span className="hidden text-[11px] font-medium sm:inline">
+              {recording ? "Stopp" : transcribing ? "Text…" : "Sprache"}
+            </span>
+          </button>
+        )}
 
         {busy ? (
           <button
