@@ -66,6 +66,7 @@ export function DesktopMaintenancePanel() {
   const [hardware, setHardware] = useState<DesktopHardwareProfile | null>(null);
   const [updateInfo, setUpdateInfo] = useState<DesktopUpdateInfo | null>(null);
   const [busyUpdate, setBusyUpdate] = useState(false);
+  const [explorerContextEnabled, setExplorerContextEnabled] = useState(false);
   const [busyRecovery, setBusyRecovery] = useState(false);
   const [checks, setChecks] = useState<RuntimeCheck[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -74,6 +75,10 @@ export function DesktopMaintenancePanel() {
     const api = getNorviDesktopAPI();
     if (!api) return;
     void api.detectHardware().then(setHardware).catch(() => setHardware(null));
+    void api
+      .getExplorerContextMenu()
+      .then(setExplorerContextEnabled)
+      .catch(() => setExplorerContextEnabled(false));
   }, []);
 
   const exportDiagnostics = async () => {
@@ -192,6 +197,46 @@ export function DesktopMaintenancePanel() {
       setNotice(error instanceof Error ? error.message : "Update-Check fehlgeschlagen.");
     } finally {
       setBusyUpdate(false);
+    }
+  };
+
+  const installUpdate = async () => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    setBusyUpdate(true);
+    setNotice(null);
+    try {
+      const result = await api.installUpdate();
+      setNotice(
+        "NORVI " +
+          result.version +
+          " wurde per SHA-256 geprüft. Der Windows-Installer wurde gestartet.",
+      );
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Update konnte nicht gestartet werden.");
+    } finally {
+      setBusyUpdate(false);
+    }
+  };
+
+  const toggleExplorerContext = async () => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    setNotice(null);
+    try {
+      const enabled = await api.setExplorerContextMenu(!explorerContextEnabled);
+      setExplorerContextEnabled(enabled);
+      setNotice(
+        enabled
+          ? "Windows-Rechtsklick „Mit NORVI öffnen“ ist aktiv."
+          : "Windows-Rechtsklick wurde deaktiviert.",
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Rechtsklick-Integration konnte nicht geändert werden.",
+      );
     }
   };
 
@@ -323,6 +368,14 @@ export function DesktopMaintenancePanel() {
         </button>
         <button
           type="button"
+          onClick={() => void toggleExplorerContext()}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px]"
+        >
+          <FileUp className="size-4" />
+          {explorerContextEnabled ? "Rechtsklick deaktivieren" : "Rechtsklick aktivieren"}
+        </button>
+        <button
+          type="button"
           onClick={rerunOnboarding}
           className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px]"
         >
@@ -354,14 +407,26 @@ export function DesktopMaintenancePanel() {
           {updateInfo.available
             ? "Update verfügbar: " + updateInfo.currentVersion + " → " + updateInfo.latestVersion
             : "NORVI ist aktuell (" + updateInfo.currentVersion + ")."}
-          {updateInfo.available && updateInfo.releaseUrl && (
-            <button
-              type="button"
-              onClick={() => void getNorviDesktopAPI()?.openWebsite(updateInfo.releaseUrl!)}
-              className="ml-2 text-primary hover:underline"
-            >
-              Release öffnen
-            </button>
+          {updateInfo.available && (
+            <>
+              <button
+                type="button"
+                disabled={busyUpdate}
+                onClick={() => void installUpdate()}
+                className="ml-2 font-medium text-primary hover:underline disabled:opacity-50"
+              >
+                Update installieren
+              </button>
+              {updateInfo.releaseUrl && (
+                <button
+                  type="button"
+                  onClick={() => void getNorviDesktopAPI()?.openWebsite(updateInfo.releaseUrl!)}
+                  className="ml-2 text-primary hover:underline"
+                >
+                  Details
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

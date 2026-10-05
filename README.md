@@ -20,8 +20,9 @@ The default public setup is designed to keep ordinary AI requests, chat history,
 - Conversation Mode and opt-in Screen Mode for local desktop assistance.
 - Safe desktop actions with editable call-words, named website actions and user-selected local programs — without a generic shell runner.
 - Local Memory, response presets, Gaming Mode and a local Model Manager.
-- Diagnostics/recovery, settings backup, manual update checks and a local diagnostics report.
-- Privacy Dashboard plus local text/code file drag-and-drop and Screen quick actions.
+- Diagnostics/recovery, settings backup, SHA-256-verified user-triggered updates and a local diagnostics report.
+- Privacy Dashboard, built-in Skills controls, local text/code drag-and-drop and Screen quick actions.
+- Optional Windows Explorer “Mit NORVI öffnen” integration for supported files.
 - Local SQLite chat history and local image storage.
 - Local-only guard that rejects cloud AI/STT/database endpoints when enabled.
 - Telemetry disabled by default.

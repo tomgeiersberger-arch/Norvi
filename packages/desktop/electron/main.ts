@@ -8,8 +8,12 @@ import {
   nativeImage,
   net,
   screen,
+  shell,
   Tray,
 } from "electron";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createManagedDeepLinks } from "@runablehq/managed-auth/desktop/main";
@@ -46,6 +50,20 @@ const WEB_DEV_URL = process.env.WEBSITE_URL ?? "http://localhost:4200";
 const LOCAL_NORVI_URL = "http://localhost:4200";
 const SETUP_PAGE = path.join(__dirname, "../dist/setup/index.html");
 const BACKGROUND_ARG = "--background";
+const EXTERNAL_FILE_ARG = "--norvi-file";
+const EXPLORER_CONTEXT_KEY = "HKCU\\Software\\Classes\\*\\shell\\NORVI";
+const TEXT_EXTERNAL_EXTENSIONS = new Set([
+  ".txt", ".md", ".markdown", ".json", ".csv", ".log", ".xml", ".yaml", ".yml",
+  ".toml", ".ini", ".env", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".py",
+  ".java", ".c", ".h", ".cpp", ".hpp", ".cs", ".go", ".rs", ".rb", ".php",
+  ".html", ".htm", ".css", ".scss", ".sql", ".sh", ".ps1",
+]);
+const IMAGE_EXTERNAL_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+};
 const TRAY_ICON_DATA =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA50lEQVR4nM2XMRaDIAyGA8857t6lq5fo1JM5eQlX7+LeE9iJ1z4FhPAnNmuE/zME+HHMvNON0eWS7+cDItLPazLnYhVACZeAeCvx1Nz+6gNtCJ9KWEGclsA6PJHt34cImsUVGKZFBSR7DhxFh2mh7TVeTnoclxtT3QPoSoiaEAkh3gUoiKZtiICoAog1UytEdQXQEKIlQEKIewAF0dSECIjmy6jkZFQFaIWAXcdSCKgfkEDADUkthGPmXcOQlFzd/bx+bbm1KwoW/T88IVH+9YKOXy2fSliInwC0IWJzR9+GIW57nFrGB5R9U7oSkIjNAAAAAElFTkSuQmCC";
 
@@ -55,6 +73,10 @@ let installPromise: Promise<void> | null = null;
 let backgroundMode = false;
 let quickShortcutEnabled = false;
 let voiceShortcutRegistered: string | null = null;
+let pendingExternalFile:
+  | { kind: "text"; name: string; text: string }
+  | { kind: "image"; name: string; mediaType: string; dataUrl: string }
+  | null = null;
 let quitting = false;
 const backgroundLaunch = process.argv.includes(BACKGROUND_ARG);
 const getWindow = () => win;
@@ -154,6 +176,120 @@ function setVoiceShortcut(rawAccelerator: string | null): boolean {
   }
 }
 
+function explorerContextMenuEnabled(): boolean {
+  if (process.platform !== "win32") return false;
+  try {
+    execFileSync("reg.exe", ["query", EXPLORER_CONTEXT_KEY], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function setExplorerContextMenu(enabled: boolean): boolean {
+  if (process.platform !== "win32") return false;
+
+  if (!enabled) {
+    try {
+      execFileSync("reg.exe", ["delete", EXPLORER_CONTEXT_KEY, "/f"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+    } catch {
+      // Already absent.
+    }
+    return false;
+  }
+
+  const commandKey = EXPLORER_CONTEXT_KEY + "\\command";
+  const command = '"' + process.execPath + '" ' + EXTERNAL_FILE_ARG + ' "%1"';
+
+  execFileSync(
+    "reg.exe",
+    ["add", EXPLORER_CONTEXT_KEY, "/ve", "/d", "Mit NORVI öffnen", "/f"],
+    { stdio: "ignore", windowsHide: true },
+  );
+  execFileSync(
+    "reg.exe",
+    ["add", EXPLORER_CONTEXT_KEY, "/v", "Icon", "/d", process.execPath, "/f"],
+    { stdio: "ignore", windowsHide: true },
+  );
+  execFileSync(
+    "reg.exe",
+    ["add", commandKey, "/ve", "/d", command, "/f"],
+    { stdio: "ignore", windowsHide: true },
+  );
+  return explorerContextMenuEnabled();
+}
+
+async function readExternalFile(filePath: string) {
+  if (!path.isAbsolute(filePath)) return null;
+  const stat = await fs.stat(filePath).catch(() => null);
+  if (!stat?.isFile()) return null;
+
+  const extension = path.extname(filePath).toLowerCase();
+  const name = path.basename(filePath).replace(/[\r\n\t]/g, " ").slice(0, 160);
+  const mediaType = IMAGE_EXTERNAL_TYPES[extension];
+
+  if (mediaType) {
+    if (stat.size > 8 * 1024 * 1024) throw new Error("Das Bild ist größer als 8 MB.");
+    const data = await fs.readFile(filePath);
+    return {
+      kind: "image" as const,
+      name,
+      mediaType,
+      dataUrl: "data:" + mediaType + ";base64," + data.toString("base64"),
+    };
+  }
+
+  if (!TEXT_EXTERNAL_EXTENSIONS.has(extension)) {
+    throw new Error("Dieser Dateityp wird vom NORVI-Rechtsklick noch nicht unterstützt.");
+  }
+  if (stat.size > 1024 * 1024) throw new Error("Die Textdatei ist größer als 1 MB.");
+
+  return {
+    kind: "text" as const,
+    name,
+    text: await fs.readFile(filePath, "utf8"),
+  };
+}
+
+function deliverExternalFile(): void {
+  const window = win;
+  if (!pendingExternalFile || !window || window.isDestroyed() || window.webContents.isLoading()) {
+    return;
+  }
+
+  const url = window.webContents.getURL();
+  if (!isDev && !url.startsWith(LOCAL_NORVI_URL)) return;
+
+  window.webContents.send("norvi:external-file", pendingExternalFile);
+  pendingExternalFile = null;
+}
+
+async function queueExternalFile(argv: string[]): Promise<void> {
+  const index = argv.indexOf(EXTERNAL_FILE_ARG);
+  const filePath = index >= 0 ? argv[index + 1] : undefined;
+  if (!filePath) return;
+
+  try {
+    pendingExternalFile = await readExternalFile(filePath);
+    showWindow();
+    deliverExternalFile();
+  } catch (error) {
+    const window = win;
+    if (window && !window.isDestroyed()) {
+      window.webContents.send(
+        "norvi:external-file-error",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+}
+
 async function capturePrimaryScreen(): Promise<{ dataUrl: string; name: string }> {
   const primary = screen.getPrimaryDisplay();
   const logicalWidth = Math.max(1, primary.size.width);
@@ -221,13 +357,16 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-async function checkForUpdates(): Promise<{
-  currentVersion: string;
-  latestVersion: string;
-  available: boolean;
-  releaseUrl: string | null;
-}> {
-  const currentVersion = app.getVersion();
+type LatestRelease = {
+  tag_name?: string;
+  html_url?: string;
+  assets?: Array<{
+    name?: string;
+    browser_download_url?: string;
+  }>;
+};
+
+async function latestRelease(): Promise<LatestRelease> {
   const response = await net.fetch(
     "https://api.github.com/repos/tomgeiersberger-arch/Norvi/releases/latest",
     {
@@ -240,10 +379,17 @@ async function checkForUpdates(): Promise<{
   if (!response.ok) {
     throw new Error("Update-Informationen konnten nicht geladen werden.");
   }
-  const payload = (await response.json()) as {
-    tag_name?: string;
-    html_url?: string;
-  };
+  return (await response.json()) as LatestRelease;
+}
+
+async function checkForUpdates(): Promise<{
+  currentVersion: string;
+  latestVersion: string;
+  available: boolean;
+  releaseUrl: string | null;
+}> {
+  const currentVersion = app.getVersion();
+  const payload = await latestRelease();
   const latestVersion = (payload.tag_name ?? "").replace(/^v/i, "") || currentVersion;
   return {
     currentVersion,
@@ -253,9 +399,72 @@ async function checkForUpdates(): Promise<{
   };
 }
 
+async function installLatestUpdate(): Promise<{ ok: true; version: string }> {
+  if (process.platform !== "win32") {
+    throw new Error("Die direkte Update-Installation ist aktuell für Windows vorgesehen.");
+  }
+
+  const currentVersion = app.getVersion();
+  const release = await latestRelease();
+  const version = (release.tag_name ?? "").replace(/^v/i, "");
+  if (!version || compareVersions(version, currentVersion) <= 0) {
+    throw new Error("Es ist kein neueres NORVI-Update verfügbar.");
+  }
+
+  const installerName = "NORVI-Setup-" + version + ".exe";
+  const installerAsset = release.assets?.find(
+    (asset) => asset.name === installerName && typeof asset.browser_download_url === "string",
+  );
+  const checksumAsset = release.assets?.find(
+    (asset) => asset.name === "SHA256SUMS.txt" && typeof asset.browser_download_url === "string",
+  );
+
+  if (!installerAsset?.browser_download_url || !checksumAsset?.browser_download_url) {
+    throw new Error("Der Release enthält keinen verifizierbaren NORVI-Installer.");
+  }
+
+  const [installerResponse, checksumResponse] = await Promise.all([
+    net.fetch(installerAsset.browser_download_url, { redirect: "follow" }),
+    net.fetch(checksumAsset.browser_download_url, { redirect: "follow" }),
+  ]);
+
+  if (!installerResponse.ok || !checksumResponse.ok) {
+    throw new Error("Das Update konnte nicht vollständig heruntergeladen werden.");
+  }
+
+  const manifest = await checksumResponse.text();
+  const line = manifest
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .find((entry) => entry.endsWith("  " + installerName));
+  const expectedHash = line?.split(/\s+/)[0]?.toLowerCase();
+
+  if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash)) {
+    throw new Error("Die Update-Prüfsumme fehlt oder ist ungültig.");
+  }
+
+  const bytes = Buffer.from(await installerResponse.arrayBuffer());
+  const actualHash = createHash("sha256").update(bytes).digest("hex");
+  if (actualHash !== expectedHash) {
+    throw new Error("Die SHA-256-Prüfung des Updates ist fehlgeschlagen.");
+  }
+
+  const destination = path.join(app.getPath("temp"), installerName);
+  await fs.writeFile(destination, bytes);
+  const launchError = await shell.openPath(destination);
+  if (launchError) throw new Error(launchError);
+
+  return { ok: true, version };
+}
+
 function registerNorviHandlers() {
   ipcMain.handle("norvi:detect-hardware", () => detectHardware());
   ipcMain.handle("norvi:check-for-updates", () => checkForUpdates());
+  ipcMain.handle("norvi:install-update", () => installLatestUpdate());
+  ipcMain.handle("norvi:get-explorer-context-menu", () => explorerContextMenuEnabled());
+  ipcMain.handle("norvi:set-explorer-context-menu", (_event, enabled: boolean) =>
+    setExplorerContextMenu(Boolean(enabled)),
+  );
   ipcMain.handle("norvi:runtime-self-test", () => runRuntimeSelfTest());
   ipcMain.handle("norvi:repair-runtime", () => repairLocalRuntime());
   ipcMain.handle("norvi:list-managed-models", () => listManagedModels());
@@ -355,6 +564,8 @@ function createWindow() {
     },
   });
 
+  win.webContents.on("did-finish-load", () => deliverExternalFile());
+
   win.on("close", (event) => {
     if (!quitting && backgroundMode) {
       event.preventDefault();
@@ -403,12 +614,14 @@ app.on("activate", () => {
 if (app.requestSingleInstanceLock()) {
   app.on("second-instance", (_event, argv) => {
     deepLinks.handleArgv(argv);
+    void queueExternalFile(argv);
     showWindow();
   });
 
   app.whenReady().then(() => {
     createWindow();
     deepLinks.handleArgv(process.argv);
+    void queueExternalFile(process.argv);
   });
 } else {
   app.quit();

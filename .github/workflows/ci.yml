@@ -64,6 +64,9 @@ jobs:
       - name: Local diagnostics report
         run: bun deploy/test-local-diagnostics-report.ts
 
+      - name: Skills, verified update and Explorer integration
+        run: bun deploy/test-desktop-integration-v3.ts
+
       - name: Typecheck
         run: bun run typecheck
 

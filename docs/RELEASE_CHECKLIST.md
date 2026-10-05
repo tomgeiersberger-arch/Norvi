@@ -45,6 +45,9 @@ Use this before creating a public Windows release tag.
 - [ ] Text/code file drag-and-drop inserts local text without a cloud file upload
 - [ ] Privacy Dashboard reflects local permissions and LOCAL_ONLY state
 - [ ] Local diagnostics report exports without secrets or chat content
+- [ ] Skills toggles map to Voice, Screen, Actions, Memory and Quick Access permissions
+- [ ] Explorer “Mit NORVI öffnen” can be enabled/disabled and hands supported files to NORVI without executing them
+- [ ] Update installer download is rejected if SHA-256 does not match SHA256SUMS.txt
 
 ## Privacy/security review
 

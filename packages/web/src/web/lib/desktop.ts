@@ -58,6 +58,10 @@ export interface DesktopUpdateInfo {
   releaseUrl: string | null;
 }
 
+export type DesktopExternalFile =
+  | { kind: "text"; name: string; text: string }
+  | { kind: "image"; name: string; mediaType: string; dataUrl: string };
+
 export interface RuntimeCheck {
   id: string;
   label: string;
@@ -77,6 +81,11 @@ export interface ManagedModelInfo {
 export interface NorviDesktopAPI {
   detectHardware: () => Promise<DesktopHardwareProfile>;
   checkForUpdates: () => Promise<DesktopUpdateInfo>;
+  installUpdate: () => Promise<{ ok: true; version: string }>;
+  getExplorerContextMenu: () => Promise<boolean>;
+  setExplorerContextMenu: (enabled: boolean) => Promise<boolean>;
+  onExternalFile: (cb: (file: DesktopExternalFile) => void) => () => void;
+  onExternalFileError: (cb: (message: string) => void) => () => void;
   runRuntimeSelfTest: () => Promise<RuntimeCheck[]>;
   repairRuntime: () => Promise<RuntimeCheck[]>;
   listManagedModels: () => Promise<ManagedModelInfo[]>;

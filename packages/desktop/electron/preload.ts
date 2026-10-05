@@ -22,6 +22,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
 contextBridge.exposeInMainWorld("norviDesktop", {
   detectHardware: () => ipcRenderer.invoke("norvi:detect-hardware"),
   checkForUpdates: () => ipcRenderer.invoke("norvi:check-for-updates"),
+  installUpdate: () => ipcRenderer.invoke("norvi:install-update"),
+  getExplorerContextMenu: () => ipcRenderer.invoke("norvi:get-explorer-context-menu"),
+  setExplorerContextMenu: (enabled: boolean) =>
+    ipcRenderer.invoke("norvi:set-explorer-context-menu", enabled),
+  onExternalFile: (callback: (file: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, file: unknown) => callback(file);
+    ipcRenderer.on("norvi:external-file", listener);
+    return () => ipcRenderer.removeListener("norvi:external-file", listener);
+  },
+  onExternalFileError: (callback: (message: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string) => callback(message);
+    ipcRenderer.on("norvi:external-file-error", listener);
+    return () => ipcRenderer.removeListener("norvi:external-file-error", listener);
+  },
   runRuntimeSelfTest: () => ipcRenderer.invoke("norvi:runtime-self-test"),
   repairRuntime: () => ipcRenderer.invoke("norvi:repair-runtime"),
   listManagedModels: () => ipcRenderer.invoke("norvi:list-managed-models"),
