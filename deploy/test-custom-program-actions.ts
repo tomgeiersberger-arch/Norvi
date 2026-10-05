@@ -8,6 +8,9 @@ const settings = readFileSync("packages/web/src/web/components/settings-dialog.t
 assert.match(actions, /showOpenDialog/);
 assert.match(actions, /extensions: \["exe", "lnk"\]/);
 assert.match(actions, /custom-/);
+assert.match(actions, /steam:\/\/open\/main/);
+assert.match(actions, /discord:\/\//);
+assert.match(actions, /getPath\(action\.target\)/);
 assert.doesNotMatch(actions, /execFile\(/);
 assert.match(preload, /norvi:add-custom-desktop-action/);
 assert.match(settings, /Eigene Games & Programme/);

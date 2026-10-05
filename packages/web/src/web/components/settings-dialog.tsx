@@ -621,7 +621,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12px]">Lokale App-Befehle erlauben</span>
                       <span className="block text-[10px] text-muted-foreground">
-                        Zum Beispiel „Öffne Spotify“ oder „Starte CS2“. Nur freigegebene Apps können gestartet werden.
+                        Zum Beispiel „Öffne Spotify“, „Starte Steam“ oder „Öffne Downloads“. Nur freigegebene Ziele können gestartet werden.
                       </span>
                     </span>
                   </label>
@@ -643,6 +643,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       {([
                         ["spotify", "Spotify"],
                         ["cs2", "Counter-Strike 2"],
+                        ["steam", "Steam"],
+                        ["discord", "Discord"],
+                        ["downloads", "Downloads"],
+                        ["explorer", "Explorer"],
+                        ["browser", "Browser"],
                       ] as const).map(([id, label]) => (
                         <label key={id} className="block">
                           <span className="mb-1 block text-[10px] text-muted-foreground">
@@ -660,7 +665,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                                 },
                               }))
                             }
-                            placeholder={id === "cs2" ? "cs2, counter strike 2" : "spotify"}
+                            placeholder={assistant.desktopActionAliases[id].join(", ")}
                             className="w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
                           />
                         </label>
