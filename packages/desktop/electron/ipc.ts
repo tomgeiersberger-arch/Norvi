@@ -1,5 +1,4 @@
 import { ipcMain, dialog, Notification, type BrowserWindow } from "electron";
-import fs from "node:fs/promises";
 
 // Starter IPC handlers backing window.electronAPI (see preload.ts and
 // packages/web/src/web/lib/desktop.ts). Fully editable — change, remove, or add
@@ -17,15 +16,6 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null) {
   ipcMain.handle("dialog:save", async (_, opts) => {
     const result = await dialog.showSaveDialog(opts);
     return result.canceled ? null : result.filePath;
-  });
-
-  // File system
-  ipcMain.handle("fs:read", async (_, filePath: string) => {
-    return fs.readFile(filePath, "utf-8");
-  });
-
-  ipcMain.handle("fs:write", async (_, filePath: string, data: string) => {
-    await fs.writeFile(filePath, data, "utf-8");
   });
 
   // Notifications
