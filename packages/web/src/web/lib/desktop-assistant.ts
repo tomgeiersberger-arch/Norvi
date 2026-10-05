@@ -59,9 +59,12 @@ export interface DesktopAssistantSettings {
   voice: string;
 }
 
+export type DesktopSystemActionId = "volume-up" | "volume-down" | "volume-mute";
+
 export type MatchedDesktopAction =
   | { kind: "desktop"; id: string; label: string }
-  | { kind: "website"; id: string; label: string; url: string };
+  | { kind: "website"; id: string; label: string; url: string }
+  | { kind: "system"; id: DesktopSystemActionId; label: string };
 
 const STORAGE_KEY = "norvi.desktop-assistant.v1";
 export const ASSISTANT_SETTINGS_EVENT = "norvi:assistant-settings";
@@ -355,6 +358,16 @@ export function matchDesktopAction(
 
   if (/^(wie|warum|wieso|was|wo|wann|welche|welcher|welches)\b/.test(clean)) return null;
   if (/\b(?:sag|sage|erklar|erklaer|zeige)\b.*\b(?:wie|warum)\b/.test(clean)) return null;
+
+  if (/\b(?:lauter|volume up|lautstarke hoch|lautstaerke hoch)\b/.test(clean)) {
+    return { kind: "system", id: "volume-up", label: "Lautstärke erhöht" };
+  }
+  if (/\b(?:leiser|volume down|lautstarke runter|lautstaerke runter)\b/.test(clean)) {
+    return { kind: "system", id: "volume-down", label: "Lautstärke verringert" };
+  }
+  if (/\b(?:stumm|mute|ton aus|lautstarke aus|lautstaerke aus)\b/.test(clean)) {
+    return { kind: "system", id: "volume-mute", label: "Stummschaltung umgeschaltet" };
+  }
 
   const launchIntent =
     /\b(?:offne|oeffne|offnen|oeffnen|starte|starten|start|open|launch|aufmachen|besuche|visit)\b/.test(clean) ||
