@@ -37,6 +37,9 @@ jobs:
       - name: First-run wizard wiring
         run: bun deploy/test-first-run-wizard.ts
 
+      - name: Login-free local settings
+        run: bun deploy/test-login-free-settings.ts
+
       - name: Desktop maintenance tools
         run: bun deploy/test-desktop-maintenance.ts
 
