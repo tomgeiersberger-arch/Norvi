@@ -14,10 +14,10 @@ const formatted = formatTextAttachments([
 ]);
 assert.equal(formatted.count, 2);
 assert.match(formatted.text, /\[Datei: hello\.ts\]/);
-assert.match(formatted.text, /const value = 42/);
+assert.equal(formatted.text.includes("const value = 42"), true);
 
 const clipped = formatTextAttachments([{ name: "big.log", text: "x".repeat(100) }], 20, 20);
 assert.equal(clipped.truncated, true);
-assert.match(clipped.text, /gekürzt/);
+assert.equal(clipped.text.includes("gekürzt"), true);
 
 console.log("text attachments: OK");
