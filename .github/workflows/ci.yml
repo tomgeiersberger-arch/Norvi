@@ -77,7 +77,7 @@ jobs:
         run: bun deploy/test-agent-capability-awareness.ts
 
       - name: v0.1.2 local reasoning modes
-        run: bun deploy/test-local-reasoning-mode.ts
+        run: bun deploy/test-ollama-reasoning-mode.ts
 
       - name: v0.1.2 assistant polish
         run: bun deploy/test-v012-assistant-polish.ts
