@@ -998,3 +998,122 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                                 placeholder="www.winkelhof.at"
                                 className="rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
                               />
+                              <button
+                                type="button"
+                                aria-label={"Website " + (index + 1) + " entfernen"}
+                                onClick={() =>
+                                  setAssistant((current) => ({
+                                    ...current,
+                                    websiteActions: current.websiteActions.filter((item) => item.id !== website.id),
+                                  }))
+                                }
+                                className="icon-action flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                            <input
+                              aria-label={"Website " + (index + 1) + " Call-Wörter"}
+                              value={website.aliases.join(", ")}
+                              onChange={(event) =>
+                                setAssistant((current) => ({
+                                  ...current,
+                                  websiteActions: current.websiteActions.map((item) =>
+                                    item.id === website.id
+                                      ? { ...item, aliases: parseCallWords(event.target.value) }
+                                      : item,
+                                  ),
+                                }))
+                              }
+                              placeholder="winkelhof, hof"
+                              className="mt-2 w-full rounded-lg border border-border bg-background/60 px-2.5 py-2 text-[11px] outline-none transition focus:border-primary/60"
+                            />
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {voices.length > 0 && (
+                  <div className="mt-3">
+                    <span className="mb-1.5 block text-[11px] text-muted-foreground">
+                      Lokale Windows-Stimme
+                    </span>
+                    <div className="flex gap-2">
+                      <select
+                        value={assistant.voice}
+                        onChange={(event) =>
+                          setAssistant((current) => ({ ...current, voice: event.target.value }))
+                        }
+                        className="min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-3 py-2 text-[12px] outline-none transition focus:border-primary/60"
+                      >
+                        <option value="">Windows-Standardstimme</option>
+                        {voices.map((voice) => (
+                          <option key={voice} value={voice}>
+                            {voice}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void previewVoice()}
+                        className="icon-action flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[11px]"
+                      >
+                        <Volume2 className="size-4" />
+                        {previewingVoice ? "Stopp" : "Vorschau"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <p className="mt-3 text-[10px] leading-4 text-muted-foreground">
+                  Die Wake-Erkennung nutzt den lokalen Whisper-Dienst. Mikrofonaufnahmen
+                  werden nicht an einen Cloud-Sprachdienst geschickt.
+                </p>
+              </div>
+            )}
+
+            {desktop && activeTab === "assistant" && (
+              <DesktopSkillsPanel assistant={assistant} setAssistant={setAssistant} />
+            )}
+
+            {desktop && activeTab === "ai" && (
+              <>
+                <DesktopStylePanel assistant={assistant} setAssistant={setAssistant} />
+                <DesktopModelManager />
+              </>
+            )}
+
+            {desktop && activeTab === "data" && (
+              <>
+                <DesktopPrivacyPanel assistant={assistant} />
+                <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
+              </>
+            )}
+
+            {desktop && activeTab === "system" && <DesktopMaintenancePanel />}
+
+            <div className="flex items-center justify-end gap-3 pt-1">
+              {saved && !update.isPending && (
+                <span className="text-[12px] text-muted-foreground">Gespeichert</span>
+              )}
+              <button
+                type="button"
+                onClick={save}
+                disabled={update.isPending}
+                className="send-glow flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground transition disabled:opacity-60"
+              >
+                {update.isPending && <Loader2 className="size-4 animate-spin" />}
+                Speichern
+              </button>
+            </div>
+          </div>
+        )}
+          </div>
+        </dialog>
+      </div>
+    </div>,
+    document.body,
+  );
+}
