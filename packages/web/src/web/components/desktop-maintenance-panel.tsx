@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Bug,
   CheckCircle2,
   Download,
   FileUp,
@@ -23,6 +24,11 @@ import {
   type DesktopAssistantSettings,
 } from "../lib/desktop-assistant";
 import { getDeviceId } from "../lib/device";
+import {
+  clearLocalErrorLog,
+  getLocalErrorLog,
+  type LocalErrorEntry,
+} from "../lib/local-error-log";
 import { useCapabilities } from "../queries/capabilities";
 import { useModel } from "../queries/model";
 import { useSettings, useUpdateSettings } from "../queries/settings";
@@ -44,6 +50,7 @@ type DiagnosticsReport = {
     label: string | null;
   };
   runtimeChecks: RuntimeCheck[];
+  recentRendererErrors: LocalErrorEntry[];
 };
 
 type BackupFile = {
@@ -70,6 +77,7 @@ export function DesktopMaintenancePanel() {
   const [busyRecovery, setBusyRecovery] = useState(false);
   const [checks, setChecks] = useState<RuntimeCheck[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [errorCount, setErrorCount] = useState(() => getLocalErrorLog().length);
 
   useEffect(() => {
     const api = getNorviDesktopAPI();
@@ -108,6 +116,7 @@ export function DesktopMaintenancePanel() {
           label: model.data?.label ?? null,
         },
         runtimeChecks,
+        recentRendererErrors: getLocalErrorLog(),
       };
 
       const safeDate = report.generatedAt.slice(0, 10);
@@ -167,7 +176,8 @@ export function DesktopMaintenancePanel() {
         api?.setQuickShortcut(saved.quickShortcutEnabled),
         api?.setVoiceShortcut(saved.voiceShortcutEnabled ? saved.voiceShortcut : null),
         api?.setBackgroundMode(
-          (saved.microphoneEnabled && saved.wakeEnabled) || saved.startWithWindows,
+          (!saved.gamingMode && saved.microphoneEnabled && saved.wakeEnabled) ||
+            saved.startWithWindows,
         ),
         api?.setAutoStart(saved.startWithWindows),
       ]);
@@ -273,6 +283,7 @@ export function DesktopMaintenancePanel() {
     ["KI", capabilities.data?.aiOnline === false ? "offline" : "bereit"],
     ["Vision", capabilities.data?.vision ? "bereit" : "nicht verfügbar"],
     ["Speech-to-Text", capabilities.data?.stt ? "bereit" : "nicht verfügbar"],
+    ["Renderer-Fehler", String(errorCount)],
   ] as const;
 
   return (
@@ -380,6 +391,18 @@ export function DesktopMaintenancePanel() {
           className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px]"
         >
           <RotateCcw className="size-4" /> Einrichtung erneut öffnen
+        </button>
+        <button
+          type="button"
+          disabled={errorCount === 0}
+          onClick={() => {
+            clearLocalErrorLog();
+            setErrorCount(0);
+            setNotice("Lokales Fehlerlog geleert.");
+          }}
+          className="icon-action flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] disabled:opacity-40"
+        >
+          <Bug className="size-4" /> Fehlerlog leeren ({errorCount})
         </button>
       </div>
 

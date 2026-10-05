@@ -38,6 +38,21 @@ assert.deepEqual(matchDesktopAction("Starte dc", defaults), {
   id: "discord",
   label: "Discord",
 });
+assert.deepEqual(matchDesktopAction("Mach lauter", defaults), {
+  kind: "system",
+  id: "volume-up",
+  label: "Lautstärke erhöht",
+});
+assert.deepEqual(matchDesktopAction("Bitte leiser", defaults), {
+  kind: "system",
+  id: "volume-down",
+  label: "Lautstärke verringert",
+});
+assert.deepEqual(matchDesktopAction("Ton aus", defaults), {
+  kind: "system",
+  id: "volume-mute",
+  label: "Stummschaltung umgeschaltet",
+});
 
 const custom: DesktopAssistantSettings = {
   ...defaults,

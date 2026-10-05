@@ -70,6 +70,9 @@ jobs:
       - name: Installer polish
         run: bun deploy/test-installer-polish.ts
 
+      - name: Final desktop polish
+        run: bun deploy/test-final-desktop-polish.ts
+
       - name: Typecheck
         run: bun run typecheck
 
