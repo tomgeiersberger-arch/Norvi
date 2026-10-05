@@ -64,6 +64,8 @@ contextBridge.exposeInMainWorld("norviDesktop", {
     ipcRenderer.invoke("norvi:remove-custom-desktop-action", actionId),
   launchDesktopAction: (actionId: string) =>
     ipcRenderer.invoke("norvi:launch-desktop-action", actionId),
+  runSystemAction: (actionId: "volume-up" | "volume-down" | "volume-mute") =>
+    ipcRenderer.invoke("norvi:run-system-action", actionId),
   openWebsite: (url: string) => ipcRenderer.invoke("norvi:open-website", url),
   capturePrimaryScreen: () => ipcRenderer.invoke("norvi:capture-primary-screen"),
   setQuickShortcut: (enabled: boolean) => ipcRenderer.invoke("norvi:set-quick-shortcut", enabled),
