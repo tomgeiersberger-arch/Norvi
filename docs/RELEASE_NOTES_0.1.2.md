@@ -32,6 +32,12 @@ NORVI v0.1.2 is a Windows assistant and interaction update.
 - While enabled, NORVI locally keeps the two newest screen states and attaches them to the next text or voice request so it can compare recent screen changes.
 - The existing one-shot error screenshot action remains available.
 
+## Norvi AI branding
+
+- Adds the new Norvi AI app icon across the Windows executable, taskbar, Start menu, installer and in-app chrome.
+- Windows shortcuts are named "Norvi AI", and the app window is branded "Norvi AI — KI-Chat".
+- The installable web app uses the same Norvi AI icon and product name.
+
 ## UI and reliability
 
 - Removes the unused eye indicator from the top bar.
