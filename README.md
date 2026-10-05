@@ -14,10 +14,14 @@ The default public setup is designed to keep ordinary AI requests, chat history,
 - Hardware-aware profiles: Lite 4B, Standard 8B and Power 14B.
 - Local vision with Qwen3-VL.
 - Local speech-to-text with Whisper.
-- Windows desktop app with system tray support and autostart.
-- Custom assistant name and custom wake phrase.
-- Local spoken replies using installed Windows voices.
-- Safe desktop actions through an explicit allowlist, currently Spotify and Counter-Strike 2.
+- Windows desktop app with system tray support, autostart and Alt + Space quick access.
+- Login-free local public mode with a first-run setup wizard.
+- Custom assistant name, wake phrase, local Windows voice and configurable push-to-talk shortcut.
+- Conversation Mode and opt-in Screen Mode for local desktop assistance.
+- Safe desktop actions with editable call-words, named website actions and user-selected local programs — without a generic shell runner.
+- Local Memory, response presets, Gaming Mode and a local Model Manager.
+- Diagnostics/recovery, settings backup, manual update checks and a local diagnostics report.
+- Privacy Dashboard plus local text/code file drag-and-drop and Screen quick actions.
 - Local SQLite chat history and local image storage.
 - Local-only guard that rejects cloud AI/STT/database endpoints when enabled.
 - Telemetry disabled by default.
@@ -75,9 +79,9 @@ Examples:
 - `Öffne Spotify`
 - `Starte CS2`
 
-The assistant name and wake phrase are configurable. Wake audio is processed through NORVI's local Whisper endpoint.
+The assistant name and wake phrase are configurable. Wake audio is processed through NORVI's local Whisper endpoint. Optional Conversation Mode opens a short local follow-up window, and a configurable voice shortcut can start/stop recording without a wake phrase.
 
-Desktop actions are intentionally deny-by-default. The renderer and AI model do **not** receive a generic shell or terminal runner; only explicitly reviewed actions can be launched.
+Desktop actions are intentionally deny-by-default. Spotify and CS2 are built-in reviewed targets; users can also explicitly select their own local programs and assign call-words. Website actions are restricted to normal http/https URLs. The renderer and AI model do **not** receive a generic shell or terminal runner.
 
 ## Quick start from source
 
@@ -175,4 +179,4 @@ The repository ignores normal local runtime data. CI also runs a public-release 
 
 ## Current release direction
 
-The next milestone is the first fully tested Windows installer release. Before that release, the project still needs a real clean-machine Windows end-to-end test of installation, model downloads, offline restart, wake-word mode, Spotify launch and CS2 launch.
+The Windows CI now builds and validates a real NSIS `NORVI-Setup-<version>.exe` on relevant pull requests. The next milestone is still the first fully tested Windows release: a real clean-machine end-to-end test must verify installation, model downloads, offline restart, microphone/wake-word behavior, Screen Mode, shortcuts and desktop actions before the first public tag.
