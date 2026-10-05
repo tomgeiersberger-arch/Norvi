@@ -1,8 +1,12 @@
 import { ORPCError } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { authed } from "../middleware/auth";
-import { hasAdminAccess } from "../lib/access";
+import { withUser } from "../middleware/auth";
+import {
+  AUTH_REQUIRED_MESSAGE,
+  hasAdminAccess,
+  requireAuthEnabled,
+} from "../lib/access";
 import { publicEditionEnabled } from "../lib/privacy";
 import { availableModels, defaultModelId, providerKind } from "../agent/gateway";
 import { db } from "../database";
@@ -11,6 +15,7 @@ import * as schema from "../database/schema";
 /** Temperature is stored as an integer percentage (0–100) to stay SQLite-simple. */
 const temperature = z.number().int().min(0).max(100);
 const performanceMode = z.enum(["serious", "fast", "balanced", "power", "deep"]);
+const deviceId = z.string().trim().min(6).max(120);
 export type PerformanceMode = z.infer<typeof performanceMode>;
 
 export type UserSettings = {
@@ -57,29 +62,60 @@ function present(
   } satisfies UserSettings;
 }
 
-export const settings = {
-  get: authed.handler(async ({ context }) => {
-    const [row] = await db
-      .select()
-      .from(schema.userSettings)
-      .where(eq(schema.userSettings.userId, context.user.id))
-      .limit(1);
-    return present(
-      row,
-      context.user.premiumAccess,
-      hasAdminAccess(context.user.role) || context.user.chokeModeEnabled,
-    );
-  }),
+function anonymousOwnerId(rawDeviceId: string | undefined): string | null {
+  const clean = (rawDeviceId ?? "").trim();
+  if (clean.length < 6 || clean.length > 120) return null;
+  return `device:${clean}`;
+}
 
-  update: authed
+function settingsOwnerId(
+  userId: string | undefined,
+  rawDeviceId: string | undefined,
+): string {
+  if (userId) return userId;
+  if (requireAuthEnabled()) {
+    throw new ORPCError("UNAUTHORIZED", { message: AUTH_REQUIRED_MESSAGE });
+  }
+  const anonymous = anonymousOwnerId(rawDeviceId);
+  if (!anonymous) {
+    throw new ORPCError("UNAUTHORIZED", {
+      message: "Lokale Geräte-ID fehlt. Bitte NORVI neu laden.",
+    });
+  }
+  return anonymous;
+}
+
+export const settings = {
+  get: withUser
+    .input(z.object({ deviceId: deviceId.optional() }))
+    .handler(async ({ input, context }) => {
+      const ownerId = settingsOwnerId(context.user?.id, input.deviceId);
+      const [row] = await db
+        .select()
+        .from(schema.userSettings)
+        .where(eq(schema.userSettings.userId, ownerId))
+        .limit(1);
+      return present(
+        row,
+        context.user?.premiumAccess ?? false,
+        context.user
+          ? hasAdminAccess(context.user.role) || context.user.chokeModeEnabled
+          : false,
+      );
+    }),
+
+  update: withUser
     .input(
       z.object({
+        deviceId: deviceId.optional(),
         modelId: z.string().trim().min(1).max(120).optional(),
         temperature: temperature.optional(),
         performanceMode: performanceMode.optional(),
       }),
     )
     .handler(async ({ input, context }) => {
+      const ownerId = settingsOwnerId(context.user?.id, input.deviceId);
+
       if (input.performanceMode === "serious" && publicEditionEnabled()) {
         throw new ORPCError("FORBIDDEN", {
           message: "Choke Mode ist in der öffentlichen NORVI-Version deaktiviert.",
@@ -87,7 +123,7 @@ export const settings = {
       }
       if (
         input.performanceMode === "deep" &&
-        !context.user.premiumAccess &&
+        !(context.user?.premiumAccess ?? false) &&
         !publicEditionEnabled()
       ) {
         throw new ORPCError("FORBIDDEN", {
@@ -96,8 +132,8 @@ export const settings = {
       }
       if (
         input.performanceMode === "serious" &&
-        !hasAdminAccess(context.user.role) &&
-        !context.user.chokeModeEnabled
+        (!context.user ||
+          (!hasAdminAccess(context.user.role) && !context.user.chokeModeEnabled))
       ) {
         throw new ORPCError("FORBIDDEN", {
           message: "Choke Mode ist für dieses Konto nicht freigeschaltet.",
@@ -120,7 +156,7 @@ export const settings = {
       await db
         .insert(schema.userSettings)
         .values({
-          userId: context.user.id,
+          userId: ownerId,
           modelId: modelId ?? defaultModelId(),
           temperature: selectedTemperature,
           performanceMode: selectedMode,
@@ -141,12 +177,14 @@ export const settings = {
       const [row] = await db
         .select()
         .from(schema.userSettings)
-        .where(eq(schema.userSettings.userId, context.user.id))
+        .where(eq(schema.userSettings.userId, ownerId))
         .limit(1);
       return present(
         row,
-        context.user.premiumAccess,
-        hasAdminAccess(context.user.role) || context.user.chokeModeEnabled,
+        context.user?.premiumAccess ?? false,
+        context.user
+          ? hasAdminAccess(context.user.role) || context.user.chokeModeEnabled
+          : false,
       );
     }),
 };
@@ -154,14 +192,17 @@ export const settings = {
 /** Server-side lookup used by the streaming endpoint. */
 export async function settingsFor(
   userId: string | undefined,
+  rawDeviceId: string | undefined,
   premiumAccess = false,
   chokeModeAccess = false,
 ) {
-  if (!userId) return present(undefined, false, false);
+  const ownerId = userId ?? (!requireAuthEnabled() ? anonymousOwnerId(rawDeviceId) : null);
+  if (!ownerId) return present(undefined, premiumAccess, chokeModeAccess);
+
   const [row] = await db
     .select()
     .from(schema.userSettings)
-    .where(eq(schema.userSettings.userId, userId))
+    .where(eq(schema.userSettings.userId, ownerId))
     .limit(1);
   return present(row, premiumAccess, chokeModeAccess);
 }
