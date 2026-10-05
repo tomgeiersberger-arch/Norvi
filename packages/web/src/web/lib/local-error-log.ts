@@ -9,11 +9,13 @@ export interface LocalErrorEntry {
 }
 
 function clean(value: unknown, maxLength: number): string {
-  return String(value ?? "")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxLength);
+  const printable = Array.from(String(value ?? ""))
+    .map((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127 ? " " : character;
+    })
+    .join("");
+  return printable.replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
 export function getLocalErrorLog(): LocalErrorEntry[] {
