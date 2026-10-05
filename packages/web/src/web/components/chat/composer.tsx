@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ImagePlus, Loader2, Mic, MonitorUp, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  FileText,
+  ImagePlus,
+  Loader2,
+  Mic,
+  MonitorUp,
+  Sparkles,
+  Square,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import {
   ACCEPTED_IMAGE_TYPES,
   transcribeAudio,
@@ -7,6 +18,11 @@ import {
   type UploadedImage,
 } from "../../lib/uploads";
 import { startRecording } from "../../lib/recorder";
+import {
+  formatTextAttachments,
+  isSupportedTextAttachment,
+  TEXT_ATTACHMENT_ACCEPT,
+} from "../../lib/text-attachments";
 import { getNorviDesktopAPI, isDesktop } from "../../lib/desktop";
 import {
   getAssistantSettings,
@@ -59,6 +75,7 @@ export function Composer({
 
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const documentRef = useRef<HTMLInputElement>(null);
   const handleRef = useRef<RecordHandle | null>(null);
   const toggleRecordingRef = useRef<() => void>(() => undefined);
 
@@ -145,6 +162,46 @@ export function Composer({
     );
   };
 
+  const addTextFiles = async (files: FileList | File[] | null) => {
+    if (!files?.length) return;
+    setNotice(null);
+
+    const accepted = Array.from(files)
+      .filter((file) => isSupportedTextAttachment(file.name, file.type))
+      .slice(0, 3);
+    if (accepted.length === 0) {
+      setNotice("Unterstützt werden normale Text- und Code-Dateien.");
+      return;
+    }
+
+    try {
+      const inputs = await Promise.all(
+        accepted.map(async (file) => ({
+          name: file.name,
+          text: await file.text(),
+        })),
+      );
+      const formatted = formatTextAttachments(inputs);
+      if (!formatted.text) {
+        setNotice("In der Datei wurde kein lesbarer Text gefunden.");
+        return;
+      }
+      setValue((current) =>
+        current.trim()
+          ? current.trimEnd() + "\n\n" + formatted.text
+          : formatted.text,
+      );
+      setNotice(
+        formatted.count +
+          " Text/Code-Datei(en) lokal eingefügt." +
+          (formatted.truncated ? " Lange Inhalte wurden gekürzt." : ""),
+      );
+      ref.current?.focus();
+    } catch {
+      setNotice("Die Datei konnte nicht als Text gelesen werden.");
+    }
+  };
+
   const removeImage = (key: string) => {
     setImages((current) => {
       const hit = current.find((image) => image.key === key);
@@ -206,7 +263,7 @@ export function Composer({
     void toggleRecording();
   };
 
-  const captureScreen = async () => {
+  const captureScreen = async (prompt?: string) => {
     if (!vision || !assistantSettings.screenCaptureEnabled) return;
     const api = getNorviDesktopAPI();
     if (!api) return;
@@ -218,6 +275,7 @@ export function Composer({
       const blob = await response.blob();
       const file = new File([blob], screenshot.name, { type: "image/png" });
       await addFiles([file]);
+      if (prompt) setValue((current) => (current.trim() ? current : prompt));
       setNotice("Screenshot angehängt. Schreib jetzt, was NORVI darauf prüfen soll.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Screenshot konnte nicht erstellt werden.");
@@ -242,12 +300,10 @@ export function Composer({
         dragging ? "border-primary/60 bg-primary/[0.055]" : ""
       }`}
       onDragEnter={(event) => {
-        if (!vision) return;
         event.preventDefault();
         setDragging(true);
       }}
       onDragOver={(event) => {
-        if (!vision) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
       }}
@@ -256,16 +312,24 @@ export function Composer({
         setDragging(false);
       }}
       onDrop={(event) => {
-        if (!vision) return;
         event.preventDefault();
         setDragging(false);
-        void addFiles(Array.from(event.dataTransfer.files));
+        const dropped = Array.from(event.dataTransfer.files);
+        const imageFiles = vision ? dropped.filter((file) => file.type.startsWith("image/")) : [];
+        const textFiles = dropped.filter((file) =>
+          isSupportedTextAttachment(file.name, file.type),
+        );
+        if (imageFiles.length) void addFiles(imageFiles);
+        if (textFiles.length) void addTextFiles(textFiles);
+        if (!imageFiles.length && !textFiles.length) {
+          setNotice("Diese Datei wird noch nicht unterstützt.");
+        }
       }}
     >
       {dragging && (
         <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-[1.25rem] border border-dashed border-primary/50 bg-background/92 text-sm font-medium text-primary backdrop-blur-xl">
-          <ImagePlus className="mr-2 size-4.5" />
-          Bild hier ablegen
+          <FileText className="mr-2 size-4.5" />
+          Bild oder Text/Code hier ablegen
         </div>
       )}
       {images.length > 0 && (
@@ -327,6 +391,40 @@ export function Composer({
         </div>
       )}
 
+      {vision && isDesktop() && assistantSettings.screenCaptureEnabled && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 px-1">
+          <span className="mr-1 text-[9px] font-medium uppercase tracking-[0.12em] text-muted-foreground/55">
+            Quick Actions
+          </span>
+          <button
+            type="button"
+            disabled={busy || uploading}
+            onClick={() =>
+              void captureScreen(
+                "Erkläre mir kurz und verständlich, was auf diesem Screenshot zu sehen ist.",
+              )
+            }
+            className="icon-action flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground disabled:opacity-40"
+          >
+            <Sparkles className="size-3.5" />
+            Screen erklären
+          </button>
+          <button
+            type="button"
+            disabled={busy || uploading}
+            onClick={() =>
+              void captureScreen(
+                "Analysiere den sichtbaren Fehler auf diesem Screenshot und sag mir kurz, wie ich ihn behebe.",
+              )
+            }
+            className="icon-action flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] text-muted-foreground disabled:opacity-40"
+          >
+            <TriangleAlert className="size-3.5" />
+            Fehler prüfen
+          </button>
+        </div>
+      )}
+
       <div className="flex items-end gap-1.5">
         <input
           ref={fileRef}
@@ -341,8 +439,32 @@ export function Composer({
           }}
         />
 
+        <input
+          ref={documentRef}
+          type="file"
+          accept={TEXT_ATTACHMENT_ACCEPT}
+          multiple
+          aria-label="Text- oder Code-Datei auswählen"
+          className="hidden"
+          onChange={(event) => {
+            void addTextFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={() => documentRef.current?.click()}
+          disabled={busy}
+          aria-label="Text- oder Code-Datei anhängen"
+          title="Text- oder Code-Datei lokal einfügen"
+          className="icon-action mb-0.5 flex h-10 min-w-10 items-center justify-center gap-2 rounded-[1rem] px-0 text-muted-foreground transition duration-200 disabled:opacity-40 sm:px-3"
+        >
+          <FileText className="size-4.5 shrink-0" />
+          <span className="hidden text-[11px] font-medium sm:inline">Datei</span>
+        </button>
+
         {vision && (
-          <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
@@ -446,7 +568,7 @@ export function Composer({
 
       <div className="flex flex-wrap items-center gap-x-2 px-2.5 pb-0.5 pt-1.5 text-[9.5px] text-muted-foreground/34">
         <span>Enter = senden · Umschalt + Enter = neue Zeile</span>
-        {vision && <span className="hidden sm:inline">· Bilder kannst du auch hineinziehen</span>}
+        <span className="hidden sm:inline">· Bilder und Text/Code kannst du hineinziehen</span>
       </div>
     </div>
   );

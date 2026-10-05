@@ -22,6 +22,7 @@ import {
 import { useSettings, useUpdateSettings } from "../queries/settings";
 import { DesktopMaintenancePanel } from "./desktop-maintenance-panel";
 import { DesktopMemoryPanel } from "./desktop-memory-panel";
+import { DesktopPrivacyPanel } from "./desktop-privacy-panel";
 import { DesktopModelManager } from "./desktop-model-manager";
 import { DesktopStylePanel } from "./desktop-style-panel";
 import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
@@ -887,7 +888,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             )}
 
             {desktop && activeTab === "data" && (
-              <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
+              <>
+                <DesktopPrivacyPanel assistant={assistant} />
+                <DesktopMemoryPanel assistant={assistant} setAssistant={setAssistant} />
+              </>
             )}
 
             {desktop && activeTab === "system" && <DesktopMaintenancePanel />}
