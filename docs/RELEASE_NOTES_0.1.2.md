@@ -15,6 +15,7 @@ NORVI v0.1.2 is a Windows assistant and interaction update.
 - Fixes Wakeword listening while the NORVI window is open and focused.
 - Wakeword detection now keeps a short transcript overlap so "Hey NORVI" is less likely to be lost between recording chunks.
 - Manual push-to-talk temporarily pauses the background Wakeword listener.
+- Speech-to-text now self-repairs missing local STT settings on existing installs, stays available while the local Whisper sidecar starts, and places the microphone button directly next to Send.
 
 ## Programs and call words
 
