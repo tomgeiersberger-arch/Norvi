@@ -1,0 +1,3 @@
+NORVI v0.1.0 release marker.
+
+Merging this file to main intentionally triggers the one-time v0.1.0 Windows release workflow.

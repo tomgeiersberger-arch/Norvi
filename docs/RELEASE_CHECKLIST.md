@@ -9,6 +9,7 @@ Use this before creating a public Windows release tag.
 - [ ] `bun run lint`
 - [ ] `bun run build`
 - [ ] Git working tree is clean
+- [ ] Windows installer workflow completes its silent install/start smoke on `windows-latest`
 
 ## Clean Windows machine test
 
@@ -62,6 +63,7 @@ Use this before creating a public Windows release tag.
 - [ ] Desktop package version matches the Git tag
 - [ ] Choose and add an explicit project license before calling the project open source
 - [ ] Release notes explain model download size and that first setup requires internet
+- [ ] `docs/RELEASE_NOTES_0.1.0.md` is included for the v0.1.0 release
 - [ ] Windows installer artifact is attached to the GitHub Release
 - [ ] Pull-request Windows smoke build produced `NORVI-Setup-<version>.exe` and `SHA256SUMS.txt`
 
