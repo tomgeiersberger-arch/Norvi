@@ -11,6 +11,8 @@ const desktop = readFileSync("packages/web/src/web/lib/desktop.ts", "utf8");
 const preload = readFileSync("packages/desktop/electron/preload.ts", "utf8");
 const main = readFileSync("packages/desktop/electron/main.ts", "utf8");
 const actions = readFileSync("packages/desktop/electron/actions.ts", "utf8");
+const stt = readFileSync("packages/web/src/api/lib/stt.ts", "utf8");
+const setupLocal = readFileSync("deploy/setup-local.ts", "utf8");
 
 assert.doesNotMatch(page, /\bEye\b/);
 assert.doesNotMatch(page, /Bilder verfügbar/);
@@ -50,5 +52,14 @@ assert.doesNotMatch(composer, />Screen<\/span>/);
 assert.match(composer, /Live Screen/);
 assert.match(composer, /live-screen/);
 assert.match(composer, /setInterval/);
+const textareaIndex = composer.indexOf("<textarea");
+const micIndex = composer.indexOf('aria-label={recording ? "Aufnahme beenden" : "Spracheingabe starten"}');
+const sendIndex = composer.indexOf('aria-label="Senden"');
+assert.ok(textareaIndex >= 0 && micIndex > textareaIndex && sendIndex > micIndex, "Mic must sit directly between chat input and send");
+assert.match(stt, /localSttEnabled/);
+assert.match(stt, /if \(localSttEnabled\(\)\) return true/);
+assert.match(setupLocal, /Fehlende lokale Speech-to-Text-Einstellungen ergänzt/);
+assert.match(setupLocal, /STT_BASE_URL/);
+assert.match(setupLocal, /STT_API_KEY/);
 
 console.log("v0.1.2 assistant polish wiring: OK");
