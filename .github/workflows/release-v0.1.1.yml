@@ -42,7 +42,7 @@ jobs:
           test -f NORVI-Setup-0.1.1.exe
           test -f SHA256SUMS.txt
           expected="d1092a3900fb97f2f77ca136c3aa2f27d90ca6cbd930da4b3d26b8487e6cdef2"
-          manifest="$(awk '$2 == "NORVI-Setup-0.1.1.exe" { print $1 }' SHA256SUMS.txt)"
+          manifest="$(tr -d '\r' < SHA256SUMS.txt | awk '$2 == "NORVI-Setup-0.1.1.exe" { print $1 }')"
           actual="$(sha256sum NORVI-Setup-0.1.1.exe | awk '{ print $1 }')"
           test "$manifest" = "$expected"
           test "$actual" = "$expected"
