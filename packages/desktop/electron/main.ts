@@ -553,6 +553,9 @@ function registerNorviHandlers() {
   ipcMain.handle("norvi:launch-desktop-action", async (_event, actionId: string) =>
     launchDesktopAction(String(actionId ?? "")),
   );
+  ipcMain.handle("norvi:run-system-action", async (_event, actionId: string) =>
+    runSystemAction(String(actionId ?? "")),
+  );
   ipcMain.handle("norvi:open-website", async (_event, url: string) =>
     openDesktopWebsite(String(url ?? "")),
   );
