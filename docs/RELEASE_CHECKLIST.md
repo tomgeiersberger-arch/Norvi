@@ -45,3 +45,10 @@ Use this before creating a public Windows release tag.
 - [ ] Choose and add an explicit project license before calling the project open source
 - [ ] Release notes explain model download size and that first setup requires internet
 - [ ] Windows installer artifact is attached to the GitHub Release
+
+
+## Desktop assistant smoke checks
+
+- Toggle Gaming Mode and verify background wake-word listening stops while manual chat, Alt + Space and push-to-talk still work.
+- Verify the Windows workflow produces exactly `NORVI-Setup-<version>.exe` plus `SHA256SUMS.txt`.
+- Compare the downloaded installer's SHA-256 against the published manifest before the clean-machine installation test.

@@ -41,7 +41,11 @@ export function DesktopAssistantListener() {
 
   useEffect(() => {
     const onTurnComplete = () => {
-      if (!settings.conversationMode || !settings.microphoneEnabled) {
+      if (
+        settings.gamingMode ||
+        !settings.conversationMode ||
+        !settings.microphoneEnabled
+      ) {
         conversationUntilRef.current = 0;
         return;
       }
@@ -53,6 +57,7 @@ export function DesktopAssistantListener() {
   }, [
     settings.conversationMode,
     settings.conversationWindowSeconds,
+    settings.gamingMode,
     settings.microphoneEnabled,
   ]);
 
@@ -60,13 +65,20 @@ export function DesktopAssistantListener() {
     const api = getNorviDesktopAPI();
     if (!api) return;
     void api.setBackgroundMode(
-      (settings.microphoneEnabled && settings.wakeEnabled) || settings.startWithWindows,
+      (!settings.gamingMode && settings.microphoneEnabled && settings.wakeEnabled) ||
+        settings.startWithWindows,
     );
-  }, [settings.microphoneEnabled, settings.startWithWindows, settings.wakeEnabled]);
+  }, [
+    settings.gamingMode,
+    settings.microphoneEnabled,
+    settings.startWithWindows,
+    settings.wakeEnabled,
+  ]);
 
   useEffect(() => {
     if (
       !isDesktop() ||
+      settings.gamingMode ||
       !settings.microphoneEnabled ||
       !settings.wakeEnabled ||
       capabilities.data?.stt !== true
@@ -171,6 +183,7 @@ export function DesktopAssistantListener() {
   }, [
     capabilities.data?.stt,
     settings.conversationMode,
+    settings.gamingMode,
     settings.microphoneEnabled,
     settings.speakReplies,
     settings.voice,

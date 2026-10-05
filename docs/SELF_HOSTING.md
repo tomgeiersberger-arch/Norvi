@@ -146,3 +146,10 @@ The System & Maintenance card can also run a local self-test for runtime files, 
 ## Response presets
 
 The local desktop app offers Normal, Short, Coding, Gaming, Explain and a custom response-style preset. Presets only influence presentation, tone and verbosity and are not treated as higher-priority instructions.
+
+
+## Gaming Mode
+
+The desktop app includes a manual Gaming Mode for low-background-overhead use. When enabled, NORVI pauses passive wake-word transcription and conversation follow-up listening, which are the main continuously active voice workloads. Manual chat, Alt + Space quick access and the explicit push-to-talk shortcut remain available.
+
+Gaming Mode does not silently change model files, game processes or system power settings.

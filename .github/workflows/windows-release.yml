@@ -40,11 +40,29 @@ jobs:
       - name: Build NORVI Setup.exe
         run: bun run dist:windows
 
+      - name: Verify installer artifact
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path "packages/desktop/release" -Filter "NORVI-Setup-*.exe" -Recurse | Select-Object -First 1
+          if (-not $installer) { throw "NORVI Setup.exe wurde nicht erzeugt." }
+          if ($installer.Length -lt 5MB) { throw "NORVI Setup.exe ist unerwartet klein: $($installer.Length) Bytes." }
+          $version = (Get-Content "packages/desktop/package.json" | ConvertFrom-Json).version
+          $expected = "NORVI-Setup-$version.exe"
+          if ($installer.Name -ne $expected) {
+            throw "Unerwarteter Installer-Name: $($installer.Name), erwartet: $expected"
+          }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($installer.Name)" | Set-Content -Path "packages/desktop/release/SHA256SUMS.txt" -Encoding ascii
+          Write-Host "Installer OK: $($installer.Name) ($([math]::Round($installer.Length / 1MB, 1)) MB)"
+          Write-Host "SHA256: $hash"
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: NORVI-Windows-Setup
-          path: packages/desktop/release/**/*.exe
+          path: |
+            packages/desktop/release/**/*.exe
+            packages/desktop/release/SHA256SUMS.txt
           if-no-files-found: error
 
       - name: Attach installer to GitHub Release
@@ -60,3 +78,7 @@ jobs:
             gh release create "${{ github.ref_name }}" --title "NORVI ${{ github.ref_name }}" --generate-notes
           }
           gh release upload "${{ github.ref_name }}" $installer.FullName --clobber
+          $hashFile = Join-Path $installer.Directory.FullName "SHA256SUMS.txt"
+          if (Test-Path $hashFile) {
+            gh release upload "${{ github.ref_name }}" $hashFile --clobber
+          }
