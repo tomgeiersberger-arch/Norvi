@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NORVI Setup</title>
+    <title>Norvi AI Setup</title>
     <style>
       :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       * { box-sizing: border-box; }
@@ -11,7 +11,7 @@
       .card { width: min(760px, 100%); border: 1px solid rgba(255,255,255,.09); border-radius: 28px; background: rgba(17,17,17,.88); box-shadow: 0 40px 120px rgba(0,0,0,.55); overflow: hidden; backdrop-filter: blur(24px); }
       .hero { padding: 32px 34px 24px; border-bottom: 1px solid rgba(255,255,255,.07); }
       .brand { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
-      .mark { width:38px; height:38px; border-radius:13px; display:grid; place-items:center; background: linear-gradient(145deg,#ff8a62,#ff5f45); color:#160703; font-weight:900; box-shadow: 0 12px 38px rgba(255,98,68,.28); }
+      .mark { width:38px; height:38px; border-radius:13px; display:block; object-fit:cover; box-shadow: 0 10px 28px rgba(255,98,68,.16); }
       h1 { margin:0; font-size:30px; letter-spacing:-.04em; }
       .sub { margin:8px 0 0; color:#aaa; line-height:1.55; font-size:14px; }
       .content { padding: 28px 34px 34px; }
@@ -48,7 +48,7 @@
   <body>
     <main class="card">
       <section class="hero">
-        <div class="brand"><div class="mark">N</div><h1>NORVI Setup</h1></div>
+        <div class="brand"><img class="mark" src="../build/icon.svg" alt="" /><h1>Norvi AI Setup</h1></div>
         <p class="sub">Deine KI läuft auf deinem eigenen PC. Nach dem ersten Download funktionieren normale Chats, lokale Bilderkennung und lokale Spracheingabe auch ohne Internet.</p>
       </section>
       <section class="content">
@@ -62,7 +62,7 @@
         <div class="recommendation">
           <div>
             <strong id="recommendedProfile">Hardware wird geprüft…</strong>
-            <small>NORVI nimmt standardmäßig das passende Profil. Du kannst es später im Model Manager ändern.</small>
+            <small>Norvi AI nimmt standardmäßig das passende Profil. Du kannst es später im Model Manager ändern.</small>
           </div>
           <button class="advanced-toggle" id="advancedToggle" type="button">Erweitert</button>
         </div>
@@ -75,7 +75,7 @@
           </div>
         </div>
 
-        <div class="note">🔒 Local-Only ist standardmäßig aktiv. Keine Cloud-KI ist nötig. Internet wird beim ersten Setup nur für NORVI, Ollama, Abhängigkeiten und die Modelle gebraucht.</div>
+        <div class="note">🔒 Local-Only ist standardmäßig aktiv. Keine Cloud-KI ist nötig. Internet wird beim ersten Setup nur für Norvi AI, Ollama, Abhängigkeiten und die Modelle gebraucht.</div>
 
         <div class="progress-wrap" id="progressWrap">
           <div class="bar"><div class="fill" id="fill"></div></div>
@@ -85,7 +85,7 @@
         <div class="error" id="error"></div>
 
         <div class="actions">
-          <button class="primary" id="install">NORVI installieren</button>
+          <button class="primary" id="install">Norvi AI installieren</button>
         </div>
       </section>
     </main>
