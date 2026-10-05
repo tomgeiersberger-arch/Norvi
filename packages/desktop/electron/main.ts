@@ -47,7 +47,7 @@ import {
 } from "./models";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isDev = !app.isPackaged;
+const isDev = !app.isPackaged;\napp.setName("Norvi AI");\nif (process.platform === "win32") app.setAppUserModelId("ai.norvi.desktop");
 const WEB_DEV_URL = process.env.WEBSITE_URL ?? "http://localhost:4200";
 const LOCAL_NORVI_URL = "http://localhost:4200";
 const SETUP_PAGE = path.join(__dirname, "../dist/setup/index.html");
@@ -137,16 +137,16 @@ function ensureTray() {
   if (tray) return;
   const image = nativeImage.createFromDataURL(TRAY_ICON_DATA).resize({ width: 16, height: 16 });
   tray = new Tray(image);
-  tray.setToolTip("NORVI · lokaler KI-Assistent");
+  tray.setToolTip("Norvi AI · lokaler KI-Assistent");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
-        label: "NORVI öffnen",
+        label: "Norvi AI öffnen",
         click: () => showWindow(),
       },
       { type: "separator" },
       {
-        label: "NORVI beenden",
+        label: "Norvi AI beenden",
         click: () => {
           quitting = true;
           app.quit();
@@ -620,7 +620,7 @@ function createWindow() {
     minWidth: 860,
     minHeight: 620,
     backgroundColor: "#090909",
-    title: "NORVI Setup",
+    title: "Norvi AI Setup",
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
