@@ -192,6 +192,11 @@ function Index() {
                   />
                   {statusLabel}
                 </span>
+                {isDesktop() && desktopAssistant.gamingMode && (
+                  <span className="hidden rounded-full border border-green-400/15 bg-green-400/[0.07] px-2 py-1 text-[9px] font-medium text-green-300 sm:inline-flex">
+                    GAMING
+                  </span>
+                )}
               </div>
             </div>
 

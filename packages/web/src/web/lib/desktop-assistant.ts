@@ -32,6 +32,7 @@ export interface DesktopAssistantSettings {
   wakeEnabled: boolean;
   speakReplies: boolean;
   startWithWindows: boolean;
+  gamingMode: boolean;
   microphoneEnabled: boolean;
   screenCaptureEnabled: boolean;
   quickShortcutEnabled: boolean;
@@ -71,6 +72,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: DesktopAssistantSettings = {
   wakeEnabled: false,
   speakReplies: true,
   startWithWindows: false,
+  gamingMode: false,
   microphoneEnabled: true,
   screenCaptureEnabled: false,
   quickShortcutEnabled: true,
@@ -208,6 +210,7 @@ function sanitiseSettings(value: Partial<DesktopAssistantSettings>): DesktopAssi
     wakeEnabled: value.wakeEnabled === true,
     speakReplies: value.speakReplies !== false,
     startWithWindows: value.startWithWindows === true,
+    gamingMode: value.gamingMode === true,
     microphoneEnabled: value.microphoneEnabled !== false,
     screenCaptureEnabled: value.screenCaptureEnabled === true,
     quickShortcutEnabled: value.quickShortcutEnabled !== false,

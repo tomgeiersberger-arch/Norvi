@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   BrainCircuit,
+  Gamepad2,
   Gauge,
   Keyboard,
   Link2,
@@ -129,7 +130,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       setAssistant(next);
       const api = getNorviDesktopAPI();
       void api?.setBackgroundMode(
-        (next.microphoneEnabled && next.wakeEnabled) || next.startWithWindows,
+        (!next.gamingMode && next.microphoneEnabled && next.wakeEnabled) ||
+          next.startWithWindows,
       );
       void api?.setQuickShortcut(next.quickShortcutEnabled);
       void api?.setVoiceShortcut(next.voiceShortcutEnabled ? next.voiceShortcut : null);
@@ -161,7 +163,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 Einstellungen
               </h2>
               <p className="text-[12px] text-muted-foreground">
-                Gilt nur für dein NORVI-Konto.
+                Deine lokalen NORVI-Einstellungen auf diesem Gerät.
               </p>
             </div>
             <button
@@ -318,6 +320,38 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 </div>
 
                 <div className="mt-3 grid gap-2">
+                  <label
+                    htmlFor="norvi-gaming-mode"
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5"
+                  >
+                    <input
+                      id="norvi-gaming-mode"
+                      aria-label="Gaming Mode"
+                      type="checkbox"
+                      checked={assistant.gamingMode}
+                      onChange={(event) =>
+                        setAssistant((current) => ({
+                          ...current,
+                          gamingMode: event.target.checked,
+                        }))
+                      }
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                    <Gamepad2 className="size-4 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px] font-medium">Gaming Mode</span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        Pausiert Wakeword- und Gesprächs-Mithören im Hintergrund. Chat,
+                        Alt + Leertaste und Push-to-talk bleiben nutzbar.
+                      </span>
+                    </span>
+                    {assistant.gamingMode && (
+                      <span className="rounded-full border border-green-400/20 bg-green-400/10 px-2 py-0.5 text-[9px] font-semibold text-green-300">
+                        AKTIV
+                      </span>
+                    )}
+                  </label>
+
                   <label htmlFor="norvi-microphone-enabled" className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/[0.05] bg-black/10 px-3 py-2.5">
                     <input
                       id="norvi-microphone-enabled"
@@ -446,7 +480,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12px] font-medium">Wake-Phrase im Hintergrund</span>
                       <span className="block text-[10px] text-muted-foreground">
-                        NORVI bleibt im Tray und reagiert, wenn die App nicht im Vordergrund ist.
+                        {assistant.gamingMode
+                          ? "Im Gaming Mode pausiert. Deine Einstellung bleibt gespeichert."
+                          : "NORVI bleibt im Tray und reagiert, wenn die App nicht im Vordergrund ist."}
                       </span>
                     </span>
                   </label>
@@ -469,7 +505,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12px]">Gesprächsmodus</span>
                       <span className="block text-[10px] text-muted-foreground">
-                        Nach einer Sprachantwort hört NORVI kurz auf eine Folgefrage, ohne erneut das Wake-Wort zu brauchen.
+                        {assistant.gamingMode
+                          ? "Im Gaming Mode pausiert. Deine Einstellung bleibt gespeichert."
+                          : "Nach einer Sprachantwort hört NORVI kurz auf eine Folgefrage, ohne erneut das Wake-Wort zu brauchen."}
                       </span>
                     </span>
                     {assistant.conversationMode && (
