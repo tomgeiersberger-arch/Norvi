@@ -21,7 +21,7 @@ assert.match(workflow, /NORVI-Setup-\$version\.exe/);
 assert.match(workflow, /Silent install smoke/);
 assert.match(workflow, /\/S/);
 assert.match(workflow, /NORVI\.exe/);
-assert.match(workflow, /--disable-gpu/);
+assert.match(workflow, /--disable-gpu/);\nassert.match(setup, /Norvi AI Setup/);
 assert.match(workflow, /tags:\s*\n\s*- "v\*"/);
 assert.match(workflow, /if: startsWith\(github\.ref, 'refs\/tags\/v'\)/);
 assert.doesNotMatch(workflow, /github\.event_name == 'push'/);
