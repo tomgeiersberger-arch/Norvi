@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
   FileText,
@@ -23,7 +23,7 @@ import {
   isSupportedTextAttachment,
   TEXT_ATTACHMENT_ACCEPT,
 } from "../../lib/text-attachments";
-import { getNorviDesktopAPI, isDesktop } from "../../lib/desktop";
+import { getNorviDesktopAPI, isDesktop, type DesktopExternalFile } from "../../lib/desktop";
 import {
   getAssistantSettings,
   subscribeAssistantSettings,
@@ -126,7 +126,7 @@ export function Composer({
   const ready = images.filter((image) => image.uploaded).map((image) => image.uploaded!);
   const canSend = (value.trim().length > 0 || ready.length > 0) && !uploading && !busy;
 
-  const addFiles = async (files: FileList | File[] | null) => {
+  const addFiles = useCallback(async (files: FileList | File[] | null) => {
     if (!files?.length) return;
     setNotice(null);
 
@@ -160,7 +160,46 @@ export function Composer({
         }
       }),
     );
-  };
+  }, [images.length]);
+
+  useEffect(() => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+
+    const removeFileListener = api.onExternalFile((file: DesktopExternalFile) => {
+      if (file.kind === "text") {
+        const formatted = formatTextAttachments([{ name: file.name, text: file.text }]);
+        if (!formatted.text) return;
+        setValue((current) =>
+          current.trim() ? current.trimEnd() + "\n\n" + formatted.text : formatted.text,
+        );
+        setNotice("Datei über Windows-Rechtsklick lokal eingefügt.");
+        ref.current?.focus();
+        return;
+      }
+
+      void (async () => {
+        try {
+          const response = await fetch(file.dataUrl);
+          const blob = await response.blob();
+          const image = new File([blob], file.name, { type: file.mediaType });
+          await addFiles([image]);
+          setNotice("Bild über Windows-Rechtsklick angehängt.");
+        } catch {
+          setNotice("Die Rechtsklick-Datei konnte nicht geöffnet werden.");
+        }
+      })();
+    });
+
+    const removeErrorListener = api.onExternalFileError((message) => {
+      setNotice(message || "Die Rechtsklick-Datei konnte nicht geöffnet werden.");
+    });
+
+    return () => {
+      removeFileListener();
+      removeErrorListener();
+    };
+  }, [addFiles]);
 
   const addTextFiles = async (files: FileList | File[] | null) => {
     if (!files?.length) return;
