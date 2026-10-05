@@ -105,7 +105,8 @@ export function DesktopMaintenancePanel() {
         api?.setQuickShortcut(saved.quickShortcutEnabled),
         api?.setVoiceShortcut(saved.voiceShortcutEnabled ? saved.voiceShortcut : null),
         api?.setBackgroundMode(
-          (saved.microphoneEnabled && saved.wakeEnabled) || saved.startWithWindows,
+          (!saved.gamingMode && saved.microphoneEnabled && saved.wakeEnabled) ||
+            saved.startWithWindows,
         ),
         api?.setAutoStart(saved.startWithWindows),
       ]);
