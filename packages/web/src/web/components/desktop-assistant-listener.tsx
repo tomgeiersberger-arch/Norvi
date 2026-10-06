@@ -33,6 +33,7 @@ export function DesktopAssistantListener() {
   const [settings, setSettings] = useState(getAssistantSettings);
   const conversationUntilRef = useRef(0);
   const foregroundMicRef = useRef(false);
+  const voiceTurnPendingRef = useRef(false);
 
   useEffect(() => subscribeAssistantSettings(setSettings), []);
 
@@ -53,6 +54,8 @@ export function DesktopAssistantListener() {
 
   useEffect(() => {
     const onTurnComplete = () => {
+      voiceTurnPendingRef.current = false;
+      dispatchVoiceStatus("ready");
       if (
         settings.gamingMode ||
         !settings.conversationMode ||
@@ -143,9 +146,10 @@ export function DesktopAssistantListener() {
       dispatchVoiceStatus("processing");
       const text = await transcribeAudio(recording.blob, "de", recording.filename);
       if (!cancelled && text.trim()) {
+        voiceTurnPendingRef.current = true;
         dispatchVoiceStatus("command");
         dispatchVoiceCommand(text);
-        await sleep(650);
+        return;
       }
       if (!cancelled) dispatchVoiceStatus("ready");
     };
@@ -153,6 +157,11 @@ export function DesktopAssistantListener() {
     const loop = async () => {
       let wakeTranscriptTail = "";
       while (!cancelled) {
+        if (voiceTurnPendingRef.current) {
+          await sleep(200);
+          continue;
+        }
+
         const conversationActive =
           settings.conversationMode && Date.now() < conversationUntilRef.current;
 
@@ -176,9 +185,10 @@ export function DesktopAssistantListener() {
             const text = await transcribeAudio(followUp.blob, "de", followUp.filename);
             conversationUntilRef.current = 0;
             if (!cancelled && text.trim()) {
+              voiceTurnPendingRef.current = true;
               dispatchVoiceStatus("command");
               dispatchVoiceCommand(text);
-              await sleep(650);
+              continue;
             }
             if (!cancelled) dispatchVoiceStatus("ready");
             await sleep(500);
@@ -204,16 +214,15 @@ export function DesktopAssistantListener() {
           const api = getNorviDesktopAPI();
           await api?.showWindow();
           if (command) {
+            voiceTurnPendingRef.current = true;
             dispatchVoiceStatus("command");
             dispatchVoiceCommand(command);
-            await sleep(650);
-            if (!cancelled) dispatchVoiceStatus("ready");
           } else {
             await listenForCommand();
           }
 
-          // Avoid immediately hearing the tail of NORVI's own spoken response.
-          await sleep(1200);
+          // The listener stays paused while the voice turn is being handled.
+          await sleep(200);
         } catch {
           if (!cancelled) {
             dispatchVoiceStatus("ready");
@@ -227,6 +236,7 @@ export function DesktopAssistantListener() {
 
     return () => {
       cancelled = true;
+      voiceTurnPendingRef.current = false;
       activeHandle?.cancel();
       activeHandle = null;
       dispatchVoiceStatus("off");
