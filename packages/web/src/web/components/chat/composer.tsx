@@ -78,6 +78,7 @@ export function Composer({
   const [images, setImages] = useState<Pending[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
+  const [recordingStarting, setRecordingStarting] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -88,6 +89,7 @@ export function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef<HTMLInputElement>(null);
   const handleRef = useRef<RecordHandle | null>(null);
+  const recordingStartingRef = useRef(false);
   const toggleRecordingRef = useRef<() => void>(() => undefined);
 
   useEffect(() => subscribeAssistantSettings(setAssistantSettings), []);
@@ -192,6 +194,7 @@ export function Composer({
     !uploading &&
     !busy &&
     !recording &&
+    !recordingStarting &&
     !transcribing;
 
   const addFiles = useCallback(async (files: FileList | File[] | null) => {
@@ -328,6 +331,7 @@ export function Composer({
   };
 
   const toggleRecording = async () => {
+    if (recordingStartingRef.current || transcribing) return;
     setNotice(null);
 
     if (recording) {
@@ -358,6 +362,8 @@ export function Composer({
       return;
     }
 
+    recordingStartingRef.current = true;
+    setRecordingStarting(true);
     try {
       setForegroundMicrophoneActive(true);
       handleRef.current = await startRecording(
@@ -368,6 +374,9 @@ export function Composer({
     } catch (error) {
       setForegroundMicrophoneActive(false);
       setNotice(error instanceof Error ? error.message : "Aufnahme nicht möglich.");
+    } finally {
+      recordingStartingRef.current = false;
+      setRecordingStarting(false);
     }
   };
 
@@ -398,13 +407,19 @@ export function Composer({
     const api = getNorviDesktopAPI();
     if (!api) return;
     return api.onVoiceShortcut(() => {
-      if (!stt || !assistantSettings.microphoneEnabled || busy || transcribing) return;
+      if (
+        !stt ||
+        !assistantSettings.microphoneEnabled ||
+        busy ||
+        transcribing ||
+        recordingStartingRef.current
+      ) return;
       toggleRecordingRef.current();
     });
-  }, [assistantSettings.microphoneEnabled, busy, recording, stt, transcribing]);
+  }, [assistantSettings.microphoneEnabled, busy, recording, recordingStarting, stt, transcribing]);
 
   const micAllowed = !isDesktop() || assistantSettings.microphoneEnabled;
-  const micDisabled = transcribing || busy || !micAllowed;
+  const micDisabled = transcribing || recordingStarting || busy || !micAllowed;
 
   return (
     <div
