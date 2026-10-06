@@ -145,14 +145,24 @@ function Index() {
           ? "Offline"
           : "Verbinde";
 
+  const effectiveVoiceStatus: VoiceListenStatus =
+    voiceStatus === "off" &&
+    isDesktop() &&
+    !desktopAssistant.gamingMode &&
+    desktopAssistant.microphoneEnabled &&
+    desktopAssistant.wakeEnabled &&
+    capabilities.data?.stt === true
+      ? "ready"
+      : voiceStatus;
+
   const voiceStatusLabel =
-    voiceStatus === "listening"
+    effectiveVoiceStatus === "listening"
       ? "Höre zu…"
-      : voiceStatus === "processing"
+      : effectiveVoiceStatus === "processing"
         ? "Verarbeite…"
-        : voiceStatus === "command"
+        : effectiveVoiceStatus === "command"
           ? "Befehl erkannt"
-          : voiceStatus === "ready"
+          : effectiveVoiceStatus === "ready"
             ? "Bereit"
             : null;
 
@@ -224,11 +234,11 @@ function Index() {
                     <span
                       className={
                         "size-1.5 rounded-full " +
-                        (voiceStatus === "listening"
+                        (effectiveVoiceStatus === "listening"
                           ? "animate-pulse bg-green-400"
-                          : voiceStatus === "processing"
+                          : effectiveVoiceStatus === "processing"
                             ? "animate-pulse bg-amber-400"
-                            : voiceStatus === "command"
+                            : effectiveVoiceStatus === "command"
                               ? "bg-green-400"
                               : "bg-white/35")
                       }
