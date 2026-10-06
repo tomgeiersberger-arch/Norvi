@@ -20,6 +20,18 @@ const settings = readFileSync(
   "packages/web/src/web/components/settings-dialog.tsx",
   "utf8",
 );
+const composer = readFileSync(
+  "packages/web/src/web/components/chat/composer.tsx",
+  "utf8",
+);
+const errorLog = readFileSync(
+  "packages/web/src/web/lib/local-error-log.ts",
+  "utf8",
+);
+const maintenance = readFileSync(
+  "packages/web/src/web/components/desktop-maintenance-panel.tsx",
+  "utf8",
+);
 
 assert.match(stt, /sanitiseTranscription/);
 assert.match(stt, /repeats > 3/);
@@ -44,5 +56,12 @@ assert.match(voice, /SAPI\.SpVoice/);
 assert.match(settings, /voicePreviewError/);
 assert.match(actions, /scanDesktopActionsInFolder/);
 assert.match(settings, /Ordner scannen/);
+
+assert.match(listener, /const handle = await startRecording/);
+assert.match(listener, /activeHandle === handle/);
+assert.match(composer, /!recording/);
+assert.match(composer, /!transcribing/);
+assert.match(errorLog, /LOCAL_ERROR_LOG_EVENT/);
+assert.match(maintenance, /LOCAL_ERROR_LOG_EVENT/);
 
 console.log("v0.1.4 voice and diagnostics fixes: OK");
