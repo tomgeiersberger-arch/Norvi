@@ -21,7 +21,7 @@
     },
     "packages/desktop": {
       "name": "@template/desktop",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "dependencies": {
         "@runablehq/managed-auth": "^0.6.0",
       },
