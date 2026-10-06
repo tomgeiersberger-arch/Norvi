@@ -183,6 +183,7 @@ export async function installRuntime(
   const extractPath = path.join(tempRoot, "source");
   const backupPath = path.join(tempRoot, "backup");
   const runtime = runtimeDirectory();
+  let rollbackPath: string | null = null;
 
   try {
     await fs.mkdir(tempRoot, { recursive: true });
@@ -199,8 +200,11 @@ export async function installRuntime(
     const extractedRoot = path.join(extractPath, entries[0]!.name);
 
     onProgress({ stage: "prepare", message: "Lokale NORVI-Daten werden vorbereitet…", percent: 25 });
-    if (await exists(runtime)) await preserveLocalData(runtime, backupPath);
-    await fs.rm(runtime, { recursive: true, force: true });
+    if (await exists(runtime)) {
+      await preserveLocalData(runtime, backupPath);
+      rollbackPath = runtime + ".rollback-" + Date.now();
+      await fs.rename(runtime, rollbackPath);
+    }
     await fs.mkdir(path.dirname(runtime), { recursive: true });
     await fs.cp(extractedRoot, runtime, { recursive: true });
     await restoreLocalData(runtime, backupPath);
@@ -227,7 +231,36 @@ export async function installRuntime(
     );
 
     await fs.writeFile(path.join(runtime, ".norvi-version"), app.getVersion() + "\n", "utf8");
+
+    if (rollbackPath) {
+      await fs.rm(rollbackPath, { recursive: true, force: true });
+      rollbackPath = null;
+    }
+
     onProgress({ stage: "done", message: "NORVI ist installiert und offline bereit.", percent: 100 });
+  } catch (error) {
+    if (rollbackPath) {
+      const previousRuntime = rollbackPath;
+      try {
+        await fs.rm(runtime, { recursive: true, force: true });
+        await fs.rename(previousRuntime, runtime);
+        rollbackPath = null;
+        onProgress({
+          stage: "rollback",
+          message: "Update fehlgeschlagen. Die vorherige NORVI-Runtime wurde wiederhergestellt.",
+          percent: 100,
+        });
+      } catch (rollbackError) {
+        throw new Error(
+          "NORVI-Update fehlgeschlagen und die vorherige Runtime konnte nicht automatisch wiederhergestellt werden. " +
+            "Rollback liegt unter: " +
+            previousRuntime +
+            ". " +
+            (rollbackError instanceof Error ? rollbackError.message : String(rollbackError)),
+        );
+      }
+    }
+    throw error;
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true }).catch(() => {});
   }
