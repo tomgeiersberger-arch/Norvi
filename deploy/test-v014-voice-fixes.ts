@@ -28,10 +28,6 @@ const errorLog = readFileSync(
   "packages/web/src/web/lib/local-error-log.ts",
   "utf8",
 );
-const maintenance = readFileSync(
-  "packages/web/src/web/components/desktop-maintenance-panel.tsx",
-  "utf8",
-);
 
 assert.match(stt, /sanitiseTranscription/);
 assert.match(stt, /repeats > 3/);
