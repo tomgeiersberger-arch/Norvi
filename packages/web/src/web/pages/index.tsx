@@ -8,6 +8,7 @@ import { getDeviceId } from "../lib/device";
 import { isDesktop } from "../lib/desktop";
 import {
   getAssistantSettings,
+  getVoiceStatus,
   subscribeAssistantSettings,
   VOICE_STATUS_EVENT,
   type VoiceListenStatus,
@@ -33,7 +34,7 @@ function Index() {
   const [drawer, setDrawer] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "shared" | "copied" | "error">("idle");
   const [desktopAssistant, setDesktopAssistant] = useState(getAssistantSettings);
-  const [voiceStatus, setVoiceStatus] = useState<VoiceListenStatus>("off");
+  const [voiceStatus, setVoiceStatus] = useState<VoiceListenStatus>(getVoiceStatus);
 
   useEffect(() => subscribeAssistantSettings(setDesktopAssistant), []);
   useEffect(() => {
@@ -145,24 +146,14 @@ function Index() {
           ? "Offline"
           : "Verbinde";
 
-  const effectiveVoiceStatus: VoiceListenStatus =
-    voiceStatus === "off" &&
-    isDesktop() &&
-    !desktopAssistant.gamingMode &&
-    desktopAssistant.microphoneEnabled &&
-    desktopAssistant.wakeEnabled &&
-    capabilities.data?.stt === true
-      ? "ready"
-      : voiceStatus;
-
   const voiceStatusLabel =
-    effectiveVoiceStatus === "listening"
+    voiceStatus === "listening"
       ? "Höre zu…"
-      : effectiveVoiceStatus === "processing"
+      : voiceStatus === "processing"
         ? "Verarbeite…"
-        : effectiveVoiceStatus === "command"
+        : voiceStatus === "command"
           ? "Befehl erkannt"
-          : effectiveVoiceStatus === "ready"
+          : voiceStatus === "ready"
             ? "Bereit"
             : null;
 
@@ -234,11 +225,11 @@ function Index() {
                     <span
                       className={
                         "size-1.5 rounded-full " +
-                        (effectiveVoiceStatus === "listening"
+                        (voiceStatus === "listening"
                           ? "animate-pulse bg-green-400"
-                          : effectiveVoiceStatus === "processing"
+                          : voiceStatus === "processing"
                             ? "animate-pulse bg-amber-400"
-                            : effectiveVoiceStatus === "command"
+                            : voiceStatus === "command"
                               ? "bg-green-400"
                               : "bg-white/35")
                       }
