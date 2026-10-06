@@ -94,6 +94,9 @@ jobs:
       - name: v0.1.5 updater lock hotfix
         run: bun deploy/test-v015-updater-lock-fix.ts
 
+      - name: v0.1.6 versioned runtime updater
+        run: bun deploy/test-v016-versioned-runtime.ts
+
       - name: Typecheck
         run: bun run typecheck
 
