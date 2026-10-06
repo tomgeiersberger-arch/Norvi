@@ -6,6 +6,7 @@ import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import {
   commandAfterWakePhrase,
   dispatchVoiceCommand,
+  dispatchVoiceStatus,
   FOREGROUND_MICROPHONE_EVENT,
   getAssistantSettings,
   subscribeAssistantSettings,
@@ -94,9 +95,11 @@ export function DesktopAssistantListener() {
       !settings.wakeEnabled ||
       capabilities.data?.stt !== true
     ) {
+      dispatchVoiceStatus("off");
       return;
     }
 
+    dispatchVoiceStatus("ready");
     let cancelled = false;
     let activeHandle: Awaited<ReturnType<typeof startRecording>> | null = null;
 
@@ -120,10 +123,20 @@ export function DesktopAssistantListener() {
         await api.speak("Ja?", settings.voice || undefined).catch(() => undefined);
       }
       await sleep(180);
+      dispatchVoiceStatus("listening");
       const recording = await recordFor(COMMAND_CHUNK_MS);
-      if (!recording?.voiceDetected || cancelled) return;
+      if (!recording?.voiceDetected || cancelled) {
+        if (!cancelled) dispatchVoiceStatus("ready");
+        return;
+      }
+      dispatchVoiceStatus("processing");
       const text = await transcribeAudio(recording.blob, "de", recording.filename);
-      if (!cancelled) dispatchVoiceCommand(text);
+      if (!cancelled && text.trim()) {
+        dispatchVoiceStatus("command");
+        dispatchVoiceCommand(text);
+        await sleep(650);
+      }
+      if (!cancelled) dispatchVoiceStatus("ready");
     };
 
     const loop = async () => {
@@ -141,14 +154,22 @@ export function DesktopAssistantListener() {
 
         try {
           if (conversationActive) {
+            dispatchVoiceStatus("listening");
             const followUp = await recordFor(COMMAND_CHUNK_MS);
             if (!followUp?.voiceDetected || cancelled) {
+              if (!cancelled) dispatchVoiceStatus("ready");
               await sleep(180);
               continue;
             }
+            dispatchVoiceStatus("processing");
             const text = await transcribeAudio(followUp.blob, "de", followUp.filename);
             conversationUntilRef.current = 0;
-            if (!cancelled && text.trim()) dispatchVoiceCommand(text);
+            if (!cancelled && text.trim()) {
+              dispatchVoiceStatus("command");
+              dispatchVoiceCommand(text);
+              await sleep(650);
+            }
+            if (!cancelled) dispatchVoiceStatus("ready");
             await sleep(500);
             continue;
           }
@@ -172,7 +193,10 @@ export function DesktopAssistantListener() {
           const api = getNorviDesktopAPI();
           await api?.showWindow();
           if (command) {
+            dispatchVoiceStatus("command");
             dispatchVoiceCommand(command);
+            await sleep(650);
+            if (!cancelled) dispatchVoiceStatus("ready");
           } else {
             await listenForCommand();
           }
@@ -180,7 +204,10 @@ export function DesktopAssistantListener() {
           // Avoid immediately hearing the tail of NORVI's own spoken response.
           await sleep(1200);
         } catch {
-          if (!cancelled) await sleep(1400);
+          if (!cancelled) {
+            dispatchVoiceStatus("ready");
+            await sleep(1400);
+          }
         }
       }
     };
@@ -191,6 +218,7 @@ export function DesktopAssistantListener() {
       cancelled = true;
       activeHandle?.cancel();
       activeHandle = null;
+      dispatchVoiceStatus("off");
     };
   }, [
     capabilities.data?.stt,
