@@ -6,8 +6,9 @@ const runtime = readFileSync("packages/desktop/electron/local-runtime.ts", "utf8
 assert.match(runtime, /ACTIVE_RUNTIME_POINTER/);
 assert.match(runtime, /atomicRuntimeDirectory/);
 assert.match(runtime, /runtime-v/);
-assert.match(runtime, /writeFile\([^\n]*ACTIVE_RUNTIME_POINTER/);
-assert.match(runtime, /rename\([^\n]*ACTIVE_RUNTIME_POINTER/);
+assert.match(runtime, /temporaryPointer/);
+assert.match(runtime, /writeFile\(temporaryPointer/);
+assert.match(runtime, /rename\(temporaryPointer, pointer\)/);
 
 const installIndex = runtime.indexOf("export async function installRuntime");
 const installBody = runtime.slice(installIndex, runtime.indexOf("\nfunction bunExecutable", installIndex));
