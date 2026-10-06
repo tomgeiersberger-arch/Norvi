@@ -514,11 +514,16 @@ export function Composer({
             onClick={() => {
               const next = !liveScreenActive;
               setLiveScreenActive(next);
-              setNotice(
-                next
-                  ? "Live Screen aktiv. NORVI hält die letzten Bildschirmzustände für deine nächste Frage bereit."
-                  : "Live Screen beendet.",
-              );
+              const message = next
+                ? "Live Screen aktiv. NORVI hält die letzten Bildschirmzustände für deine nächste Frage bereit."
+                : "Live Screen beendet.";
+              setNotice(message);
+              if (!next) {
+                window.setTimeout(
+                  () => setNotice((current) => (current === message ? null : current)),
+                  2600,
+                );
+              }
             }}
             className={
               "flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] transition disabled:opacity-40 " +
