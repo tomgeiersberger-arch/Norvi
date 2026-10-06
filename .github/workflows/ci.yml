@@ -91,6 +91,9 @@ jobs:
       - name: v0.1.4 voice and diagnostics fixes
         run: bun deploy/test-v014-voice-fixes.ts
 
+      - name: v0.1.5 runtime lock hotfix
+        run: bun deploy/test-v015-runtime-lock.ts
+
       - name: Typecheck
         run: bun run typecheck
 
