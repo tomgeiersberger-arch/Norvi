@@ -108,6 +108,7 @@ export interface NorviDesktopAPI {
   listDesktopActions: () => Promise<DesktopActionDescriptor[]>;
   addCustomDesktopAction: () => Promise<DesktopActionDescriptor | null>;
   scanInstalledDesktopActions: () => Promise<ScannedDesktopActionDescriptor[]>;
+  scanDesktopActionsInFolder: () => Promise<ScannedDesktopActionDescriptor[]>;
   addScannedDesktopActions: (scanIds: string[]) => Promise<DesktopActionDescriptor[]>;
   removeCustomDesktopAction: (actionId: string) => Promise<boolean>;
   launchDesktopAction: (actionId: string) => Promise<DesktopActionResult>;
