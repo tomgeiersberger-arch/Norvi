@@ -169,7 +169,10 @@ export function FirstRunWizard() {
                       const api = getNorviDesktopAPI();
                       if (!api) return;
                       if (previewingVoice) {
-                        void api.stopSpeech().finally(() => setPreviewingVoice(false));
+                        void api
+                          .stopSpeech()
+                          .catch(() => undefined)
+                          .finally(() => setPreviewingVoice(false));
                         return;
                       }
                       setPreviewingVoice(true);
@@ -178,6 +181,7 @@ export function FirstRunWizard() {
                           "Hallo, ich bin NORVI. So klingt meine ausgewählte Stimme.",
                           assistant.voice || undefined,
                         )
+                        .catch(() => undefined)
                         .finally(() => setPreviewingVoice(false));
                     }}
                     className="icon-action flex shrink-0 items-center gap-1.5 rounded-xl px-3 text-[11px]"
