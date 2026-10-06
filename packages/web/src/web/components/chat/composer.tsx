@@ -187,7 +187,12 @@ export function Composer({
 
   const uploading = images.some((image) => !image.uploaded && !image.failed);
   const ready = images.filter((image) => image.uploaded).map((image) => image.uploaded!);
-  const canSend = (value.trim().length > 0 || ready.length > 0) && !uploading && !busy;
+  const canSend =
+    (value.trim().length > 0 || ready.length > 0) &&
+    !uploading &&
+    !busy &&
+    !recording &&
+    !transcribing;
 
   const addFiles = useCallback(async (files: FileList | File[] | null) => {
     if (!files?.length) return;
@@ -509,11 +514,16 @@ export function Composer({
             onClick={() => {
               const next = !liveScreenActive;
               setLiveScreenActive(next);
-              setNotice(
-                next
-                  ? "Live Screen aktiv. NORVI hält die letzten Bildschirmzustände für deine nächste Frage bereit."
-                  : "Live Screen beendet.",
-              );
+              const message = next
+                ? "Live Screen aktiv. NORVI hält die letzten Bildschirmzustände für deine nächste Frage bereit."
+                : "Live Screen beendet.";
+              setNotice(message);
+              if (!next) {
+                window.setTimeout(
+                  () => setNotice((current) => (current === message ? null : current)),
+                  2600,
+                );
+              }
             }}
             className={
               "flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] transition disabled:opacity-40 " +

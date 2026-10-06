@@ -253,9 +253,48 @@ function bunExecutable(): string {
   return process.platform === "win32" ? "bun.exe" : "bun";
 }
 
+async function healthFetch(
+  url: string,
+  headers?: Record<string, string>,
+  timeoutMs = 1500,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await net.fetch(url, { headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function runtimeEnvValues(): Promise<Record<string, string>> {
+  try {
+    const source = await fs.readFile(path.join(runtimeDirectory(), ".env"), "utf8");
+    const values: Record<string, string> = {};
+    for (const rawLine of source.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const index = line.indexOf("=");
+      if (index <= 0) continue;
+      const key = line.slice(0, index).trim();
+      let value = line.slice(index + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      values[key] = value;
+    }
+    return values;
+  } catch {
+    return {};
+  }
+}
+
 async function ollamaHealthOk(): Promise<boolean> {
   try {
-    const response = await net.fetch("http://127.0.0.1:11434/api/tags");
+    const response = await healthFetch("http://127.0.0.1:11434/api/tags");
     return response.ok;
   } catch {
     return false;
@@ -264,8 +303,18 @@ async function ollamaHealthOk(): Promise<boolean> {
 
 async function sttHealthOk(): Promise<boolean> {
   try {
-    const response = await net.fetch("http://127.0.0.1:8000/v1/models");
-    return response.status < 500;
+    const env = await runtimeEnvValues();
+    const port = env.STT_LOCAL_PORT?.trim() || "8000";
+    const base = (env.STT_BASE_URL?.trim() || `http://127.0.0.1:${port}/v1`).replace(
+      /\/+$/,
+      "",
+    );
+    const key = env.STT_API_KEY?.trim();
+    const response = await healthFetch(
+      `${base}/models`,
+      key ? { Authorization: `Bearer ${key}` } : undefined,
+    );
+    return response.ok;
   } catch {
     return false;
   }
@@ -289,18 +338,29 @@ async function startOllamaIfNeeded(): Promise<void> {
 
   let started = false;
   for (const command of candidates) {
-    try {
+    const launched = await new Promise<boolean>((resolve) => {
       const child = spawn(command, ["serve"], {
         detached: true,
         windowsHide: true,
         stdio: "ignore",
         shell: false,
       });
-      child.unref();
+      let settled = false;
+      child.once("error", () => {
+        if (settled) return;
+        settled = true;
+        resolve(false);
+      });
+      child.once("spawn", () => {
+        if (settled) return;
+        settled = true;
+        child.unref();
+        resolve(true);
+      });
+    });
+    if (launched) {
       started = true;
       break;
-    } catch {
-      // Try the next known Ollama path.
     }
   }
   if (!started) throw new Error("Ollama konnte nicht gestartet werden.");
@@ -315,17 +375,23 @@ async function startOllamaIfNeeded(): Promise<void> {
 
 async function localHealthOk(): Promise<boolean> {
   try {
-    const response = await net.fetch("http://127.0.0.1:4200/api/health");
+    const response = await healthFetch("http://127.0.0.1:4200/api/health");
     return response.ok;
   } catch {
     return false;
   }
 }
 
-async function waitForServer(): Promise<void> {
+async function waitForServer(expectedProcess?: ChildProcessWithoutNullStreams): Promise<void> {
   const started = Date.now();
   while (Date.now() - started < 90_000) {
     if (await localHealthOk()) return;
+    if (
+      expectedProcess &&
+      (expectedProcess.exitCode !== null || expectedProcess.signalCode !== null)
+    ) {
+      throw new Error("NORVI Server wurde beim Start unerwartet beendet.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error("NORVI konnte nicht innerhalb von 90 Sekunden gestartet werden.");
@@ -341,7 +407,7 @@ export async function startLocalServer(
   const bun = bunExecutable();
   onProgress?.({ stage: "start", message: "NORVI wird gestartet…", percent: 96 });
 
-  serverProcess = spawn(
+  const child = spawn(
     bun,
     ["--env-file=.env", "packages/web/src/__server.ts"],
     {
@@ -351,20 +417,34 @@ export async function startLocalServer(
       shell: false,
     },
   );
+  serverProcess = child;
 
-  serverProcess.stdout.on("data", (chunk: Buffer) => {
+  child.stdout.on("data", (chunk: Buffer) => {
     const line = chunk.toString("utf8").trim();
     if (line) onProgress?.({ stage: "start", message: line, percent: 97 });
   });
-  serverProcess.stderr.on("data", (chunk: Buffer) => {
+  child.stderr.on("data", (chunk: Buffer) => {
     const line = chunk.toString("utf8").trim();
     if (line) onProgress?.({ stage: "start", message: line, percent: 97 });
   });
-  serverProcess.once("exit", () => {
-    serverProcess = null;
+  child.once("exit", () => {
+    if (serverProcess === child) serverProcess = null;
   });
 
-  await waitForServer();
+  await new Promise<void>((resolve, reject) => {
+    child.once("spawn", resolve);
+    child.once("error", (error) => {
+      if (serverProcess === child) serverProcess = null;
+      reject(
+        new Error(
+          "NORVI Server konnte nicht gestartet werden: " +
+            (error instanceof Error ? error.message : String(error)),
+        ),
+      );
+    });
+  });
+
+  await waitForServer(child);
 }
 
 export function stopLocalServer(): void {

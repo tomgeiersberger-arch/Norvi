@@ -27,6 +27,7 @@ import { getDeviceId } from "../lib/device";
 import {
   clearLocalErrorLog,
   getLocalErrorLog,
+  LOCAL_ERROR_LOG_EVENT,
   type LocalErrorEntry,
 } from "../lib/local-error-log";
 import { useCapabilities } from "../queries/capabilities";
@@ -89,6 +90,16 @@ export function DesktopMaintenancePanel() {
       .catch(() => setExplorerContextEnabled(false));
   }, []);
 
+  useEffect(() => {
+    const refresh = () => setErrorCount(getLocalErrorLog().length);
+    window.addEventListener(LOCAL_ERROR_LOG_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(LOCAL_ERROR_LOG_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
   const exportDiagnostics = async () => {
     const desktopApi = getDesktopAPI();
     const api = getNorviDesktopAPI();
@@ -120,13 +131,15 @@ export function DesktopMaintenancePanel() {
       };
 
       const safeDate = report.generatedAt.slice(0, 10);
-      const path = await desktopApi.showSaveDialog({
-        title: "NORVI Diagnosebericht speichern",
-        defaultPath: "NORVI-Diagnose-" + safeDate + ".json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
+      const path = await desktopApi.saveTextFile(
+        {
+          title: "NORVI Diagnosebericht speichern",
+          defaultPath: "NORVI-Diagnose-" + safeDate + ".json",
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        },
+        JSON.stringify(report, null, 2) + "\n",
+      );
       if (!path) return;
-      await desktopApi.writeFile(path, JSON.stringify(report, null, 2) + "\n");
       setNotice("Lokaler Diagnosebericht gespeichert. Er enthält keine API-Keys oder Chat-Inhalte.");
     } catch (error) {
       setNotice(

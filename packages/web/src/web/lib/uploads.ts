@@ -89,7 +89,27 @@ export async function transcribeAudio(
   form.append("language", language);
   form.append("deviceId", getDeviceId());
 
-  const response = await fetch("/api/transcribe", { method: "POST", body: form });
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 35_000);
+
+  let response: Response;
+  try {
+    response = await fetch("/api/transcribe", {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === "AbortError") {
+      throw new Error(
+        "Die Spracherkennung antwortet nicht. Bitte kurz warten und nochmal versuchen.",
+      );
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+
   if (!response.ok) {
     const data = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new Error(data?.error ?? `Transkription fehlgeschlagen (HTTP ${response.status}).`);

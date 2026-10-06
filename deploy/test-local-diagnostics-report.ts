@@ -8,7 +8,7 @@ const panel = readFileSync(
 const privacy = readFileSync("docs/PRIVACY.md", "utf8");
 
 assert.equal(panel.includes("exportDiagnostics"), true);
-assert.equal(panel.includes("showSaveDialog"), true);
+assert.equal(panel.includes("saveTextFile"), true);
 assert.equal(panel.includes("runtimeChecks"), true);
 assert.equal(panel.includes("API-Keys oder Chat-Inhalte"), true);
 assert.equal(privacy.includes("Local diagnostics report"), true);

@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
   showOpenDialog: (opts: Electron.OpenDialogOptions) => ipcRenderer.invoke("dialog:open", opts),
   showSaveDialog: (opts: Electron.SaveDialogOptions) => ipcRenderer.invoke("dialog:save", opts),
+  saveTextFile: (opts: Electron.SaveDialogOptions, content: string) =>
+    ipcRenderer.invoke("dialog:save-text", opts, content),
   openExternal: managedAuth.openExternal,
   showNotification: (title: string, body: string) =>
     ipcRenderer.invoke("notification:show", title, body),
@@ -59,6 +61,7 @@ contextBridge.exposeInMainWorld("norviDesktop", {
   listDesktopActions: () => ipcRenderer.invoke("norvi:list-desktop-actions"),
   addCustomDesktopAction: () => ipcRenderer.invoke("norvi:add-custom-desktop-action"),
   scanInstalledDesktopActions: () => ipcRenderer.invoke("norvi:scan-installed-desktop-actions"),
+  scanDesktopActionsInFolder: () => ipcRenderer.invoke("norvi:scan-desktop-actions-in-folder"),
   addScannedDesktopActions: (scanIds: string[]) =>
     ipcRenderer.invoke("norvi:add-scanned-desktop-actions", scanIds),
   removeCustomDesktopAction: (actionId: string) =>

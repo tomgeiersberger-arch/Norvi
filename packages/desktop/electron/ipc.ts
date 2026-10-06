@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { ipcMain, dialog, Notification, type BrowserWindow } from "electron";
 
 // Starter IPC handlers backing window.electronAPI (see preload.ts and
@@ -16,6 +17,17 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null) {
   ipcMain.handle("dialog:save", async (_, opts) => {
     const result = await dialog.showSaveDialog(opts);
     return result.canceled ? null : result.filePath;
+  });
+
+  ipcMain.handle("dialog:save-text", async (_, opts, content: unknown) => {
+    const text = typeof content === "string" ? content : "";
+    if (Buffer.byteLength(text, "utf8") > 2 * 1024 * 1024) {
+      throw new Error("Die zu speichernde Diagnose ist größer als 2 MB.");
+    }
+    const result = await dialog.showSaveDialog(opts);
+    if (result.canceled || !result.filePath) return null;
+    await writeFile(result.filePath, text, "utf8");
+    return result.filePath;
   });
 
   // Notifications

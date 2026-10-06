@@ -333,15 +333,24 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     const onVoiceCommand = (event: Event) => {
       const detail = (event as CustomEvent<{ text?: string }>).detail;
       const text = detail?.text?.trim();
-      if (!text || busyRef.current) return;
+      if (!text) return;
+      if (busyRef.current) {
+        dispatchVoiceTurnComplete();
+        return;
+      }
 
       void (async () => {
-        if (await executeDesktopAction(text, true)) {
+        try {
+          if (await executeDesktopAction(text, true)) {
+            voiceTurnRef.current = false;
+            return;
+          }
+          voiceTurnRef.current = true;
+          await sendRef.current(text, []);
+        } catch {
           voiceTurnRef.current = false;
-          return;
+          dispatchVoiceTurnComplete();
         }
-        voiceTurnRef.current = true;
-        await sendRef.current(text, []);
       })();
     };
     window.addEventListener(VOICE_COMMAND_EVENT, onVoiceCommand);
@@ -365,6 +374,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     }
     void getNorviDesktopAPI()
       ?.speak(text, assistant.voice || undefined)
+      .catch(() => undefined)
       .finally(() => dispatchVoiceTurnComplete());
   }, [messages, status]);
 

@@ -38,6 +38,7 @@ import {
   listDesktopActions,
   openDesktopWebsite,
   removeCustomDesktopAction,
+  scanDesktopActionsInFolder,
   scanInstalledDesktopActions,
 } from "./actions";
 import {
@@ -587,6 +588,7 @@ function registerNorviHandlers() {
   ipcMain.handle("norvi:list-desktop-actions", () => listDesktopActions());
   ipcMain.handle("norvi:add-custom-desktop-action", () => addCustomDesktopAction());
   ipcMain.handle("norvi:scan-installed-desktop-actions", () => scanInstalledDesktopActions());
+  ipcMain.handle("norvi:scan-desktop-actions-in-folder", () => scanDesktopActionsInFolder());
   ipcMain.handle("norvi:add-scanned-desktop-actions", (_event, scanIds: unknown) =>
     addScannedDesktopActions(scanIds),
   );

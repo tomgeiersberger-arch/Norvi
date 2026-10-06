@@ -156,10 +156,18 @@ if (!skipPull) {
 if (existsSync(".env") && !process.argv.includes("--force")) {
   const current = readFileSync(".env", "utf8");
   const localPort = envValue(current, "STT_LOCAL_PORT") || "8000";
+  const currentSttModel = envValue(current, "STT_LOCAL_MODEL");
+  // v0.1.3 and older installs may have preserved the old "tiny" default.
+  // Upgrade that default when the detected hardware profile can use a more
+  // accurate model, while preserving any other explicit custom choice.
+  const migratedSttModel =
+    currentSttModel === "tiny" && profile.sttModel !== "tiny"
+      ? profile.sttModel
+      : currentSttModel || profile.sttModel;
   const sttValues: Record<string, string> = {
     STT_LOCAL_ENABLED: "true",
     STT_LOCAL_PORT: localPort,
-    STT_LOCAL_MODEL: envValue(current, "STT_LOCAL_MODEL") || profile.sttModel,
+    STT_LOCAL_MODEL: migratedSttModel,
     WHISPER_API_HOME: envValue(current, "WHISPER_API_HOME") || "data/whisper-api",
     STT_BASE_URL: `http://127.0.0.1:${localPort}/v1`,
     STT_API_KEY: envValue(current, "STT_API_KEY") || randomBytes(24).toString("base64url"),
@@ -215,6 +223,9 @@ if (existsSync(".env") && !process.argv.includes("--force")) {
   console.log("==> Lokale .env erzeugt (Secrets bleiben nur auf diesem PC)");
 }
 
+const activeSttModel =
+  envValue(readFileSync(".env", "utf8"), "STT_LOCAL_MODEL") || profile.sttModel;
+
 console.log("\n==> Abhängigkeiten");
 run("bun", ["install", "--frozen-lockfile"]);
 
@@ -223,22 +234,33 @@ if (!skipPull) {
   const whisperConfig = resolve(whisperHome, "config.json");
   mkdirSync(whisperHome, { recursive: true });
 
-  if (!existsSync(whisperConfig) || process.argv.includes("--force")) {
+  let configNeedsUpdate = process.argv.includes("--force") || !existsSync(whisperConfig);
+  if (!configNeedsUpdate) {
+    try {
+      const parsed = JSON.parse(readFileSync(whisperConfig, "utf8")) as {
+        defaultModel?: string;
+      };
+      configNeedsUpdate = parsed.defaultModel !== activeSttModel;
+    } catch {
+      configNeedsUpdate = true;
+    }
+  }
+  if (configNeedsUpdate) {
     writeFileSync(
       whisperConfig,
-      JSON.stringify({ engine: "onnx", defaultModel: profile.sttModel }, null, 2) + "\n",
+      JSON.stringify({ engine: "onnx", defaultModel: activeSttModel }, null, 2) + "\n",
       "utf8",
     );
   }
 
-  console.log(`==> Lade lokales Whisper-Modell ${profile.sttModel}`);
+  console.log(`==> Lade lokales Whisper-Modell ${activeSttModel}`);
   run(
     "bun",
     [
       "packages/web/node_modules/whisper-api/bin/whisper-api.js",
       "models",
       "pull",
-      profile.sttModel,
+      activeSttModel,
     ],
     false,
     { WHISPER_API_HOME: whisperHome },

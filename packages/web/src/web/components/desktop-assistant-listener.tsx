@@ -6,6 +6,7 @@ import { getNorviDesktopAPI, isDesktop } from "../lib/desktop";
 import {
   commandAfterWakePhrase,
   dispatchVoiceCommand,
+  dispatchVoiceStatus,
   FOREGROUND_MICROPHONE_EVENT,
   getAssistantSettings,
   subscribeAssistantSettings,
@@ -32,6 +33,7 @@ export function DesktopAssistantListener() {
   const [settings, setSettings] = useState(getAssistantSettings);
   const conversationUntilRef = useRef(0);
   const foregroundMicRef = useRef(false);
+  const voiceTurnPendingRef = useRef(false);
 
   useEffect(() => subscribeAssistantSettings(setSettings), []);
 
@@ -52,11 +54,13 @@ export function DesktopAssistantListener() {
 
   useEffect(() => {
     const onTurnComplete = () => {
-      if (
-        settings.gamingMode ||
-        !settings.conversationMode ||
-        !settings.microphoneEnabled
-      ) {
+      voiceTurnPendingRef.current = false;
+      const voiceAvailable =
+        !settings.gamingMode &&
+        settings.microphoneEnabled &&
+        settings.wakeEnabled;
+      dispatchVoiceStatus(voiceAvailable ? "ready" : "off");
+      if (!voiceAvailable || !settings.conversationMode) {
         conversationUntilRef.current = 0;
         return;
       }
@@ -70,6 +74,7 @@ export function DesktopAssistantListener() {
     settings.conversationWindowSeconds,
     settings.gamingMode,
     settings.microphoneEnabled,
+    settings.wakeEnabled,
   ]);
 
   useEffect(() => {
@@ -94,22 +99,35 @@ export function DesktopAssistantListener() {
       !settings.wakeEnabled ||
       capabilities.data?.stt !== true
     ) {
+      dispatchVoiceStatus("off");
       return;
     }
 
+    dispatchVoiceStatus("ready");
     let cancelled = false;
     let activeHandle: Awaited<ReturnType<typeof startRecording>> | null = null;
 
     const recordFor = async (duration: number) => {
-      activeHandle = await startRecording(settings.microphoneDeviceId || undefined);
-      await sleep(duration);
-      if (cancelled) {
-        activeHandle.cancel();
-        activeHandle = null;
+      const handle = await startRecording(settings.microphoneDeviceId || undefined);
+      activeHandle = handle;
+      const deadline = Date.now() + duration;
+
+      while (
+        !cancelled &&
+        !foregroundMicRef.current &&
+        Date.now() < deadline
+      ) {
+        await sleep(Math.min(120, Math.max(0, deadline - Date.now())));
+      }
+
+      if (cancelled || foregroundMicRef.current) {
+        handle.cancel();
+        if (activeHandle === handle) activeHandle = null;
         return null;
       }
-      const result = await activeHandle.stop();
-      activeHandle = null;
+
+      const result = await handle.stop();
+      if (activeHandle === handle) activeHandle = null;
       return result;
     };
 
@@ -120,15 +138,31 @@ export function DesktopAssistantListener() {
         await api.speak("Ja?", settings.voice || undefined).catch(() => undefined);
       }
       await sleep(180);
+      dispatchVoiceStatus("listening");
       const recording = await recordFor(COMMAND_CHUNK_MS);
-      if (!recording?.voiceDetected || cancelled) return;
+      if (!recording?.voiceDetected || cancelled) {
+        if (!cancelled) dispatchVoiceStatus("ready");
+        return;
+      }
+      dispatchVoiceStatus("processing");
       const text = await transcribeAudio(recording.blob, "de", recording.filename);
-      if (!cancelled) dispatchVoiceCommand(text);
+      if (!cancelled && text.trim()) {
+        voiceTurnPendingRef.current = true;
+        dispatchVoiceStatus("command");
+        dispatchVoiceCommand(text);
+        return;
+      }
+      if (!cancelled) dispatchVoiceStatus("ready");
     };
 
     const loop = async () => {
       let wakeTranscriptTail = "";
       while (!cancelled) {
+        if (voiceTurnPendingRef.current) {
+          await sleep(200);
+          continue;
+        }
+
         const conversationActive =
           settings.conversationMode && Date.now() < conversationUntilRef.current;
 
@@ -141,14 +175,23 @@ export function DesktopAssistantListener() {
 
         try {
           if (conversationActive) {
+            dispatchVoiceStatus("listening");
             const followUp = await recordFor(COMMAND_CHUNK_MS);
             if (!followUp?.voiceDetected || cancelled) {
+              if (!cancelled) dispatchVoiceStatus("ready");
               await sleep(180);
               continue;
             }
+            dispatchVoiceStatus("processing");
             const text = await transcribeAudio(followUp.blob, "de", followUp.filename);
             conversationUntilRef.current = 0;
-            if (!cancelled && text.trim()) dispatchVoiceCommand(text);
+            if (!cancelled && text.trim()) {
+              voiceTurnPendingRef.current = true;
+              dispatchVoiceStatus("command");
+              dispatchVoiceCommand(text);
+              continue;
+            }
+            if (!cancelled) dispatchVoiceStatus("ready");
             await sleep(500);
             continue;
           }
@@ -172,15 +215,20 @@ export function DesktopAssistantListener() {
           const api = getNorviDesktopAPI();
           await api?.showWindow();
           if (command) {
+            voiceTurnPendingRef.current = true;
+            dispatchVoiceStatus("command");
             dispatchVoiceCommand(command);
           } else {
             await listenForCommand();
           }
 
-          // Avoid immediately hearing the tail of NORVI's own spoken response.
-          await sleep(1200);
+          // The listener stays paused while the voice turn is being handled.
+          await sleep(200);
         } catch {
-          if (!cancelled) await sleep(1400);
+          if (!cancelled) {
+            dispatchVoiceStatus("ready");
+            await sleep(1400);
+          }
         }
       }
     };
@@ -189,8 +237,10 @@ export function DesktopAssistantListener() {
 
     return () => {
       cancelled = true;
+      voiceTurnPendingRef.current = false;
       activeHandle?.cancel();
       activeHandle = null;
+      dispatchVoiceStatus("off");
     };
   }, [
     capabilities.data?.stt,

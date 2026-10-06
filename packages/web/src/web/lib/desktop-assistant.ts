@@ -69,7 +69,10 @@ export const ASSISTANT_SETTINGS_EVENT = "norvi:assistant-settings";
 export const VOICE_COMMAND_EVENT = "norvi:voice-command";
 export const VOICE_TURN_COMPLETE_EVENT = "norvi:voice-turn-complete";
 export const FOREGROUND_MICROPHONE_EVENT = "norvi:foreground-microphone";
+export const VOICE_STATUS_EVENT = "norvi:voice-status";
 export const OPEN_SETTINGS_EVENT = "norvi:open-settings";
+
+export type VoiceListenStatus = "off" | "ready" | "listening" | "processing" | "command";
 
 export const DEFAULT_DESKTOP_ACTION_ALIASES: Record<DesktopActionId, string[]> = {
   spotify: ["spotify", "musik"],
@@ -331,6 +334,11 @@ export function dispatchVoiceCommand(text: string): void {
 export function dispatchVoiceTurnComplete(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(VOICE_TURN_COMPLETE_EVENT));
+}
+
+export function dispatchVoiceStatus(status: VoiceListenStatus): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(VOICE_STATUS_EVENT, { detail: { status } }));
 }
 
 export function setForegroundMicrophoneActive(active: boolean): void {

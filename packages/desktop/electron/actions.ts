@@ -283,6 +283,38 @@ export async function addCustomDesktopAction(): Promise<DesktopActionDescriptor 
   return { id: action.id, label: action.label, builtin: false };
 }
 
+async function finalizeScan(
+  found: ScannedTarget[],
+): Promise<ScannedDesktopActionDescriptor[]> {
+  const existingKeys = new Set((await readCustomActions()).map(targetKey));
+  const builtinLabels = new Set(
+    Object.values(ACTIONS).map((item) => item.label.toLocaleLowerCase()),
+  );
+  const unique = new Map<string, ScannedTarget>();
+
+  for (const candidate of found) {
+    const key = targetKey(candidate);
+    if (
+      !key ||
+      existingKeys.has(key) ||
+      builtinLabels.has(candidate.label.toLocaleLowerCase())
+    ) {
+      continue;
+    }
+    if (!unique.has(key)) unique.set(key, candidate);
+  }
+
+  scanCache = new Map();
+  return [...unique.values()]
+    .sort((a, b) => a.label.localeCompare(b.label, "de"))
+    .slice(0, 250)
+    .map((candidate) => {
+      const scanId = "scan-" + randomUUID();
+      scanCache.set(scanId, candidate);
+      return { scanId, label: candidate.label, source: candidate.source };
+    });
+}
+
 export async function scanInstalledDesktopActions(): Promise<ScannedDesktopActionDescriptor[]> {
   if (process.platform !== "win32") {
     throw new Error("Der Programm-Scan ist aktuell für Windows vorgesehen.");
@@ -300,27 +332,25 @@ export async function scanInstalledDesktopActions(): Promise<ScannedDesktopActio
   await walkPrograms(desktop, "Desktop", found);
   await scanSteamGames(found);
 
-  const existingKeys = new Set((await readCustomActions()).map(targetKey));
-  const builtinLabels = new Set(Object.values(ACTIONS).map((item) => item.label.toLocaleLowerCase()));
-  const unique = new Map<string, ScannedTarget>();
+  return finalizeScan(found);
+}
 
-  for (const candidate of found) {
-    const key = targetKey(candidate);
-    if (!key || existingKeys.has(key) || builtinLabels.has(candidate.label.toLocaleLowerCase())) continue;
-    if (!unique.has(key)) unique.set(key, candidate);
+export async function scanDesktopActionsInFolder(): Promise<ScannedDesktopActionDescriptor[]> {
+  if (process.platform !== "win32") {
+    throw new Error("Der Ordner-Scan ist aktuell für Windows vorgesehen.");
   }
 
-  scanCache = new Map();
-  const result = [...unique.values()]
-    .sort((a, b) => a.label.localeCompare(b.label, "de"))
-    .slice(0, 250)
-    .map((candidate) => {
-      const scanId = "scan-" + randomUUID();
-      scanCache.set(scanId, candidate);
-      return { scanId, label: candidate.label, source: candidate.source };
-    });
+  const result = await dialog.showOpenDialog({
+    title: "Ordner mit Games oder Programmen scannen",
+    properties: ["openDirectory"],
+  });
+  const directory = result.filePaths[0];
+  if (result.canceled || !directory) return [];
 
-  return result;
+  const found: ScannedTarget[] = [];
+  const source = "Ordner · " + (path.basename(directory) || directory);
+  await walkPrograms(directory, source, found);
+  return finalizeScan(found);
 }
 
 export async function addScannedDesktopActions(
