@@ -23,6 +23,7 @@ import {
   installRuntime,
   repairLocalRuntime,
   runRuntimeSelfTest,
+  runtimeNeedsUpdate,
   runtimeReady,
   startLocalServer,
   stopLocalServer,
@@ -390,6 +391,15 @@ async function openNorvi() {
 async function bootProduction() {
   try {
     if (await runtimeReady()) {
+      if (await runtimeNeedsUpdate()) {
+        await showSetup();
+        sendSetupProgress({
+          stage: "update",
+          message: `Lokale NORVI-Runtime wird auf v${app.getVersion()} aktualisiert…`,
+          percent: 5,
+        });
+        await installRuntime(detectHardware().profile, sendSetupProgress);
+      }
       await openNorvi();
     } else {
       await showSetup();
