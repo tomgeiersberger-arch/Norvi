@@ -78,6 +78,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [previewingVoice, setPreviewingVoice] = useState(false);
   const [voicePreviewError, setVoicePreviewError] = useState<string | null>(null);
   const [scanBusy, setScanBusy] = useState(false);
+  const [desktopActionError, setDesktopActionError] = useState<string | null>(null);
   const [scannedActions, setScannedActions] = useState<ScannedDesktopActionDescriptor[]>([]);
   const [selectedScanIds, setSelectedScanIds] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
@@ -125,9 +126,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     const api = getNorviDesktopAPI();
     if (!api) return;
     setScanBusy(true);
+    setDesktopActionError(null);
     setSelectedScanIds([]);
     try {
       setScannedActions(await api.scanInstalledDesktopActions());
+    } catch (error) {
+      setDesktopActionError(
+        error instanceof Error ? error.message : "PC-Scan ist fehlgeschlagen.",
+      );
     } finally {
       setScanBusy(false);
     }
@@ -137,9 +143,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     const api = getNorviDesktopAPI();
     if (!api) return;
     setScanBusy(true);
+    setDesktopActionError(null);
     setSelectedScanIds([]);
     try {
       setScannedActions(await api.scanDesktopActionsInFolder());
+    } catch (error) {
+      setDesktopActionError(
+        error instanceof Error ? error.message : "Ordner-Scan ist fehlgeschlagen.",
+      );
     } finally {
       setScanBusy(false);
     }
@@ -148,19 +159,26 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const addSelectedScanned = async () => {
     const api = getNorviDesktopAPI();
     if (!api || selectedScanIds.length === 0) return;
-    const added = await api.addScannedDesktopActions(selectedScanIds);
-    setAssistant((current) => ({
-      ...current,
-      customDesktopActions: [
-        ...current.customDesktopActions,
-        ...added
-          .filter((action) => !current.customDesktopActions.some((item) => item.id === action.id))
-          .map((action) => ({ id: action.id, label: action.label, aliases: [action.label] })),
-      ],
-    }));
-    const chosen = new Set(selectedScanIds);
-    setScannedActions((current) => current.filter((item) => !chosen.has(item.scanId)));
-    setSelectedScanIds([]);
+    setDesktopActionError(null);
+    try {
+      const added = await api.addScannedDesktopActions(selectedScanIds);
+      setAssistant((current) => ({
+        ...current,
+        customDesktopActions: [
+          ...current.customDesktopActions,
+          ...added
+            .filter((action) => !current.customDesktopActions.some((item) => item.id === action.id))
+            .map((action) => ({ id: action.id, label: action.label, aliases: [action.label] })),
+        ],
+      }));
+      const chosen = new Set(selectedScanIds);
+      setScannedActions((current) => current.filter((item) => !chosen.has(item.scanId)));
+      setSelectedScanIds([]);
+    } catch (error) {
+      setDesktopActionError(
+        error instanceof Error ? error.message : "Programme konnten nicht hinzugefügt werden.",
+      );
+    }
   };
 
   useEffect(() => {
@@ -836,21 +854,31 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                           onClick={() => {
                             const api = getNorviDesktopAPI();
                             if (!api) return;
-                            void api.addCustomDesktopAction().then((action) => {
-                              if (!action) return;
-                              setAssistant((current) => {
-                                if (current.customDesktopActions.some((item) => item.id === action.id)) {
-                                  return current;
-                                }
-                                return {
-                                  ...current,
-                                  customDesktopActions: [
-                                    ...current.customDesktopActions,
-                                    { id: action.id, label: action.label, aliases: [action.label] },
-                                  ],
-                                };
-                              });
-                            });
+                            setDesktopActionError(null);
+                            void api
+                              .addCustomDesktopAction()
+                              .then((action) => {
+                                if (!action) return;
+                                setAssistant((current) => {
+                                  if (current.customDesktopActions.some((item) => item.id === action.id)) {
+                                    return current;
+                                  }
+                                  return {
+                                    ...current,
+                                    customDesktopActions: [
+                                      ...current.customDesktopActions,
+                                      { id: action.id, label: action.label, aliases: [action.label] },
+                                    ],
+                                  };
+                                });
+                              })
+                              .catch((error) =>
+                                setDesktopActionError(
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Programm konnte nicht hinzugefügt werden.",
+                                ),
+                              );
                           }}
                           className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground"
                         >
@@ -859,6 +887,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                         </button>
                       </div>
                     </div>
+
+                    {desktopActionError && (
+                      <div className="mt-2 rounded-lg border border-destructive/20 bg-destructive/[0.06] px-2.5 py-2 text-[10px] text-destructive">
+                        {desktopActionError}
+                      </div>
+                    )}
 
                     {scannedActions.length > 0 && (
                       <div className="mt-2 rounded-xl border border-primary/15 bg-primary/[0.035] p-2.5">
