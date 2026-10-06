@@ -104,15 +104,26 @@ export function DesktopAssistantListener() {
     let activeHandle: Awaited<ReturnType<typeof startRecording>> | null = null;
 
     const recordFor = async (duration: number) => {
-      activeHandle = await startRecording(settings.microphoneDeviceId || undefined);
-      await sleep(duration);
-      if (cancelled) {
-        activeHandle.cancel();
-        activeHandle = null;
+      const handle = await startRecording(settings.microphoneDeviceId || undefined);
+      activeHandle = handle;
+      const deadline = Date.now() + duration;
+
+      while (
+        !cancelled &&
+        !foregroundMicRef.current &&
+        Date.now() < deadline
+      ) {
+        await sleep(Math.min(120, Math.max(0, deadline - Date.now())));
+      }
+
+      if (cancelled || foregroundMicRef.current) {
+        handle.cancel();
+        if (activeHandle === handle) activeHandle = null;
         return null;
       }
-      const result = await activeHandle.stop();
-      activeHandle = null;
+
+      const result = await handle.stop();
+      if (activeHandle === handle) activeHandle = null;
       return result;
     };
 
