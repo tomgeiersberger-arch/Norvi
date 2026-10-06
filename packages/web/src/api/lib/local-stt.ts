@@ -53,7 +53,7 @@ function spawnLocalStt() {
 
   const host = "127.0.0.1";
   const port = (process.env.STT_LOCAL_PORT ?? "8000").trim();
-  const model = (process.env.STT_LOCAL_MODEL ?? "tiny").trim();
+  const model = (process.env.STT_LOCAL_MODEL ?? "base").trim();
   const configuredHome = process.env.WHISPER_API_HOME?.trim();
   const home = configuredHome
     ? path.isAbsolute(configuredHome)
