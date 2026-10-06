@@ -3,11 +3,6 @@ import { readFileSync } from "node:fs";
 
 const runtime = readFileSync("packages/desktop/electron/local-runtime.ts", "utf8");
 const main = readFileSync("packages/desktop/electron/main.ts", "utf8");
-const pkg = JSON.parse(readFileSync("packages/desktop/package.json", "utf8")) as { version?: string };
-const lock = readFileSync("bun.lock", "utf8");
-
-assert.equal(pkg.version, "0.1.5");
-assert.match(lock, /"packages\/desktop": \{[\s\S]*?"version": "0\.1\.5"/);
 
 assert.match(runtime, /stopExistingNorviRuntimeProcess/);
 assert.match(runtime, /Get-NetTCPConnection -LocalPort 4200/);

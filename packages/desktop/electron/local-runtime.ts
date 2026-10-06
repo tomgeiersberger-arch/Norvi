@@ -112,6 +112,7 @@ function powershellQuote(value: string): string {
 }
 
 async function stopExistingNorviRuntimeProcess(): Promise<void> {
+  const managedPid = serverProcess?.pid;
   stopLocalServer();
 
   if (process.platform !== "win32") {
@@ -119,10 +120,18 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
     return;
   }
 
-  // An older NORVI instance may still own the Bun server on port 4200. Only
-  // stop a listener whose command line is clearly NORVI's local web server.
+  const runtime = runtimeDirectory();
+
+  // Kill the process tree we started before losing its PID, then sweep for
+  // NORVI runtime children (notably Whisper) that may outlive the Bun server.
+  // Port 4200 alone is insufficient: the listener can disappear first while a
+  // child process still keeps files below the runtime directory open.
   const script = [
     "$ErrorActionPreference='SilentlyContinue'",
+    "$managedPid=" + String(managedPid ?? 0),
+    "$runtime=" + powershellQuote(runtime),
+    "$runtimePattern=[regex]::Escape($runtime)",
+    "if($managedPid -gt 0){ taskkill.exe /PID $managedPid /T /F | Out-Null }",
     "$connections=@(Get-NetTCPConnection -LocalPort 4200 -State Listen)",
     "foreach($c in $connections){",
     "$p=Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $c.OwningProcess)",
@@ -130,21 +139,36 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
     "taskkill.exe /PID $c.OwningProcess /T /F | Out-Null",
     "}",
     "}",
+    "$processes=@(Get-CimInstance Win32_Process)",
+    "foreach($p in $processes){",
+    "if($p.ProcessId -eq $PID){ continue }",
+    "if($p.CommandLine -and $p.CommandLine -match $runtimePattern -and ($p.CommandLine -match 'packages[\\/]web[\\/]src[\\/]__server\\.ts' -or $p.CommandLine -match 'whisper-api')){",
+    "taskkill.exe /PID $p.ProcessId /T /F | Out-Null",
+    "}",
+    "}",
+    "for($i=0;$i -lt 40;$i++){",
+    "$left=@(Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -and $_.CommandLine -match $runtimePattern -and ($_.CommandLine -match 'packages[\\/]web[\\/]src[\\/]__server\\.ts' -or $_.CommandLine -match 'whisper-api') })",
+    "if($left.Count -eq 0){ break }",
+    "Start-Sleep -Milliseconds 250",
+    "}",
   ].join("; ");
 
   try {
     execFileSync(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
-      { stdio: "ignore", windowsHide: true, timeout: 12_000 },
+      { stdio: "ignore", windowsHide: true, timeout: 15_000 },
     );
   } catch {
-    // The health check below decides whether an old NORVI server is still alive.
+    // The health check and directory-removal retry below still provide a safe fallback.
   }
 
   const started = Date.now();
   while (Date.now() - started < 12_000) {
-    if (!(await localHealthOk())) return;
+    if (!(await localHealthOk())) {
+      await sleep(500);
+      return;
+    }
     await sleep(250);
   }
 
