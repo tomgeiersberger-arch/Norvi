@@ -45,6 +45,40 @@ export class SttError extends Error {
   }
 }
 
+/**
+ * Whisper can occasionally get stuck repeating the same short token for a
+ * long time (for example "Test Test Test ..."). Keep natural emphasis, but
+ * cap clearly runaway consecutive repetitions before the text reaches NORVI.
+ */
+export function sanitiseTranscription(value: string): string {
+  const tokens = value.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (tokens.length === 0) return "";
+
+  const result: string[] = [];
+  let previousKey = "";
+  let repeats = 0;
+
+  for (const token of tokens) {
+    const key = token
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("de-DE")
+      .replace(/[^a-z0-9äöüß]+/gi, "");
+
+    if (key && key === previousKey) {
+      repeats += 1;
+      if (repeats > 3) continue;
+    } else {
+      previousKey = key;
+      repeats = 1;
+    }
+
+    result.push(token);
+  }
+
+  return result.join(" ").trim();
+}
+
 /** Lightweight readiness probe used by the capability endpoint. */
 export async function sttAvailable(timeoutMs = 1200): Promise<boolean> {
   if (!sttConfigured()) return false;
@@ -137,7 +171,7 @@ export async function transcribe(input: {
   }
 
   const data = (await response.json().catch(() => null)) as { text?: string } | null;
-  const text = data?.text?.trim();
+  const text = sanitiseTranscription(data?.text ?? "");
   if (!text) {
     throw new SttError("Es wurde kein Text erkannt. Bitte nochmal etwas deutlicher sprechen.", 422);
   }
