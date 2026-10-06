@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Menu, Mic2, Share2, X } from "lucide-react";
+import { Check, Menu, Share2, X } from "lucide-react";
 import { AccountMenu } from "../components/account-menu";
 import { ChatPane } from "../components/chat/chat-pane";
 import { NorviMark } from "../components/chat/norvi-mark";
@@ -9,6 +9,8 @@ import { isDesktop } from "../lib/desktop";
 import {
   getAssistantSettings,
   subscribeAssistantSettings,
+  VOICE_STATUS_EVENT,
+  type VoiceListenStatus,
 } from "../lib/desktop-assistant";
 import { useCapabilities } from "../queries/capabilities";
 import { useChats, useDeleteChat, useRenameChat } from "../queries/chats";
@@ -31,8 +33,17 @@ function Index() {
   const [drawer, setDrawer] = useState(false);
   const [shareState, setShareState] = useState<"idle" | "shared" | "copied" | "error">("idle");
   const [desktopAssistant, setDesktopAssistant] = useState(getAssistantSettings);
+  const [voiceStatus, setVoiceStatus] = useState<VoiceListenStatus>("off");
 
   useEffect(() => subscribeAssistantSettings(setDesktopAssistant), []);
+  useEffect(() => {
+    const onVoiceStatus = (event: Event) => {
+      const status = (event as CustomEvent<{ status?: VoiceListenStatus }>).detail?.status;
+      if (status) setVoiceStatus(status);
+    };
+    window.addEventListener(VOICE_STATUS_EVENT, onVoiceStatus);
+    return () => window.removeEventListener(VOICE_STATUS_EVENT, onVoiceStatus);
+  }, []);
 
   const agentName = isDesktop()
     ? desktopAssistant.assistantName
@@ -134,6 +145,17 @@ function Index() {
           ? "Offline"
           : "Verbinde";
 
+  const voiceStatusLabel =
+    voiceStatus === "listening"
+      ? "Höre zu…"
+      : voiceStatus === "processing"
+        ? "Verarbeite…"
+        : voiceStatus === "command"
+          ? "Befehl erkannt"
+          : voiceStatus === "ready"
+            ? "Bereit"
+            : null;
+
   return (
     <div className="norvi-app relative flex h-dvh overflow-hidden bg-background">
       <aside className="sidebar-shell relative hidden w-[17.25rem] shrink-0 lg:block">
@@ -197,15 +219,27 @@ function Index() {
                     GAMING
                   </span>
                 )}
+                {isDesktop() && voiceStatusLabel && (
+                  <span className="system-pill hidden items-center gap-1.5 rounded-full px-2 py-1 text-[9px] text-muted-foreground sm:inline-flex">
+                    <span
+                      className={
+                        "size-1.5 rounded-full " +
+                        (voiceStatus === "listening"
+                          ? "animate-pulse bg-green-400"
+                          : voiceStatus === "processing"
+                            ? "animate-pulse bg-amber-400"
+                            : voiceStatus === "command"
+                              ? "bg-green-400"
+                              : "bg-white/35")
+                      }
+                    />
+                    {voiceStatusLabel}
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="ml-auto flex items-center gap-1.5">
-              {capabilities.data?.stt && (
-                <span title="Spracheingabe verfügbar" className="icon-action hidden size-9 items-center justify-center rounded-xl text-muted-foreground sm:flex">
-                  <Mic2 className="size-4" />
-                </span>
-              )}
               {capabilities.data?.publicUrl && (
                 <button
                   type="button"
