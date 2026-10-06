@@ -8,14 +8,8 @@ function b64(value: string): string {
 
 export function listLocalVoices(): string[] {
   if (process.platform !== "win32") return [];
-  const script = [
-    "Add-Type -AssemblyName System.Speech",
-    "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer",
-    "$names = @($s.GetInstalledVoices() | ForEach-Object { $_.VoiceInfo.Name })",
-    "$names | ConvertTo-Json -Compress",
-  ].join("; ");
 
-  try {
+  const runVoiceList = (script: string): string[] => {
     const raw = execFileSync(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
@@ -24,6 +18,30 @@ export function listLocalVoices(): string[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as string | string[];
     return Array.isArray(parsed) ? parsed : [parsed];
+  };
+
+  const systemSpeechScript = [
+    "Add-Type -AssemblyName System.Speech",
+    "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer",
+    "$names = @($s.GetInstalledVoices() | ForEach-Object { $_.VoiceInfo.Name })",
+    "$names | ConvertTo-Json -Compress",
+  ].join("; ");
+
+  try {
+    const voices = runVoiceList(systemSpeechScript);
+    if (voices.length) return voices;
+  } catch {
+    // Fall through to SAPI below.
+  }
+
+  const sapiScript = [
+    "$s = New-Object -ComObject SAPI.SpVoice",
+    "$names = @($s.GetVoices() | ForEach-Object { $_.GetDescription() })",
+    "$names | ConvertTo-Json -Compress",
+  ].join("; ");
+
+  try {
+    return runVoiceList(sapiScript);
   } catch {
     return [];
   }
