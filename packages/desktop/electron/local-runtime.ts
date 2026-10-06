@@ -34,8 +34,72 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function runtimeDirectory(): string {
+function runtimeBaseDirectory(): string {
+  return path.join(app.getPath("userData"), "runtimes");
+}
+
+function legacyRuntimeDirectory(): string {
   return path.join(app.getPath("userData"), "runtime");
+}
+
+export function runtimeDirectory(): string {
+  return path.join(runtimeBaseDirectory(), `v${app.getVersion()}`);
+}
+
+function compareRuntimeVersions(a: string, b: string): number {
+  const parts = (value: string) =>
+    value
+      .replace(/^v/i, "")
+      .split(".")
+      .map((part) => Number(part.replace(/[^0-9].*$/, "")) || 0);
+  const left = parts(a);
+  const right = parts(b);
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const diff = (left[index] ?? 0) - (right[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+async function migrationRuntimeDirectory(current: string): Promise<string | null> {
+  const candidates: Array<{ root: string; version: string; modified: number }> = [];
+  const legacy = legacyRuntimeDirectory();
+
+  const addCandidate = async (root: string) => {
+    if (path.resolve(root) === path.resolve(current)) return;
+    if (!(await exists(path.join(root, ".env")))) return;
+    let version = "0.0.0";
+    try {
+      version = (await fs.readFile(path.join(root, ".norvi-version"), "utf8")).trim() || version;
+    } catch {
+      // Older runtimes did not always have a version marker.
+    }
+    let modified = 0;
+    try {
+      modified = (await fs.stat(root)).mtimeMs;
+    } catch {
+      // Ignore missing candidate.
+    }
+    candidates.push({ root, version, modified });
+  };
+
+  await addCandidate(legacy);
+
+  try {
+    const entries = await fs.readdir(runtimeBaseDirectory(), { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      await addCandidate(path.join(runtimeBaseDirectory(), entry.name));
+    }
+  } catch {
+    // No versioned runtime directory yet.
+  }
+
+  candidates.sort((a, b) => {
+    const byVersion = compareRuntimeVersions(b.version, a.version);
+    return byVersion !== 0 ? byVersion : b.modified - a.modified;
+  });
+  return candidates[0]?.root ?? null;
 }
 
 function nvidiaVramGiB(): number | null {
@@ -111,7 +175,7 @@ function powershellQuote(value: string): string {
   return "'" + value.replace(/'/g, "''") + "'";
 }
 
-async function stopExistingNorviRuntimeProcess(): Promise<void> {
+async function stopExistingNorviRuntimeProcess(runtimeRoots: string[]): Promise<void> {
   stopLocalServer();
 
   if (process.platform !== "win32") {
@@ -119,16 +183,39 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
     return;
   }
 
-  // An older NORVI instance may still own the Bun server on port 4200. Only
-  // stop a listener whose command line is clearly NORVI's local web server.
+  const roots = [...new Set(runtimeRoots.map((root) => path.resolve(root)))];
+  const rootArray = roots.map(powershellQuote).join(",");
   const script = [
     "$ErrorActionPreference='SilentlyContinue'",
-    "$connections=@(Get-NetTCPConnection -LocalPort 4200 -State Listen)",
-    "foreach($c in $connections){",
-    "$p=Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $c.OwningProcess)",
-    "if($p -and $p.CommandLine -and $p.CommandLine -match 'packages[\\/]web[\\/]src[\\/]__server\\.ts'){",
-    "taskkill.exe /PID $c.OwningProcess /T /F | Out-Null",
+    `$roots=@(${rootArray})`,
+    "$ports=@(4200,8000)",
+    "$listenerIds=@(Get-NetTCPConnection -State Listen | Where-Object { $ports -contains $_.LocalPort } | Select-Object -ExpandProperty OwningProcess -Unique)",
+    "$processes=@(Get-CimInstance Win32_Process)",
+    "$kill=@()",
+    "foreach($p in $processes){",
+    "$cmd=[string]$p.CommandLine",
+    "$name=([string]$p.Name).ToLowerInvariant()",
+    "if(-not $cmd){continue}",
+    "$owned=$false",
+    "foreach($root in $roots){if($root -and $cmd.ToLowerInvariant().Contains($root.ToLowerInvariant())){$owned=$true;break}}",
+    "$norviServer=$cmd -match 'packages[\\\\/]web[\\\\/]src[\\\\/]__server\\.ts'",
+    "$norviStt=$cmd -match 'whisper-api'",
+    "$runtimeHost=$name -match '^(bun|bun\\.exe|node|node\\.exe|python|python\\.exe|pythonw|pythonw\\.exe)$'",
+    "if($runtimeHost -and ($owned -or $norviServer -or $norviStt)){$kill += [int]$p.ProcessId;continue}",
+    "if(($listenerIds -contains [int]$p.ProcessId) -and ($norviServer -or $norviStt)){$kill += [int]$p.ProcessId}",
     "}",
+    "$kill=@($kill | Sort-Object -Unique)",
+    "foreach($id in $kill){taskkill.exe /PID $id /T /F | Out-Null}",
+    "for($i=0;$i -lt 30;$i++){",
+    "$left=@(Get-CimInstance Win32_Process | Where-Object {",
+    "$cmd=[string]$_.CommandLine; if(-not $cmd){return $false};",
+    "$name=([string]$_.Name).ToLowerInvariant();",
+    "$owned=$false; foreach($root in $roots){if($root -and $cmd.ToLowerInvariant().Contains($root.ToLowerInvariant())){$owned=$true;break}};",
+    "$hosted=$name -match '^(bun|bun\\.exe|node|node\\.exe|python|python\\.exe|pythonw|pythonw\\.exe)$';",
+    "$hosted -and ($owned -or $cmd -match 'whisper-api' -or $cmd -match 'packages[\\\\/]web[\\\\/]src[\\\\/]__server\\.ts')",
+    "})",
+    "if($left.Count -eq 0){break}",
+    "Start-Sleep -Milliseconds 200",
     "}",
   ].join("; ");
 
@@ -136,21 +223,14 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
     execFileSync(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
-      { stdio: "ignore", windowsHide: true, timeout: 12_000 },
+      { stdio: "ignore", windowsHide: true, timeout: 15_000 },
     );
   } catch {
-    // The health check below decides whether an old NORVI server is still alive.
+    // The versioned-runtime installer does not depend on deleting the old
+    // runtime, so a stubborn stale process must not block the upgrade.
   }
 
-  const started = Date.now();
-  while (Date.now() - started < 12_000) {
-    if (!(await localHealthOk())) return;
-    await sleep(250);
-  }
-
-  throw new Error(
-    "Der laufende NORVI-Server konnte vor dem Update nicht beendet werden. Bitte NORVI vollständig schließen und erneut versuchen.",
-  );
+  await sleep(500);
 }
 
 async function removeRuntimeDirectory(root: string): Promise<void> {
@@ -271,12 +351,24 @@ export async function installRuntime(
     if (entries.length !== 1) throw new Error("Das NORVI-Archiv hat ein unerwartetes Format.");
     const extractedRoot = path.join(extractPath, entries[0]!.name);
 
+    const migrationSource = await migrationRuntimeDirectory(runtime);
+
     onProgress({ stage: "prepare", message: "Laufende NORVI-Dienste werden beendet…", percent: 23 });
-    await stopExistingNorviRuntimeProcess();
+    await stopExistingNorviRuntimeProcess(
+      [runtime, migrationSource].filter((value): value is string => Boolean(value)),
+    );
 
     onProgress({ stage: "prepare", message: "Lokale NORVI-Daten werden vorbereitet…", percent: 25 });
-    if (await exists(runtime)) await preserveLocalData(runtime, backupPath);
-    await removeRuntimeDirectory(runtime);
+    if (migrationSource) {
+      await preserveLocalData(migrationSource, backupPath);
+    } else if (await exists(runtime)) {
+      await preserveLocalData(runtime, backupPath);
+    }
+
+    // From v0.1.6 onward every app version gets its own runtime directory.
+    // The previous runtime is intentionally left untouched so a Windows file
+    // lock can never block installing the new version.
+    if (await exists(runtime)) await removeRuntimeDirectory(runtime);
     await fs.mkdir(path.dirname(runtime), { recursive: true });
     await fs.cp(extractedRoot, runtime, { recursive: true });
     await restoreLocalData(runtime, backupPath);
