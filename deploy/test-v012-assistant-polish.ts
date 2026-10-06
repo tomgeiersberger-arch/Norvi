@@ -57,7 +57,9 @@ const micIndex = composer.indexOf('aria-label={recording ? "Aufnahme beenden" : 
 const sendIndex = composer.indexOf('aria-label="Senden"');
 assert.ok(textareaIndex >= 0 && micIndex > textareaIndex && sendIndex > micIndex, "Mic must sit directly between chat input and send");
 assert.match(stt, /localSttEnabled/);
-assert.doesNotMatch(stt, /if \(localSttEnabled\(\)\) return true/);\nassert.match(stt, /\/models/);\nassert.match(stt, /return response\.ok/);
+assert.doesNotMatch(stt, /if \(localSttEnabled\(\)\) return true/);
+assert.match(stt, /\/models/);
+assert.match(stt, /return response\.ok/);
 assert.match(setupLocal, /Lokale Speech-to-Text-Einstellungen auf diesen PC migriert/);
 assert.match(setupLocal, /STT_BASE_URL/);
 assert.match(setupLocal, /STT_API_KEY/);
