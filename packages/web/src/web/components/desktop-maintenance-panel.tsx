@@ -27,6 +27,7 @@ import { getDeviceId } from "../lib/device";
 import {
   clearLocalErrorLog,
   getLocalErrorLog,
+  LOCAL_ERROR_LOG_EVENT,
   type LocalErrorEntry,
 } from "../lib/local-error-log";
 import { useCapabilities } from "../queries/capabilities";
@@ -87,6 +88,16 @@ export function DesktopMaintenancePanel() {
       .getExplorerContextMenu()
       .then(setExplorerContextEnabled)
       .catch(() => setExplorerContextEnabled(false));
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => setErrorCount(getLocalErrorLog().length);
+    window.addEventListener(LOCAL_ERROR_LOG_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(LOCAL_ERROR_LOG_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
   }, []);
 
   const exportDiagnostics = async () => {
