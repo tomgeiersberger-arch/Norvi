@@ -1,3 +1,7 @@
+import { randomBytes } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 /**
  * Optional local Whisper sidecar for the self-hosted NORVI server.
  *
@@ -9,9 +13,10 @@ let restartTimer: ReturnType<typeof setTimeout> | null = null;
 let stopping = false;
 let started = false;
 
-const projectRoot = decodeURIComponent(
-  new URL("../../../../../", import.meta.url).pathname,
-).replace(/\/$/, "");
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../../..",
+);
 
 function localSttEnabled(): boolean {
   return /^(1|true|yes|on)$/i.test((process.env.STT_LOCAL_ENABLED ?? "").trim());
@@ -25,7 +30,7 @@ function executable(): string[] {
   // platform-specific node_modules/.bin shims on Windows.
   return [
     Bun.argv[0] || "bun",
-    `${projectRoot}/packages/web/node_modules/whisper-api/bin/whisper-api.js`,
+    path.join(projectRoot, "packages", "web", "node_modules", "whisper-api", "bin", "whisper-api.js"),
   ];
 }
 
@@ -39,10 +44,11 @@ function scheduleRestart() {
 function spawnLocalStt() {
   if (stopping || !localSttEnabled()) return;
 
-  const key = process.env.STT_API_KEY?.trim();
+  let key = process.env.STT_API_KEY?.trim();
   if (!key) {
-    console.warn("[stt] STT_LOCAL_ENABLED=true but STT_API_KEY is empty; local STT not started.");
-    return;
+    key = randomBytes(24).toString("base64url");
+    process.env.STT_API_KEY = key;
+    console.warn("[stt] STT_API_KEY was empty; generated a local in-memory key.");
   }
 
   const host = "127.0.0.1";
@@ -50,10 +56,10 @@ function spawnLocalStt() {
   const model = (process.env.STT_LOCAL_MODEL ?? "tiny").trim();
   const configuredHome = process.env.WHISPER_API_HOME?.trim();
   const home = configuredHome
-    ? configuredHome.startsWith("/")
+    ? path.isAbsolute(configuredHome)
       ? configuredHome
-      : `${projectRoot}/${configuredHome}`
-    : `${projectRoot}/data/whisper-api`;
+      : path.resolve(projectRoot, configuredHome)
+    : path.join(projectRoot, "data", "whisper-api");
 
   try {
     child = Bun.spawn(
