@@ -524,6 +524,14 @@ async function installLatestUpdate(): Promise<{ ok: true; version: string }> {
 
   const destination = path.join(app.getPath("temp"), installerName);
   await fs.writeFile(destination, bytes);
+
+  // Release the local runtime before the new installer starts. Without this,
+  // Windows can keep Bun/Whisper file handles open and the new app fails with
+  // EBUSY while replacing AppData\\Roaming\\Norvi AI\\runtime.
+  stopSpeech();
+  stopLocalServer();
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
   const launchError = await shell.openPath(destination);
   if (launchError) throw new Error(launchError);
 
