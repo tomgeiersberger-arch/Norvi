@@ -89,6 +89,102 @@ function detectedProfile(): ProfileName {
   return "lite";
 }
 
+function envValue(source: string, key: string): string | undefined {
+  const match = source.match(new RegExp(`^${key}=(.*)import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { cpus, totalmem } from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+type ProfileName = "lite" | "standard" | "power";
+type Profile = {
+  label: string;
+  textBase: string;
+  visionFast: string;
+  visionPrecise: string;
+  sttModel: string;
+};
+
+const profiles: Record<ProfileName, Profile> = {
+  lite: {
+    label: "Lite · 4B",
+    textBase: "qwen3:4b",
+    visionFast: "qwen3-vl:2b",
+    visionPrecise: "qwen3-vl:4b",
+    sttModel: "tiny",
+  },
+  standard: {
+    label: "Standard · 8B",
+    textBase: "qwen3:8b",
+    visionFast: "qwen3-vl:4b",
+    visionPrecise: "qwen3-vl:8b",
+    sttModel: "base",
+  },
+  power: {
+    label: "Power · 14B",
+    textBase: "qwen3:14b",
+    visionFast: "qwen3-vl:8b",
+    visionPrecise: "qwen3-vl:8b",
+    sttModel: "small",
+  },
+};
+
+function argValue(name: string): string | undefined {
+  const prefix = `--${name}=`;
+  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
+}
+
+function run(
+  command: string,
+  args: string[],
+  quiet = false,
+  extraEnv: Record<string, string> = {},
+): string {
+  const env = { ...process.env, ...extraEnv };
+  if (quiet) {
+    return execFileSync(command, args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      env,
+    }).trim();
+  }
+  execFileSync(command, args, { stdio: "inherit", env });
+  return "";
+}
+
+function nvidiaVramGiB(): number | null {
+  try {
+    const raw = run(
+      "nvidia-smi",
+      ["--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+      true,
+    );
+    const mib = raw
+      .split(/\r?\n/)
+      .map(Number)
+      .filter(Number.isFinite);
+    return mib.length ? Math.max(...mib) / 1024 : null;
+  } catch {
+    return null;
+  }
+}
+
+function detectedProfile(): ProfileName {
+  const ram = totalmem() / 1024 ** 3;
+  const threads = cpus().length;
+  const vram = nvidiaVramGiB();
+
+  if ((vram ?? 0) >= 14 || (process.platform === "darwin" && ram >= 48)) return "power";
+  if ((vram ?? 0) >= 7) return "standard";
+  if (process.platform === "darwin" && ram >= 24) return "standard";
+  if (ram >= 24 && threads >= 8) return "standard";
+  return "lite";
+}
+
+, "m"));
+  return match?.[1]?.trim();
+}
+
 function replaceEnv(source: string, values: Record<string, string>): string {
   const seen = new Set<string>();
   const lines = source.split(/\r?\n/).map((line) => {
@@ -150,20 +246,23 @@ if (!skipPull) {
 
 if (existsSync(".env") && !process.argv.includes("--force")) {
   const current = readFileSync(".env", "utf8");
-  const missing = (key: string) => !new RegExp(`^${key}=`, "m").test(current);
-  const sttDefaults: Record<string, string> = {};
-  if (missing("STT_LOCAL_ENABLED")) sttDefaults.STT_LOCAL_ENABLED = "true";
-  if (missing("STT_LOCAL_MODEL")) sttDefaults.STT_LOCAL_MODEL = profile.sttModel;
-  if (missing("STT_LOCAL_PORT")) sttDefaults.STT_LOCAL_PORT = "8000";
-  if (missing("STT_BASE_URL")) sttDefaults.STT_BASE_URL = "http://127.0.0.1:8000/v1";
-  if (missing("STT_API_KEY")) sttDefaults.STT_API_KEY = randomBytes(24).toString("base64url");
-  if (missing("STT_MODEL")) sttDefaults.STT_MODEL = "whisper-1";
+  const localPort = envValue(current, "STT_LOCAL_PORT") || "8000";
+  const sttValues: Record<string, string> = {
+    STT_LOCAL_ENABLED: "true",
+    STT_LOCAL_PORT: localPort,
+    STT_LOCAL_MODEL: envValue(current, "STT_LOCAL_MODEL") || profile.sttModel,
+    WHISPER_API_HOME: envValue(current, "WHISPER_API_HOME") || "data/whisper-api",
+    STT_BASE_URL: `http://127.0.0.1:${localPort}/v1`,
+    STT_API_KEY: envValue(current, "STT_API_KEY") || randomBytes(24).toString("base64url"),
+    STT_MODEL: envValue(current, "STT_MODEL") || "whisper-1",
+  };
 
-  if (Object.keys(sttDefaults).length) {
-    writeFileSync(".env", replaceEnv(current, sttDefaults), { mode: 0o600 });
-    console.log("==> Fehlende lokale Speech-to-Text-Einstellungen ergänzt");
+  const migrated = replaceEnv(current, sttValues);
+  if (migrated !== current) {
+    writeFileSync(".env", migrated, { mode: 0o600 });
+    console.log("==> Lokale Speech-to-Text-Einstellungen auf diesen PC migriert");
   } else {
-    console.log("\n.env existiert bereits — vorhandene Einstellungen bleiben erhalten.");
+    console.log("\n.env existiert bereits — lokale Speech-to-Text-Einstellungen sind aktuell.");
   }
 } else {
   const template = readFileSync(".env.example", "utf8");
