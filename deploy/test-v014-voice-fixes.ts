@@ -49,13 +49,17 @@ assert.match(ipc, /dialog:save-text/);
 assert.match(ipc, /writeFile/);
 
 assert.match(voice, /SAPI\.SpVoice/);
+assert.match(voice, /GetVoices/);
 assert.match(settings, /voicePreviewError/);
 assert.match(actions, /scanDesktopActionsInFolder/);
 assert.match(settings, /Ordner scannen/);
 
 assert.match(listener, /const handle = await startRecording/);
 assert.match(listener, /activeHandle === handle/);
+assert.match(listener, /voiceAvailable \? "ready" : "off"/);
 assert.match(composer, /!recording/);
+assert.match(composer, /2600/);
+assert.match(composer, /Live Screen beendet/);
 assert.match(composer, /!transcribing/);
 assert.match(errorLog, /LOCAL_ERROR_LOG_EVENT/);
 assert.match(maintenance, /LOCAL_ERROR_LOG_EVENT/);
