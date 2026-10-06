@@ -76,6 +76,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [voices, setVoices] = useState<string[]>([]);
   const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [previewingVoice, setPreviewingVoice] = useState(false);
+  const [voicePreviewError, setVoicePreviewError] = useState<string | null>(null);
   const [scanBusy, setScanBusy] = useState(false);
   const [scannedActions, setScannedActions] = useState<ScannedDesktopActionDescriptor[]>([]);
   const [selectedScanIds, setSelectedScanIds] = useState<string[]>([]);
@@ -99,6 +100,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const previewVoice = async () => {
     const api = getNorviDesktopAPI();
     if (!api) return;
+    setVoicePreviewError(null);
     if (previewingVoice) {
       await api.stopSpeech().catch(() => undefined);
       setPreviewingVoice(false);
@@ -109,6 +111,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       await api.speak(
         "Hallo, ich bin NORVI. So klingt meine ausgewählte Stimme.",
         assistant.voice || undefined,
+      );
+    } catch (error) {
+      setVoicePreviewError(
+        error instanceof Error ? error.message : "Stimmenvorschau konnte nicht abgespielt werden.",
       );
     } finally {
       setPreviewingVoice(false);
@@ -1085,6 +1091,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                         {previewingVoice ? "Stopp" : "Vorschau"}
                       </button>
                     </div>
+                    {voicePreviewError && (
+                      <div className="mt-2 rounded-lg border border-destructive/20 bg-destructive/[0.06] px-2.5 py-2 text-[10px] text-destructive">
+                        {voicePreviewError}
+                      </div>
+                    )}
                   </div>
                 )}
 
