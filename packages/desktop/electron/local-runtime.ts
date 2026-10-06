@@ -93,6 +93,16 @@ export async function runtimeReady(): Promise<boolean> {
   );
 }
 
+export async function runtimeNeedsUpdate(): Promise<boolean> {
+  if (!(await runtimeReady())) return false;
+  try {
+    const installedVersion = (await fs.readFile(path.join(runtimeDirectory(), ".norvi-version"), "utf8")).trim();
+    return installedVersion !== app.getVersion();
+  } catch {
+    return true;
+  }
+}
+
 function powershellQuote(value: string): string {
   return "'" + value.replace(/'/g, "''") + "'";
 }
@@ -216,6 +226,7 @@ export async function installRuntime(
       (line) => onProgress({ stage: "install", message: line, percent: 55 }),
     );
 
+    await fs.writeFile(path.join(runtime, ".norvi-version"), app.getVersion() + "\n", "utf8");
     onProgress({ stage: "done", message: "NORVI ist installiert und offline bereit.", percent: 100 });
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true }).catch(() => {});
