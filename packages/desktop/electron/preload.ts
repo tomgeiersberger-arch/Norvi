@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld("norviDesktop", {
   listDesktopActions: () => ipcRenderer.invoke("norvi:list-desktop-actions"),
   addCustomDesktopAction: () => ipcRenderer.invoke("norvi:add-custom-desktop-action"),
   scanInstalledDesktopActions: () => ipcRenderer.invoke("norvi:scan-installed-desktop-actions"),
+  scanDesktopActionsInFolder: () => ipcRenderer.invoke("norvi:scan-desktop-actions-in-folder"),
   addScannedDesktopActions: (scanIds: string[]) =>
     ipcRenderer.invoke("norvi:add-scanned-desktop-actions", scanIds),
   removeCustomDesktopAction: (actionId: string) =>
