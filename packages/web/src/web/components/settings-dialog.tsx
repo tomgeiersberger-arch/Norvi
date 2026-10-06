@@ -127,6 +127,18 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     }
   };
 
+  const scanFolder = async () => {
+    const api = getNorviDesktopAPI();
+    if (!api) return;
+    setScanBusy(true);
+    setSelectedScanIds([]);
+    try {
+      setScannedActions(await api.scanDesktopActionsInFolder());
+    } finally {
+      setScanBusy(false);
+    }
+  };
+
   const addSelectedScanned = async () => {
     const api = getNorviDesktopAPI();
     if (!api || selectedScanIds.length === 0) return;
@@ -787,7 +799,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <div>
                         <div className="text-[11px] font-medium">Eigene Games & Programme</div>
                         <div className="text-[9.5px] text-muted-foreground">
-                          Lass NORVI deinen PC scannen oder wähle eine .exe/.lnk selbst aus.
+                          Scan typische Orte, einen eigenen Ordner oder wähle eine .exe/.lnk direkt aus.
                         </div>
                       </div>
                       <div className="flex shrink-0 gap-1.5">
@@ -803,6 +815,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                             <Search className="size-3.5" />
                           )}
                           PC scannen
+                        </button>
+                        <button
+                          type="button"
+                          disabled={scanBusy}
+                          onClick={() => void scanFolder()}
+                          className="icon-action flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground disabled:opacity-50"
+                        >
+                          <Search className="size-3.5" />
+                          Ordner scannen
                         </button>
                         <button
                           type="button"
