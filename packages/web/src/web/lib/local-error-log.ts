@@ -1,5 +1,6 @@
 const STORAGE_KEY = "norvi.desktop-error-log.v1";
 const MAX_ENTRIES = 50;
+export const LOCAL_ERROR_LOG_EVENT = "norvi:local-error-log";
 
 export interface LocalErrorEntry {
   at: string;
@@ -55,6 +56,7 @@ export function recordLocalError(type: LocalErrorEntry["type"], value: unknown):
   ].slice(-MAX_ENTRIES);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event(LOCAL_ERROR_LOG_EVENT));
   } catch {
     // Diagnostics must never break NORVI.
   }
@@ -64,6 +66,7 @@ export function clearLocalErrorLog(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event(LOCAL_ERROR_LOG_EVENT));
   } catch {
     // Ignore unavailable storage.
   }
