@@ -1,0 +1,62 @@
+name: Release NORVI v0.1.6
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/RELEASE_0.1.6_READY"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tested-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merged NORVI
+        uses: actions/checkout@v4
+
+      - name: Verify release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/desktop/package.json').version")"
+          test "$version" = "0.1.6"
+          test -f docs/RELEASE_NOTES_0.1.6.md
+
+      - name: Download already-tested Windows artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifact
+          gh run download 37491784980 -n NORVI-Windows-Setup -D release-artifact
+
+      - name: Verify exact installer checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-artifact
+          test -f NORVI-Setup-0.1.6.exe
+          test -f SHA256SUMS.txt
+          expected="0f45d5a53a38e569ca3bc31a688ca97c5e1af5fd30d19e2c79dfb2502923589c"
+          manifest="$(tr -d '\r' < SHA256SUMS.txt | awk '$2 == "NORVI-Setup-0.1.6.exe" { print $1 }')"
+          actual="$(sha256sum NORVI-Setup-0.1.6.exe | awk '{ print $1 }')"
+          test "$manifest" = "$expected"
+          test "$actual" = "$expected"
+
+      - name: Publish NORVI v0.1.6
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v0.1.6"
+          target="de172910ebcd5907e9cb52db5896a5c0bccbeda4"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$target" --title "NORVI $tag" --notes-file docs/RELEASE_NOTES_0.1.6.md
+          fi
+          gh release upload "$tag" release-artifact/NORVI-Setup-0.1.6.exe --clobber
+          gh release upload "$tag" release-artifact/SHA256SUMS.txt --clobber
