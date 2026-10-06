@@ -187,7 +187,12 @@ export function Composer({
 
   const uploading = images.some((image) => !image.uploaded && !image.failed);
   const ready = images.filter((image) => image.uploaded).map((image) => image.uploaded!);
-  const canSend = (value.trim().length > 0 || ready.length > 0) && !uploading && !busy;
+  const canSend =
+    (value.trim().length > 0 || ready.length > 0) &&
+    !uploading &&
+    !busy &&
+    !recording &&
+    !transcribing;
 
   const addFiles = useCallback(async (files: FileList | File[] | null) => {
     if (!files?.length) return;
