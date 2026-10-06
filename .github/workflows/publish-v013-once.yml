@@ -1,0 +1,33 @@
+name: Publish NORVI v0.1.3 once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v013-once.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release notes
+        uses: actions/checkout@v4
+
+      - name: Download verified Windows installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 37447198007 --repo tomgeiersberger-arch/Norvi --name NORVI-Windows-Setup --dir artifact
+
+      - name: Verify installer and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -f artifact/NORVI-Setup-0.1.3.exe
+          test -f artifact/SHA256SUMS.txt
+          (cd artifact && sha256sum -c SHA256SUMS.txt)
+          gh release create v0.1.3 --repo tomgeiersberger-arch/Norvi --target 03022c41f834bd28ce514838866b3abd66d8e5d0 --title "NORVI v0.1.3" --notes-file docs/RELEASE_NOTES_0.1.3.md
+          gh release upload v0.1.3 artifact/NORVI-Setup-0.1.3.exe artifact/SHA256SUMS.txt --repo tomgeiersberger-arch/Norvi --clobber
