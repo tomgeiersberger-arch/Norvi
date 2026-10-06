@@ -1,5 +1,6 @@
 import { app, net } from "electron";
 import { execFileSync, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import { cpus, homedir, totalmem } from "node:os";
 import path from "node:path";
@@ -34,8 +35,60 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const ACTIVE_RUNTIME_POINTER = ".norvi-active-runtime";
+
+function activeRuntimePointerPath(): string {
+  return path.join(app.getPath("userData"), ACTIVE_RUNTIME_POINTER);
+}
+
+function validRuntimeDirectoryName(value: string): boolean {
+  return /^runtime-v[0-9A-Za-z._-]+$/.test(value);
+}
+
 export function runtimeDirectory(): string {
-  return path.join(app.getPath("userData"), "runtime");
+  const userData = app.getPath("userData");
+  try {
+    const active = fsSync.readFileSync(activeRuntimePointerPath(), "utf8").trim();
+    if (validRuntimeDirectoryName(active)) {
+      return path.join(userData, active);
+    }
+  } catch {
+    // Legacy installs before v0.1.7 have no activation pointer.
+  }
+  return path.join(userData, "runtime");
+}
+
+function atomicRuntimeDirectory(): string {
+  const version = app.getVersion().replace(/[^0-9A-Za-z._-]/g, "_");
+  return path.join(
+    app.getPath("userData"),
+    `runtime-v${version}-${Date.now()}-${process.pid}`,
+  );
+}
+
+async function activateRuntimeDirectory(root: string): Promise<void> {
+  const userData = app.getPath("userData");
+  const relative = path.relative(userData, root);
+  if (
+    !relative ||
+    relative.startsWith("..") ||
+    path.isAbsolute(relative) ||
+    !validRuntimeDirectoryName(relative)
+  ) {
+    throw new Error("Der neue NORVI-Runtime-Pfad ist ungültig.");
+  }
+
+  const pointer = activeRuntimePointerPath();
+  const temporaryPointer = pointer + ".tmp-" + process.pid + "-" + Date.now();
+  await fs.writeFile(temporaryPointer, relative + "\n", "utf8");
+  try {
+    await fs.rename(temporaryPointer, pointer);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | null)?.code;
+    if (code !== "EEXIST" && code !== "EPERM") throw error;
+    await fs.rm(pointer, { force: true });
+    await fs.rename(temporaryPointer, pointer);
+  }
 }
 
 function nvidiaVramGiB(): number | null {
@@ -177,33 +230,6 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
   );
 }
 
-async function removeRuntimeDirectory(root: string): Promise<void> {
-  let lastError: unknown = null;
-
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    try {
-      await fs.rm(root, {
-        recursive: true,
-        force: true,
-        maxRetries: 2,
-        retryDelay: 250,
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      const code = (error as NodeJS.ErrnoException | null)?.code;
-      if (code !== "EBUSY" && code !== "EPERM" && code !== "ENOTEMPTY") throw error;
-      await sleep(400 + attempt * 250);
-    }
-  }
-
-  const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "");
-  throw new Error(
-    "Die lokale NORVI-Runtime ist noch von Windows gesperrt. NORVI wurde beendet, aber Windows hat die Dateien nicht rechtzeitig freigegeben. Bitte den Installer erneut starten. " +
-      detail,
-  );
-}
-
 async function runProcess(
   command: string,
   args: string[],
@@ -279,7 +305,8 @@ export async function installRuntime(
   const zipPath = path.join(tempRoot, "norvi.zip");
   const extractPath = path.join(tempRoot, "source");
   const backupPath = path.join(tempRoot, "backup");
-  const runtime = runtimeDirectory();
+  const previousRuntime = runtimeDirectory();
+  const runtime = atomicRuntimeDirectory();
 
   try {
     await fs.mkdir(tempRoot, { recursive: true });
@@ -299,8 +326,9 @@ export async function installRuntime(
     await stopExistingNorviRuntimeProcess();
 
     onProgress({ stage: "prepare", message: "Lokale NORVI-Daten werden vorbereitet…", percent: 25 });
-    if (await exists(runtime)) await preserveLocalData(runtime, backupPath);
-    await removeRuntimeDirectory(runtime);
+    if (await exists(previousRuntime)) {
+      await preserveLocalData(previousRuntime, backupPath);
+    }
     await fs.mkdir(path.dirname(runtime), { recursive: true });
     await fs.cp(extractedRoot, runtime, { recursive: true });
     await restoreLocalData(runtime, backupPath);
@@ -327,6 +355,7 @@ export async function installRuntime(
     );
 
     await fs.writeFile(path.join(runtime, ".norvi-version"), app.getVersion() + "\n", "utf8");
+    await activateRuntimeDirectory(runtime);
     onProgress({ stage: "done", message: "NORVI ist installiert und offline bereit.", percent: 100 });
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true }).catch(() => {});
