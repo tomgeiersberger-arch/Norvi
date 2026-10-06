@@ -58,7 +58,7 @@ const sendIndex = composer.indexOf('aria-label="Senden"');
 assert.ok(textareaIndex >= 0 && micIndex > textareaIndex && sendIndex > micIndex, "Mic must sit directly between chat input and send");
 assert.match(stt, /localSttEnabled/);
 assert.match(stt, /if \(localSttEnabled\(\)\) return true/);
-assert.match(setupLocal, /Fehlende lokale Speech-to-Text-Einstellungen ergänzt/);
+assert.match(setupLocal, /Lokale Speech-to-Text-Einstellungen auf diesen PC migriert/);
 assert.match(setupLocal, /STT_BASE_URL/);
 assert.match(setupLocal, /STT_API_KEY/);
 
