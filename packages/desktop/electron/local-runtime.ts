@@ -230,33 +230,6 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
   );
 }
 
-async function removeRuntimeDirectory(root: string): Promise<void> {
-  let lastError: unknown = null;
-
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    try {
-      await fs.rm(root, {
-        recursive: true,
-        force: true,
-        maxRetries: 2,
-        retryDelay: 250,
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      const code = (error as NodeJS.ErrnoException | null)?.code;
-      if (code !== "EBUSY" && code !== "EPERM" && code !== "ENOTEMPTY") throw error;
-      await sleep(400 + attempt * 250);
-    }
-  }
-
-  const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "");
-  throw new Error(
-    "Die lokale NORVI-Runtime ist noch von Windows gesperrt. NORVI wurde beendet, aber Windows hat die Dateien nicht rechtzeitig freigegeben. Bitte den Installer erneut starten. " +
-      detail,
-  );
-}
-
 async function runProcess(
   command: string,
   args: string[],
