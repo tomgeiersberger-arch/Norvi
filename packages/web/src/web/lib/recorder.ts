@@ -128,29 +128,38 @@ export async function startRecording(deviceId?: string): Promise<{
     for (const track of stream.getTracks()) track.stop();
   };
 
+  let stopPromise: Promise<Recording> | null = null;
+
+  const stop = (): Promise<Recording> => {
+    if (stopPromise) return stopPromise;
+
+    stopPromise = new Promise<Recording>((resolve, reject) => {
+      recorder.onerror = () => {
+        release();
+        reject(new Error("Die Aufnahme wurde vom Browser abgebrochen."));
+      };
+      recorder.onstop = () => {
+        // Roughly 8 active animation frames ~= a short voiced burst. This is
+        // intentionally permissive so quiet speech is kept.
+        const voiceDetected = analyser === null || speechFrames >= 8;
+        release();
+        const type = recorder.mimeType || mimeType || "audio/webm";
+        const extension = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+        resolve({
+          blob: new Blob(chunks, { type: type.split(";")[0] }),
+          filename: `aufnahme.${extension}`,
+          voiceDetected,
+        });
+      };
+      if (recorder.state === "inactive") recorder.onstop?.(new Event("stop"));
+      else recorder.stop();
+    });
+
+    return stopPromise;
+  };
+
   return {
-    stop: () =>
-      new Promise<Recording>((resolve, reject) => {
-        recorder.onerror = () => {
-          release();
-          reject(new Error("Die Aufnahme wurde vom Browser abgebrochen."));
-        };
-        recorder.onstop = () => {
-          // Roughly 8 active animation frames ~= a short voiced burst. This is
-          // intentionally permissive so quiet speech is kept.
-          const voiceDetected = analyser === null || speechFrames >= 8;
-          release();
-          const type = recorder.mimeType || mimeType || "audio/webm";
-          const extension = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
-          resolve({
-            blob: new Blob(chunks, { type: type.split(";")[0] }),
-            filename: `aufnahme.${extension}`,
-            voiceDetected,
-          });
-        };
-        if (recorder.state === "inactive") recorder.onstop?.(new Event("stop"));
-        else recorder.stop();
-      }),
+    stop,
     cancel: () => {
       try {
         if (recorder.state !== "inactive") recorder.stop();

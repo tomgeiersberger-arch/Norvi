@@ -30,6 +30,26 @@ async function readError(response: Response, fallback: string): Promise<string> 
   return data?.error ?? `${fallback} (HTTP ${response.status}).`;
 }
 
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === "AbortError") {
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Uploads a picked or captured photo to NORVI and returns its stored reference. */
 export async function uploadImage(
   uri: string,
@@ -45,7 +65,12 @@ export async function uploadImage(
   form.append("file", { uri, name, type: mediaType } as unknown as Blob, name);
   form.append("deviceId", deviceId);
 
-  const response = await fetch(`${API_BASE_URL}/api/upload`, { method: "POST", body: form });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/upload`,
+    { method: "POST", body: form },
+    45_000,
+    "Der Bild-Upload antwortet nicht. Bitte Netzwerk prüfen und nochmal versuchen.",
+  );
   if (!response.ok) throw new Error(await readError(response, "Upload fehlgeschlagen"));
 
   const data = (await response.json()) as UploadedImage;
@@ -66,7 +91,12 @@ export async function transcribeAudio(
   form.append("deviceId", deviceId);
   form.append("language", language);
 
-  const response = await fetch(`${API_BASE_URL}/api/transcribe`, { method: "POST", body: form });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/transcribe`,
+    { method: "POST", body: form },
+    35_000,
+    "Die Spracherkennung antwortet nicht. Bitte kurz warten und nochmal versuchen.",
+  );
   if (!response.ok) throw new Error(await readError(response, "Transkription fehlgeschlagen"));
 
   const data = (await response.json()) as { text: string };

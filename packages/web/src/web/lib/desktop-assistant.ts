@@ -74,6 +74,12 @@ export const OPEN_SETTINGS_EVENT = "norvi:open-settings";
 
 export type VoiceListenStatus = "off" | "ready" | "listening" | "processing" | "command";
 
+let currentVoiceStatus: VoiceListenStatus = "off";
+
+export function getVoiceStatus(): VoiceListenStatus {
+  return currentVoiceStatus;
+}
+
 export const DEFAULT_DESKTOP_ACTION_ALIASES: Record<DesktopActionId, string[]> = {
   spotify: ["spotify", "musik"],
   steam: ["steam"],
@@ -337,6 +343,7 @@ export function dispatchVoiceTurnComplete(): void {
 }
 
 export function dispatchVoiceStatus(status: VoiceListenStatus): void {
+  currentVoiceStatus = status;
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(VOICE_STATUS_EVENT, { detail: { status } }));
 }
