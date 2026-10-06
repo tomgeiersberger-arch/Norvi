@@ -97,6 +97,9 @@ jobs:
       - name: v0.1.6 runtime child lock regression
         run: bun deploy/test-v016-runtime-child-lock.ts
 
+      - name: v0.1.7 atomic runtime switch regression
+        run: bun deploy/test-v017-atomic-runtime-switch.ts
+
       - name: Typecheck
         run: bun run typecheck
 
