@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const runtime = readFileSync("packages/desktop/electron/local-runtime.ts", "utf8");
+const pkg = JSON.parse(readFileSync("packages/desktop/package.json", "utf8")) as { version?: string };
+const lock = readFileSync("bun.lock", "utf8");
+
+assert.equal(pkg.version, "0.1.7");
+assert.match(lock, /"packages\/desktop": \{[\s\S]*?"version": "0\.1\.7"/);
 
 assert.match(runtime, /ACTIVE_RUNTIME_POINTER/);
 assert.match(runtime, /atomicRuntimeDirectory/);
