@@ -374,6 +374,7 @@ function ChatSession({ chatId, agentName, initialMessages, onCreated }: ChatSess
     }
     void getNorviDesktopAPI()
       ?.speak(text, assistant.voice || undefined)
+      .catch(() => undefined)
       .finally(() => dispatchVoiceTurnComplete());
   }, [messages, status]);
 
