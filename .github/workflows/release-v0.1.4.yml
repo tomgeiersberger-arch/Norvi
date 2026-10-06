@@ -1,0 +1,63 @@
+name: Release NORVI v0.1.4
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/RELEASE_0.1.4_READY"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tested-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merged NORVI
+        uses: actions/checkout@v4
+
+      - name: Verify release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/desktop/package.json').version")"
+          test "$version" = "0.1.4"
+          test -f docs/RELEASE_NOTES_0.1.4.md
+          test "8b0d4822c64b3cad63632abaf9571febcfdc23be" != ""
+
+      - name: Download already-tested Windows artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifact
+          gh run download 37461645234 -n NORVI-Windows-Setup -D release-artifact
+
+      - name: Verify exact installer checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-artifact
+          test -f NORVI-Setup-0.1.4.exe
+          test -f SHA256SUMS.txt
+          expected="0edaa367753c6b8fe840c53903b9cbf63917dc3bb2029bcaca10f69a689cc041"
+          manifest="$(tr -d '\r' < SHA256SUMS.txt | awk '$2 == "NORVI-Setup-0.1.4.exe" { print $1 }')"
+          actual="$(sha256sum NORVI-Setup-0.1.4.exe | awk '{ print $1 }')"
+          test "$manifest" = "$expected"
+          test "$actual" = "$expected"
+
+      - name: Publish NORVI v0.1.4
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v0.1.4"
+          target="8b0d4822c64b3cad63632abaf9571febcfdc23be"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --target "$target" --title "NORVI $tag" --notes-file docs/RELEASE_NOTES_0.1.4.md
+          fi
+          gh release upload "$tag" release-artifact/NORVI-Setup-0.1.4.exe --clobber
+          gh release upload "$tag" release-artifact/SHA256SUMS.txt --clobber
