@@ -91,6 +91,9 @@ jobs:
       - name: v0.1.4 voice and diagnostics fixes
         run: bun deploy/test-v014-voice-fixes.ts
 
+      - name: Post-v0.1.4 reliability audit
+        run: bun deploy/test-post-v014-reliability.ts
+
       - name: Typecheck
         run: bun run typecheck
 
