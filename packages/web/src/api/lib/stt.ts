@@ -33,6 +33,12 @@ function sttModel(): string {
   return (process.env.STT_MODEL ?? "").trim() || "whisper-1";
 }
 
+function transcriptionTimeoutMs(): number {
+  const configured = Number(process.env.STT_TIMEOUT_MS ?? 30_000);
+  if (!Number.isFinite(configured)) return 30_000;
+  return Math.max(5_000, Math.min(120_000, Math.round(configured)));
+}
+
 /** Audio formats the recorders produce (browser: webm/mp4, iOS/Android: m4a/wav). */
 export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 
@@ -82,11 +88,6 @@ export function sanitiseTranscription(value: string): string {
 /** Lightweight readiness probe used by the capability endpoint. */
 export async function sttAvailable(timeoutMs = 1200): Promise<boolean> {
   if (!sttConfigured()) return false;
-  // NORVI owns this sidecar and starts it during server boot. Report the
-  // capability immediately so the microphone button does not flicker away
-  // while Whisper is still warming up for a moment.
-  if (localSttEnabled()) return true;
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const key = process.env.STT_API_KEY?.trim();
@@ -131,20 +132,32 @@ export async function transcribe(input: {
 
   const key = process.env.STT_API_KEY?.trim();
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), transcriptionTimeoutMs());
+
   let response: Response;
   try {
     response = await fetch(`${baseUrl()}/audio/transcriptions`, {
       method: "POST",
       headers: key ? { Authorization: `Bearer ${key}` } : undefined,
       body: form,
+      signal: controller.signal,
     });
   } catch (error) {
+    if ((error as { name?: string } | null)?.name === "AbortError") {
+      throw new SttError(
+        "Die Spracherkennung hat zu lange gebraucht und wurde abgebrochen. Bitte nochmal kurz sprechen.",
+        504,
+      );
+    }
     throw new SttError(
       `Whisper-Server unter STT_BASE_URL (${baseUrl()}) ist nicht erreichbar. Läuft der Dienst im Heimnetz? (${
         error instanceof Error ? error.message : String(error)
       })`,
       503,
     );
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!response.ok) {
