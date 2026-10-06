@@ -138,6 +138,92 @@ async function runProcess(
   });
 }
 
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function stopStaleRuntimeProcesses(runtime: string): Promise<void> {
+  // Stop the child tracked by this Electron process first.
+  stopLocalServer();
+
+  if (process.platform !== "win32") return;
+
+  // A previous NORVI process can leave Bun/Whisper running after an update or
+  // crash. Only terminate processes that both own NORVI's local ports and have
+  // command lines matching NORVI/Whisper, so unrelated local services are left
+  // alone.
+  let sttPort = 8000;
+  try {
+    const env = await fs.readFile(path.join(runtime, ".env"), "utf8");
+    const match = env.match(/^STT_LOCAL_PORT=(\d+)\s*$/m);
+    if (match?.[1]) {
+      const parsed = Number(match[1]);
+      if (Number.isInteger(parsed) && parsed > 0 && parsed <= 65535) sttPort = parsed;
+    }
+  } catch {
+    // Fresh install or incomplete runtime: use the default STT port.
+  }
+
+  const script = [
+    `$ports=@(4200,${sttPort})`,
+    "$ids=@()",
+    "try{$ids=@(Get-NetTCPConnection -State Listen -ErrorAction Stop | Where-Object { $ports -contains $_.LocalPort } | Select-Object -ExpandProperty OwningProcess -Unique)}catch{}",
+    "foreach($id in $ids){",
+    "  $p=Get-CimInstance Win32_Process -Filter ('ProcessId=' + $id) -ErrorAction SilentlyContinue",
+    "  if(-not $p){continue}",
+    "  $cmd=[string]$p.CommandLine",
+    "  if($cmd -match 'packages[\\\\/]web[\\\\/]src[\\\\/]__server\\.ts' -or $cmd -match 'whisper-api'){",
+    "    try{Stop-Process -Id $id -Force -ErrorAction Stop}catch{}",
+    "  }",
+    "}",
+  ].join(";");
+
+  try {
+    await runProcess(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+      undefined,
+      () => {},
+    );
+  } catch {
+    // Retry logic below still handles a transient or already-exited process.
+  }
+}
+
+async function removeRuntimeForInstall(
+  runtime: string,
+  onProgress: (progress: SetupProgress) => void,
+): Promise<void> {
+  await stopStaleRuntimeProcesses(runtime);
+
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      await fs.rm(runtime, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      lastError = error;
+      const code = (error as NodeJS.ErrnoException | null)?.code;
+      if (code !== "EBUSY" && code !== "EPERM" && code !== "ENOTEMPTY") throw error;
+
+      onProgress({
+        stage: "prepare",
+        message: "Alte NORVI-Prozesse werden beendet und Dateien freigegeben…",
+        percent: 26,
+      });
+      await stopStaleRuntimeProcesses(runtime);
+      await sleep(300 + attempt * 250);
+    }
+  }
+
+  const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "");
+  throw new Error(
+    "Die lokale NORVI-Runtime ist noch von einem Prozess gesperrt. " +
+      "Bitte NORVI vollständig schließen und erneut versuchen. " +
+      detail,
+  );
+}
+
 async function downloadReleaseSource(destination: string): Promise<void> {
   const ref = `v${app.getVersion()}`;
   const url = `https://github.com/tomgeiersberger-arch/Norvi/archive/refs/tags/${ref}.zip`;
@@ -200,7 +286,7 @@ export async function installRuntime(
 
     onProgress({ stage: "prepare", message: "Lokale NORVI-Daten werden vorbereitet…", percent: 25 });
     if (await exists(runtime)) await preserveLocalData(runtime, backupPath);
-    await fs.rm(runtime, { recursive: true, force: true });
+    await removeRuntimeForInstall(runtime, onProgress);
     await fs.mkdir(path.dirname(runtime), { recursive: true });
     await fs.cp(extractedRoot, runtime, { recursive: true });
     await restoreLocalData(runtime, backupPath);
