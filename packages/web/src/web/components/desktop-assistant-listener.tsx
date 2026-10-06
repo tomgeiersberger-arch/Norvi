@@ -55,12 +55,12 @@ export function DesktopAssistantListener() {
   useEffect(() => {
     const onTurnComplete = () => {
       voiceTurnPendingRef.current = false;
-      dispatchVoiceStatus("ready");
-      if (
-        settings.gamingMode ||
-        !settings.conversationMode ||
-        !settings.microphoneEnabled
-      ) {
+      const voiceAvailable =
+        !settings.gamingMode &&
+        settings.microphoneEnabled &&
+        settings.wakeEnabled;
+      dispatchVoiceStatus(voiceAvailable ? "ready" : "off");
+      if (!voiceAvailable || !settings.conversationMode) {
         conversationUntilRef.current = 0;
         return;
       }
@@ -74,6 +74,7 @@ export function DesktopAssistantListener() {
     settings.conversationWindowSeconds,
     settings.gamingMode,
     settings.microphoneEnabled,
+    settings.wakeEnabled,
   ]);
 
   useEffect(() => {
