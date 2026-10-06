@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
   showOpenDialog: (opts: Electron.OpenDialogOptions) => ipcRenderer.invoke("dialog:open", opts),
   showSaveDialog: (opts: Electron.SaveDialogOptions) => ipcRenderer.invoke("dialog:save", opts),
+  saveTextFile: (opts: Electron.SaveDialogOptions, content: string) =>
+    ipcRenderer.invoke("dialog:save-text", opts, content),
   openExternal: managedAuth.openExternal,
   showNotification: (title: string, body: string) =>
     ipcRenderer.invoke("notification:show", title, body),
