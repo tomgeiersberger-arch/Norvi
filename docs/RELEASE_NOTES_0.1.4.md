@@ -27,5 +27,8 @@ NORVI v0.1.4 focuses on voice reliability, clearer assistant feedback and safer 
 
 ## Reliability
 
+- Prevents a wake-listener recording race when manual push-to-talk takes over the microphone.
+- Prevents sending a chat message while a microphone recording or transcription is still active.
+- Updates the renderer error counter live when new errors are captured or the log is cleared.
 - Adds regression checks for the v0.1.4 voice, diagnostics and folder-scan fixes.
 - v0.1.4 must pass normal CI and the Windows installer smoke test before release.
