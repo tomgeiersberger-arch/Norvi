@@ -527,6 +527,16 @@ async function installLatestUpdate(): Promise<{ ok: true; version: string }> {
   const launchError = await shell.openPath(destination);
   if (launchError) throw new Error(launchError);
 
+  // The installer replaces the local runtime. Close the old app shortly after
+  // launching it so the Bun/Whisper process tree cannot keep runtime files locked.
+  setTimeout(() => {
+    quitting = true;
+    setBackgroundMode(false);
+    stopSpeech();
+    stopLocalServer();
+    app.quit();
+  }, 700);
+
   return { ok: true, version };
 }
 

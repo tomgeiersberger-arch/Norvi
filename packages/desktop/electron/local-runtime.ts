@@ -30,6 +30,10 @@ export interface RuntimeCheck {
 
 let serverProcess: ChildProcessWithoutNullStreams | null = null;
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function runtimeDirectory(): string {
   return path.join(app.getPath("userData"), "runtime");
 }
@@ -105,6 +109,75 @@ export async function runtimeNeedsUpdate(): Promise<boolean> {
 
 function powershellQuote(value: string): string {
   return "'" + value.replace(/'/g, "''") + "'";
+}
+
+async function stopExistingNorviRuntimeProcess(): Promise<void> {
+  stopLocalServer();
+
+  if (process.platform !== "win32") {
+    await sleep(250);
+    return;
+  }
+
+  // An older NORVI instance may still own the Bun server on port 4200. Only
+  // stop a listener whose command line is clearly NORVI's local web server.
+  const script = [
+    "$ErrorActionPreference='SilentlyContinue'",
+    "$connections=@(Get-NetTCPConnection -LocalPort 4200 -State Listen)",
+    "foreach($c in $connections){",
+    "$p=Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $c.OwningProcess)",
+    "if($p -and $p.CommandLine -and $p.CommandLine -match 'packages[\\/]web[\\/]src[\\/]__server\\.ts'){",
+    "taskkill.exe /PID $c.OwningProcess /T /F | Out-Null",
+    "}",
+    "}",
+  ].join("; ");
+
+  try {
+    execFileSync(
+      "powershell.exe",
+      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+      { stdio: "ignore", windowsHide: true, timeout: 12_000 },
+    );
+  } catch {
+    // The health check below decides whether an old NORVI server is still alive.
+  }
+
+  const started = Date.now();
+  while (Date.now() - started < 12_000) {
+    if (!(await localHealthOk())) return;
+    await sleep(250);
+  }
+
+  throw new Error(
+    "Der laufende NORVI-Server konnte vor dem Update nicht beendet werden. Bitte NORVI vollständig schließen und erneut versuchen.",
+  );
+}
+
+async function removeRuntimeDirectory(root: string): Promise<void> {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      await fs.rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 2,
+        retryDelay: 250,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      const code = (error as NodeJS.ErrnoException | null)?.code;
+      if (code !== "EBUSY" && code !== "EPERM" && code !== "ENOTEMPTY") throw error;
+      await sleep(400 + attempt * 250);
+    }
+  }
+
+  const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "");
+  throw new Error(
+    "Die lokale NORVI-Runtime ist noch von Windows gesperrt. NORVI wurde beendet, aber Windows hat die Dateien nicht rechtzeitig freigegeben. Bitte den Installer erneut starten. " +
+      detail,
+  );
 }
 
 async function runProcess(
@@ -198,9 +271,12 @@ export async function installRuntime(
     if (entries.length !== 1) throw new Error("Das NORVI-Archiv hat ein unerwartetes Format.");
     const extractedRoot = path.join(extractPath, entries[0]!.name);
 
+    onProgress({ stage: "prepare", message: "Laufende NORVI-Dienste werden beendet…", percent: 23 });
+    await stopExistingNorviRuntimeProcess();
+
     onProgress({ stage: "prepare", message: "Lokale NORVI-Daten werden vorbereitet…", percent: 25 });
     if (await exists(runtime)) await preserveLocalData(runtime, backupPath);
-    await fs.rm(runtime, { recursive: true, force: true });
+    await removeRuntimeDirectory(runtime);
     await fs.mkdir(path.dirname(runtime), { recursive: true });
     await fs.cp(extractedRoot, runtime, { recursive: true });
     await restoreLocalData(runtime, backupPath);
