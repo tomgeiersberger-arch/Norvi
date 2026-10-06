@@ -120,13 +120,15 @@ export function DesktopMaintenancePanel() {
       };
 
       const safeDate = report.generatedAt.slice(0, 10);
-      const path = await desktopApi.showSaveDialog({
-        title: "NORVI Diagnosebericht speichern",
-        defaultPath: "NORVI-Diagnose-" + safeDate + ".json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
+      const path = await desktopApi.saveTextFile(
+        {
+          title: "NORVI Diagnosebericht speichern",
+          defaultPath: "NORVI-Diagnose-" + safeDate + ".json",
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        },
+        JSON.stringify(report, null, 2) + "\n",
+      );
       if (!path) return;
-      await desktopApi.writeFile(path, JSON.stringify(report, null, 2) + "\n");
       setNotice("Lokaler Diagnosebericht gespeichert. Er enthält keine API-Keys oder Chat-Inhalte.");
     } catch (error) {
       setNotice(
