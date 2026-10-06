@@ -88,6 +88,9 @@ jobs:
       - name: Final desktop polish
         run: bun deploy/test-final-desktop-polish.ts
 
+      - name: v0.1.4 voice and diagnostics fixes
+        run: bun deploy/test-v014-voice-fixes.ts
+
       - name: Typecheck
         run: bun run typecheck
 
