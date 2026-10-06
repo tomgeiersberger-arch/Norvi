@@ -11,6 +11,14 @@ export interface ElectronAPI {
     defaultPath?: string;
     filters?: { name: string; extensions: string[] }[];
   }) => Promise<string | null>;
+  saveTextFile: (
+    opts: {
+      title?: string;
+      defaultPath?: string;
+      filters?: { name: string; extensions: string[] }[];
+    },
+    content: string,
+  ) => Promise<string | null>;
   openExternal: (url: string) => Promise<void>;
   showNotification: (title: string, body: string) => Promise<void>;
   minimize: () => Promise<void>;
