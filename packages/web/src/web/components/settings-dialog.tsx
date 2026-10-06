@@ -243,13 +243,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       const next = saveAssistantSettings(assistant);
       setAssistant(next);
       const api = getNorviDesktopAPI();
-      void api?.setBackgroundMode(
-        (!next.gamingMode && next.microphoneEnabled && next.wakeEnabled) ||
-          next.startWithWindows,
-      );
-      void api?.setQuickShortcut(next.quickShortcutEnabled);
-      void api?.setVoiceShortcut(next.voiceShortcutEnabled ? next.voiceShortcut : null);
-      void api?.setAutoStart(next.startWithWindows);
+      void api
+        ?.setBackgroundMode(
+          (!next.gamingMode && next.microphoneEnabled && next.wakeEnabled) ||
+            next.startWithWindows,
+        )
+        .catch(() => undefined);
+      void api?.setQuickShortcut(next.quickShortcutEnabled).catch(() => undefined);
+      void api
+        ?.setVoiceShortcut(next.voiceShortcutEnabled ? next.voiceShortcut : null)
+        .catch(() => undefined);
+      void api?.setAutoStart(next.startWithWindows).catch(() => undefined);
     }
     update.mutate(
       { deviceId: getDeviceId(), temperature, performanceMode },
@@ -966,13 +970,28 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                                 aria-label={action.label + " entfernen"}
                                 onClick={() => {
                                   const api = getNorviDesktopAPI();
-                                  void api?.removeCustomDesktopAction(action.id);
-                                  setAssistant((current) => ({
-                                    ...current,
-                                    customDesktopActions: current.customDesktopActions.filter(
-                                      (item) => item.id !== action.id,
-                                    ),
-                                  }));
+                                  if (!api) return;
+                                  setDesktopActionError(null);
+                                  void api
+                                    .removeCustomDesktopAction(action.id)
+                                    .then((removed) => {
+                                      if (!removed) {
+                                        throw new Error("Programm-Aktion wurde nicht gefunden.");
+                                      }
+                                      setAssistant((current) => ({
+                                        ...current,
+                                        customDesktopActions: current.customDesktopActions.filter(
+                                          (item) => item.id !== action.id,
+                                        ),
+                                      }));
+                                    })
+                                    .catch((error) =>
+                                      setDesktopActionError(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Programm-Aktion konnte nicht entfernt werden.",
+                                      ),
+                                    );
                                 }}
                                 className="icon-action flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
                               >
