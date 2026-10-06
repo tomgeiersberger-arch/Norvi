@@ -14,6 +14,12 @@ const maintenance = readFileSync(
 );
 const preload = readFileSync("packages/desktop/electron/preload.ts", "utf8");
 const ipc = readFileSync("packages/desktop/electron/ipc.ts", "utf8");
+const voice = readFileSync("packages/desktop/electron/voice.ts", "utf8");
+const actions = readFileSync("packages/desktop/electron/actions.ts", "utf8");
+const settings = readFileSync(
+  "packages/web/src/web/components/settings-dialog.tsx",
+  "utf8",
+);
 
 assert.match(stt, /sanitiseTranscription/);
 assert.match(stt, /repeats > 3/);
@@ -33,5 +39,10 @@ assert.match(maintenance, /saveTextFile/);
 assert.match(preload, /dialog:save-text/);
 assert.match(ipc, /dialog:save-text/);
 assert.match(ipc, /writeFile/);
+
+assert.match(voice, /SAPI\.SpVoice/);
+assert.match(settings, /voicePreviewError/);
+assert.match(actions, /scanDesktopActionsInFolder/);
+assert.match(settings, /Ordner scannen/);
 
 console.log("v0.1.4 voice and diagnostics fixes: OK");
