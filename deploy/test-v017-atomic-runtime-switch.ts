@@ -5,8 +5,13 @@ const runtime = readFileSync("packages/desktop/electron/local-runtime.ts", "utf8
 const pkg = JSON.parse(readFileSync("packages/desktop/package.json", "utf8")) as { version?: string };
 const lock = readFileSync("bun.lock", "utf8");
 
-assert.equal(pkg.version, "0.1.7");
-assert.match(lock, /"packages\/desktop": \{[\s\S]*?"version": "0\.1\.7"/);
+const release = (pkg.version ?? "").split(".").map(Number);
+assert.equal(release.length, 3);
+assert.equal(release[0], 0);
+assert.equal(release[1], 1);
+assert.ok((release[2] ?? 0) >= 7);
+const escapedVersion = (pkg.version ?? "").replace(/\./g, "\\.");
+assert.match(lock, new RegExp('"packages/desktop": \\{[\\s\\S]*?"version": "' + escapedVersion + '"'));
 
 assert.match(runtime, /ACTIVE_RUNTIME_POINTER/);
 assert.match(runtime, /atomicRuntimeDirectory/);
