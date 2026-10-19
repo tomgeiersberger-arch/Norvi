@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   desktopCapturer,
+  dialog,
   globalShortcut,
   ipcMain,
   Menu,
@@ -23,14 +24,22 @@ import {
   installRuntime,
   repairLocalRuntime,
   runRuntimeSelfTest,
+  runtimeDirectory,
   runtimeNeedsUpdate,
   runtimeReady,
   startLocalServer,
   stopLocalServer,
+  stopRuntimeForRecovery,
   type ProfileName,
   type SetupProgress,
 } from "./local-runtime";
 import { listLocalVoices, speakLocal, stopSpeech } from "./voice";
+import {
+  clearRuntimeUpdateFailure,
+  recordRuntimeUpdateFailure,
+  restorePreviousRuntime,
+  runtimeUpdateInCooldown,
+} from "./runtime-recovery";
 import {
   addCustomDesktopAction,
   addScannedDesktopActions,
@@ -389,23 +398,79 @@ async function openNorvi() {
   await win.loadURL(LOCAL_NORVI_URL);
 }
 
+const REQUIRED_RUNTIME_CHECKS = new Set(["runtime", "bun", "ollama", "norvi", "stt"]);
+
+/** All vital services must be online before accepting a newly installed runtime. */
+async function verifyRuntimeAfterUpgrade(): Promise<void> {
+  const deadline = Date.now() + 60_000;
+  let missing = "Unbekannter Dienst";
+  while (Date.now() < deadline) {
+    const checks = await runRuntimeSelfTest();
+    const unhealthy = checks.filter((check) => REQUIRED_RUNTIME_CHECKS.has(check.id) && !check.ok);
+    if (unhealthy.length === 0) return;
+    missing = unhealthy.map((check) => check.label).join(", ");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  throw new Error("Neue NORVI-Runtime nicht bereit: " + missing);
+}
+
 async function bootProduction() {
+  const userData = app.getPath("userData");
+  let previousRuntime: string | null = null;
+  let attemptedUpgrade = false;
   try {
-    if (await runtimeReady()) {
-      if (await runtimeNeedsUpdate()) {
-        await showSetup();
-        sendSetupProgress({
-          stage: "update",
-          message: `Lokale NORVI-Runtime wird auf v${app.getVersion()} aktualisiert…`,
-          percent: 5,
-        });
-        await installRuntime(detectHardware().profile, sendSetupProgress);
-      }
-      await openNorvi();
-    } else {
+    if (!(await runtimeReady())) {
       await showSetup();
+      return;
+    }
+
+    const needsUpdate = await runtimeNeedsUpdate();
+    const inCooldown = needsUpdate &&
+      (await runtimeUpdateInCooldown(userData, app.getVersion()));
+
+    if (needsUpdate && !inCooldown) {
+      previousRuntime = runtimeDirectory();
+      attemptedUpgrade = true;
+      await showSetup();
+      sendSetupProgress({
+        stage: "update",
+        message: "Lokale NORVI-Runtime wird auf v" + app.getVersion() + " aktualisiert…",
+        percent: 5,
+      });
+      await installRuntime(detectHardware().profile, sendSetupProgress);
+    }
+
+    await openNorvi();
+    if (attemptedUpgrade) {
+      await verifyRuntimeAfterUpgrade();
+      await clearRuntimeUpdateFailure(userData);
     }
   } catch (error) {
+    if (attemptedUpgrade && previousRuntime) {
+      try {
+        await stopRuntimeForRecovery();
+        await restorePreviousRuntime(userData, previousRuntime);
+        await recordRuntimeUpdateFailure(userData, app.getVersion());
+        await openNorvi();
+        if (!backgroundLaunch) {
+          await dialog.showMessageBox({
+            type: "warning",
+            title: "NORVI Update zurückgesetzt",
+            message: "Die neue Runtime konnte nicht starten. Die vorherige Version läuft wieder.",
+            detail: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      } catch (rollbackError) {
+        await showSetup();
+        sendSetupProgress({
+          stage: "error",
+          message: "Update fehlgeschlagen und Rollback nicht möglich: " +
+            (rollbackError instanceof Error ? rollbackError.message : String(rollbackError)),
+        });
+        return;
+      }
+    }
     await showSetup();
     sendSetupProgress({
       stage: "error",
@@ -413,7 +478,6 @@ async function bootProduction() {
     });
   }
 }
-
 function compareVersions(a: string, b: string): number {
   const clean = (value: string) =>
     value
