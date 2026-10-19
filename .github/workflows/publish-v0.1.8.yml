@@ -1,0 +1,117 @@
+name: Publish NORVI v0.1.8
+
+# Release only after main's regular NORVI CI succeeds. GITHUB_TOKEN
+# is deliberately used to create both the tag and the release here:
+# tags pushed with GITHUB_TOKEN do not trigger another workflow.
+on:
+  workflow_run:
+    workflows: ["NORVI CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-v018:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout verified main commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Gate release to v0.1.8
+        id: gate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content packages/desktop/package.json | ConvertFrom-Json).version
+          if ($version -ne "0.1.8") { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
+          if (-not (Test-Path "docs/RELEASE_0.1.8_READY")) { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
+          gh release view "v0.1.8" --repo ${{ github.repository }} *> $null
+          if ($LASTEXITCODE -eq 0) { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
+          "publish=true" >> $env:GITHUB_OUTPUT
+
+      - name: Install Bun
+        if: steps.gate.outputs.publish == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        if: steps.gate.outputs.publish == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Security and runtime regressions
+        if: steps.gate.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          bun deploy/test-v017-atomic-runtime-switch.ts
+          if ($LASTEXITCODE -ne 0) { throw "v0.1.7 regression failed" }
+          bun deploy/test-v018-runtime-recovery.ts
+          if ($LASTEXITCODE -ne 0) { throw "v0.1.8 rollback test failed" }
+          bash deploy/public-release-check.sh
+          if ($LASTEXITCODE -ne 0) { throw "release safety check failed" }
+
+      - name: Build Windows installer
+        if: steps.gate.outputs.publish == 'true'
+        run: bun run dist:windows
+
+      - name: Verify and package installer
+        if: steps.gate.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          $installer = "packages/desktop/release/0.1.8/NORVI-Setup-0.1.8.exe"
+          if (-not (Test-Path $installer)) { throw "NORVI-Setup-0.1.8.exe missing" }
+          if ((Get-Item $installer).Length -lt 5MB) { throw "Installer unexpectedly small" }
+          New-Item -ItemType Directory -Force -Path "publish" | Out-Null
+          Copy-Item $installer "publish/NORVI-Setup-0.1.8.exe"
+          $hash = (Get-FileHash "publish/NORVI-Setup-0.1.8.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  NORVI-Setup-0.1.8.exe" | Set-Content -Path "publish/SHA256SUMS.txt" -Encoding ascii
+          Write-Host "Installer SHA256: $hash"
+
+      - name: Silent install and visible UI smoke
+        if: steps.gate.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path "publish/NORVI-Setup-0.1.8.exe").Path
+          $install = Start-Process -FilePath $setup -ArgumentList "/S" -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Silent installer failed: $($install.ExitCode)" }
+          $exe = Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -Filter "Norvi AI.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "Norvi AI.exe not installed" }
+          $app = Start-Process -FilePath $exe.FullName -ArgumentList "--disable-gpu" -PassThru
+          try {
+            $visible = $false
+            for ($i=0; $i -lt 20; $i++) {
+              Start-Sleep -Seconds 1
+              if ($app.HasExited) { throw "NORVI unexpectedly exited" }
+              $windowTitle = (Get-Process -Id $app.Id -ErrorAction SilentlyContinue).MainWindowTitle
+              if ($windowTitle) { $visible = $true; break }
+            }
+            if (-not $visible) { throw "NORVI did not show its setup window" }
+            Write-Host "Visible UI: $windowTitle"
+          } finally {
+            Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload verified candidate
+        if: steps.gate.outputs.publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: NORVI-v0.1.8-verified-installer
+          path: publish/
+
+      - name: Publish release for NORVI in-app updater
+        if: steps.gate.outputs.publish == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ref = (git rev-parse HEAD).Trim()
+          gh release create "v0.1.8" "publish/NORVI-Setup-0.1.8.exe" "publish/SHA256SUMS.txt" --repo ${{ github.repository }} --target $ref --title "NORVI v0.1.8" --notes-file "docs/RELEASE_NOTES_0.1.8.md" --latest
+          if ($LASTEXITCODE -ne 0) { throw "Release publication failed" }
