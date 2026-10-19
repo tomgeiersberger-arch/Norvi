@@ -33,8 +33,9 @@ jobs:
           $version = (Get-Content packages/desktop/package.json | ConvertFrom-Json).version
           if ($version -ne "0.1.8") { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
           if (-not (Test-Path "docs/RELEASE_0.1.8_READY")) { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
-          gh release view "v0.1.8" --repo ${{ github.repository }} *> $null
-          if ($LASTEXITCODE -eq 0) { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
+          $publishedTags = gh release list --repo $env:GITHUB_REPOSITORY --limit 100 --json tagName --jq ".[].tagName"
+          if ($LASTEXITCODE -ne 0) { throw "GitHub releases could not be listed" }
+          if ($publishedTags -contains "v0.1.8") { "publish=false" >> $env:GITHUB_OUTPUT; exit 0 }
           "publish=true" >> $env:GITHUB_OUTPUT
 
       - name: Install Bun
