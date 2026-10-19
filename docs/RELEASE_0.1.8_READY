@@ -1,0 +1,2 @@
+NORVI v0.1.8 release gate.
+Publish only after NORVI CI on main succeeds and the Windows release job has built and smoke-tested the installer.
