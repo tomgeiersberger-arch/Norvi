@@ -1,11 +1,13 @@
 # NORVI v0.1.8
 
-## Windows update reliability
+## Update-System 2.0 fuer Windows
 
-- Verify the new local services before accepting a runtime upgrade.
-- Automatically reactivate the previous runtime if installation or verification fails.
-- Preserve existing local settings and data.
-- Avoid immediate repeated update attempts after a failed upgrade.
-- Add regression tests for rollback and retry behavior.
+- Beim Aktualisieren prueft NORVI den Start der lokalen Dienste (Bun, NORVI API, Ollama und Whisper/STT).
+- Schlaegt die neue Runtime fehl, aktiviert NORVI automatisch das vorherige Runtime-Verzeichnis und versucht, die bisherige Installation wieder zu starten.
+- Lokale Konfigurationen, Chats, Modelle und andere Nutzerdaten werden beim Update nicht absichtlich geloescht.
+- Nach einem fehlgeschlagenen Upgrade wartet NORVI vor einem neuen automatischen Versuch 24 Stunden, damit keine Endlosschleife entsteht.
+- Regressionstests wurden unter Linux und Windows ausgefuehrt; der Windows-Installer wurde automatisch installiert und sein Start getestet.
 
-This version remains in development until all CI and Windows smoke tests pass.
+## Hinweis
+
+Die Tests pruefen den Installer und das Rueckschalten der Runtime. Ein Upgrade mit realen bestehenden Benutzerdaten auf einem Windows-PC wurde noch nicht manuell nachgestellt. Bitte zur Sicherheit vor dem Update eine Kopie von `%APPDATA%\Norvi AI` anlegen.
