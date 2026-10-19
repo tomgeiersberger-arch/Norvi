@@ -230,6 +230,11 @@ async function stopExistingNorviRuntimeProcess(): Promise<void> {
   );
 }
 
+/** Stop Bun and local Whisper children before restoring the previous runtime. */
+export async function stopRuntimeForRecovery(): Promise<void> {
+  await stopExistingNorviRuntimeProcess();
+}
+
 async function runProcess(
   command: string,
   args: string[],
